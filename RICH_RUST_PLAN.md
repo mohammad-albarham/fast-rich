@@ -71,3 +71,54 @@ All planned rendering, interactive, and export components are implemented.
 - [x] `Live`
 - [x] `inspect` (function)
 - [x] `filesize` (module)
+
+---
+
+## Phase 32-35: `fast_rich` Drop-in Replacement
+
+> Goal: Create `fast_rich` - a 100% API-compatible drop-in replacement for Python `rich`
+
+### Architecture
+```
+User Code (unchanged) → fast_rich/ (Python API) → Rust Core (speed)
+```
+
+### Phase 32: Core API Wrappers
+| Component | Status | Notes |
+| :--- | :---: | :--- |
+| `fast_rich/__init__.py` | [x] | Top-level exports |
+| `fast_rich/console.py` | [x] | Console (full signature) |
+| `fast_rich/table.py` | [x] | Table class |
+| `fast_rich/text.py` | [x] | Text class |
+| `fast_rich/style.py` | [x] | Style class |
+| `fast_rich/panel.py` | [x] | Panel class |
+| `fast_rich/rule.py` | [x] | Rule class |
+| `fast_rich/box.py` | [x] | Box styles |
+
+### Phase 33: Extended Components
+| Component | Status | Notes |
+| :--- | :---: | :--- |
+| `fast_rich/progress.py` | [x] | Progress, track() |
+| `fast_rich/tree.py` | [x] | Tree class |
+| `fast_rich/markdown.py` | [x] | Markdown class |
+| `fast_rich/syntax.py` | [x] | Syntax class |
+| `fast_rich/columns.py` | [x] | Columns class |
+| `fast_rich/traceback.py` | [x] | Traceback, install() |
+| `fast_rich/layout.py` | [x] | Layout class |
+| `fast_rich/live.py` | [x] | Live context manager |
+| `fast_rich/prompt.py` | [x] | Prompt, Confirm |
+| `fast_rich/inspect.py` | [x] | inspect() |
+
+### Phase 34: Parity Tests & Benchmarks
+| Task | Status | Notes |
+| :--- | :---: | :--- |
+| Parity test suite | [x] | 28/28 tests pass |
+| Benchmark comparison | [ ] | Performance vs `rich` |
+
+### Phase 35: Documentation & Publish
+| Task | Status | Notes |
+| :--- | :---: | :--- |
+| `fast_rich/README.md` | [x] | Usage docs |
+| `FAST_RICH_PARITY.md` | [ ] | Known differences |
+| PyPI publish (`fast-rich`) | [ ] | Public release |
+

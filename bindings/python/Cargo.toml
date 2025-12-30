@@ -1,6 +1,6 @@
 [package]
 name = "rich-rust-py"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Python bindings for rich-rust"
 publish = false
@@ -13,4 +13,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = "0.23", features = ["extension-module", "abi3-py310"] }
-rich-rust = { path = "../..", features = ["markdown", "syntax"] }
+rich-rust = { path = "../..", version = "0.2.0", features = ["markdown", "syntax"] }

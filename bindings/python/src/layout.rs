@@ -3,6 +3,7 @@ use rich_rust::layout::Layout;
 
 #[pyclass(name = "Layout")]
 pub struct PyLayout {
+    #[allow(dead_code)]
     inner: Layout,
 }
 

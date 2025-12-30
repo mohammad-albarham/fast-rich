@@ -13,6 +13,12 @@ pub struct Live {
     rendering: Arc<Mutex<bool>>,
 }
 
+impl Default for Live {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Live {
     /// Create a new Live display.
     pub fn new() -> Self {

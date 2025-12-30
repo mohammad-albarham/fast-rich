@@ -33,7 +33,7 @@ use pyo3::prelude::*;
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn rich_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyConsole>()?;
     m.add_class::<PyStyle>()?;
     m.add_class::<PyTable>()?;

@@ -16,9 +16,14 @@ pub struct PyConsole {
 #[pymethods]
 impl PyConsole {
     #[new]
-    fn new() -> Self {
+    #[pyo3(signature = (force_terminal = None))]
+    fn new(force_terminal: Option<bool>) -> Self {
+        let mut console = Console::new();
+        if let Some(force) = force_terminal {
+            console = console.force_color(force);
+        }
         PyConsole {
-            inner: Console::new(),
+            inner: console,
         }
     }
 

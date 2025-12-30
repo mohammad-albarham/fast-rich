@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "fast-rich"
-version = "0.2.0"
+version = "0.3.1"
 description = "A drop-in replacement for Python Rich, powered by Rust for maximum performance"
 readme = "fast_rich/README.md"
 requires-python = ">=3.10"
@@ -33,7 +33,7 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/mohammad-albarham/fast-rich"
 Repository = "https://github.com/mohammad-albarham/fast-rich"
-Documentation = "https://github.com/mohammad-albarham/fast-rich#readme"
+Documentation = "https://mohammad-albarham.github.io/fast-rich"
 
 [project.optional-dependencies]
 dev = [

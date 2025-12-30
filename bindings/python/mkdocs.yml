@@ -35,11 +35,6 @@ theme:
 
 plugins:
   - search
-  - mkdocstrings:
-      handlers:
-        python:
-          options:
-            show_source: true
 
 markdown_extensions:
   - pymdownx.highlight:

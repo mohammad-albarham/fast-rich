@@ -1,6 +1,6 @@
 site_name: fast_rich
 site_description: A drop-in replacement for Python Rich with Rust performance
-site_url: https://mohammad-albarham.github.io/fast-rich
+site_url: https://mohammad-albarham.github.io/fast-rich 
 repo_url: https://github.com/mohammad-albarham/fast-rich
 repo_name: mohammad-albarham/fast-rich
 

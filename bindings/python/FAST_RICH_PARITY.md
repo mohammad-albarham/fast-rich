@@ -88,7 +88,7 @@ Most code works without changes. Test these scenarios:
 
 ### Step 3: Report Issues
 If you find compatibility issues, please report them at:
-https://github.com/mohammad-albarham/rich-rust/issues
+https://github.com/mohammad-albarham/fast-rich/issues
 
 ---
 

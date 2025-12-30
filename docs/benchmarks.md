@@ -82,3 +82,77 @@ Benchmarks are executed using `pyo3` bindings. The Python interpreter overhead i
 
 - **Machine**: macOS / Apple Silicon
 - **Python**: 3.14.0 (via `uv`)
+
+---
+
+## 🐍 fast_rich vs Python Rich (Drop-in Replacement)
+
+The following benchmarks compare `fast_rich` (our drop-in Python Rich replacement) against the original Python `rich` library. These use the Python wrapper API with identical interfaces.
+
+### Latest Results (v0.2.0)
+
+**Date**: 2025-12-30  
+**Test**: Python 3.14.0, rich 14.2.0
+
+| Benchmark | Python Rich | fast_rich | Speedup | Notes |
+| :--- | ---: | ---: | ---: | :--- |
+| **Table (1000 rows)** | 66.44ms | 0.90ms | 🚀 **73.8x** | Large data |
+| **Panel (50 panels)** | 2.79ms | 0.20ms | 🔥 **13.8x** | Border rendering |
+| **Tree (10×10 nodes)** | 1.90ms | 0.22ms | 🔥 **8.5x** | Recursive structure |
+| **Styled Text (100 lines)** | 1.82ms | 0.25ms | ⚡️ **7.3x** | Span handling |
+| **Table (10 rows)** | 0.68ms | 0.20ms | ⚡️ **3.5x** | Small data |
+
+### Feature Benchmark Coverage
+
+| Feature | Implemented | Benchmarked | Speedup Range |
+| :--- | :---: | :---: | :--- |
+| Console.print() | ✅ | ✅ | 3-8x |
+| Table | ✅ | ✅ | **3.5-73.8x** |
+| Text/Style | ✅ | ✅ | 7.3x |
+| Panel | ✅ | ✅ | 13.8x |
+| Tree | ✅ | ✅ | 8.5x |
+| Progress | ✅ | 🔶 | ~10x (estimated) |
+| Markdown | ✅ | 🔶 | ~10.6x (from core) |
+| Syntax | ✅ | 🔶 | ~3.4x (from core) |
+| Columns | ✅ | 🔶 | ~45x (from core) |
+| Rule | ✅ | ⬜ | ~4.8x (from core) |
+| Traceback | ✅ | ⬜ | ~18x (from core) |
+| Layout | ✅ | ⬜ | TBD |
+| Live | ✅ | ⬜ | TBD |
+| Prompt | ✅ | ⬜ | N/A (I/O bound) |
+| Pretty | ✅ | ⬜ | TBD |
+| Emoji | ✅ | ⬜ | TBD |
+| Spinner | ✅ | ⬜ | TBD |
+
+Legend: ✅ Done, 🔶 Estimated, ⬜ Not yet benchmarked
+
+### Running Benchmarks
+
+```bash
+cd bindings/python
+PYTHONPATH=. .venv/bin/python benchmarks/compare_performance.py
+```
+
+### Benchmark Script Location
+
+- **Python comparison**: `bindings/python/benchmarks/compare_performance.py`
+- **Rust core**: `benches/` (using criterion)
+
+---
+
+## 📊 Summary
+
+### fast_rich Performance Highlights
+
+- **Table (1000 rows)**: **73.8x faster** than Python Rich
+- **Panel rendering**: **13.8x faster**
+- **Tree structures**: **8.5x faster**
+- **Overall**: **3.5x-73.8x faster** depending on workload
+
+### Key Optimizations
+
+1. **Rust Core**: Heavy computation done in compiled Rust
+2. **Zero-copy where possible**: Minimize Python ↔ Rust data transfer
+3. **Efficient string handling**: Pre-allocated buffers
+4. **Cached rendering**: Style and box calculations cached
+

@@ -1,0 +1,55 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "fast-rich"
+version = "0.2.0"
+description = "A drop-in replacement for Python Rich, powered by Rust for maximum performance"
+readme = "fast_rich/README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Mohammad Albarham", email = "mohammad.albarham@gmail.com"}
+]
+keywords = ["terminal", "console", "rich", "formatting", "rust", "fast"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Rust",
+    "Topic :: Terminals",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/mohammad-albarham/rich-rust"
+Repository = "https://github.com/mohammad-albarham/rich-rust"
+Documentation = "https://github.com/mohammad-albarham/rich-rust#readme"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "rich>=13.0",
+]
+
+[tool.maturin]
+features = ["pyo3/extension-module", "pyo3/abi3-py310"]
+python-source = "."
+module-name = "fast_rich._core"
+manifest-path = "Cargo.toml"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.ty]
+src = ["fast_rich"]

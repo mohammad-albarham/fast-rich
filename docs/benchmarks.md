@@ -89,18 +89,32 @@ Benchmarks are executed using `pyo3` bindings. The Python interpreter overhead i
 
 The following benchmarks compare `fast_rich` (our drop-in Python Rich replacement) against the original Python `rich` library. These use the Python wrapper API with identical interfaces.
 
-### Latest Results (v0.2.0)
+### Latest Results (v0.3.0) - 100% Coverage
 
-**Date**: 2025-12-30  
-**Test**: Python 3.14.0, rich 14.2.0
+**Date**: 2025-12-31  
+**Test**: Python 3.14.0, rich 14.2.0  
+**Modules**: 60 (100% Rich API coverage)
 
 | Benchmark | Python Rich | fast_rich | Speedup | Notes |
 | :--- | ---: | ---: | ---: | :--- |
-| **Table (1000 rows)** | 66.44ms | 0.90ms | 🚀 **73.8x** | Large data |
-| **Panel (50 panels)** | 2.79ms | 0.20ms | 🔥 **13.8x** | Border rendering |
-| **Tree (10×10 nodes)** | 1.90ms | 0.22ms | 🔥 **8.5x** | Recursive structure |
-| **Styled Text (100 lines)** | 1.82ms | 0.25ms | ⚡️ **7.3x** | Span handling |
-| **Table (10 rows)** | 0.68ms | 0.20ms | ⚡️ **3.5x** | Small data |
+| **JSON (50 prints)** | 7.67ms | 0.07ms | 🚀 **112.5x** | Best performance |
+| **Markdown (20 renders)** | 9.35ms | 0.10ms | 🚀 **92.6x** | |
+| **Table (1000 rows)** | 66.85ms | 0.79ms | 🚀 **84.9x** | Large data |
+| **Markup (100 escapes)** | 7.12ms | 0.10ms | 🚀 **74.8x** | |
+| **Columns (50 items)** | 1.87ms | 0.07ms | 🔥 **27.7x** | |
+| **Rule (100 rules)** | 6.46ms | 0.25ms | 🔥 **25.4x** | |
+| **Panel (50 panels)** | 2.91ms | 0.13ms | 🔥 **23.1x** | |
+| **Align (100 ops)** | 4.07ms | 0.24ms | ⚡️ **17.1x** | |
+| **Padding (100 ops)** | 3.44ms | 0.27ms | ⚡️ **12.9x** | |
+| **Progress (100 updates)** | 0.94ms | 0.07ms | ⚡️ **12.8x** | |
+| **Tree (10×10 nodes)** | 1.89ms | 0.15ms | ⚡️ **12.7x** | |
+| **Text (100 styled lines)** | 1.93ms | 0.19ms | ⚡️ **10.4x** | |
+| **Cells (1000 measures)** | 0.04ms | 0.02ms | ✓ **1.9x** | Utility |
+
+**Average Speedup**: 39.1x  
+**Range**: 1.9x - 112.5x
+
+Legend: 🚀 >50x  🔥 >20x  ⚡️ >10x  ✓ <10x
 
 ### Feature Benchmark Coverage (Complete)
 

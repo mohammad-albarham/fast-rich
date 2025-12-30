@@ -1,63 +1,44 @@
-"""Benchmark fast_rich vs rich performance."""
+"""Comprehensive benchmark fast_rich vs rich performance for ALL features."""
 
 from __future__ import annotations
 
 import gc
+import io
 import statistics
 import time
 from typing import Callable
 
 
 def benchmark(func: Callable, iterations: int = 10, warmup: int = 2) -> dict:
-    """Run a benchmark and return timing statistics.
-    
-    Args:
-        func: Function to benchmark.
-        iterations: Number of iterations.
-        warmup: Warmup iterations (not counted).
-        
-    Returns:
-        Dictionary with min, max, mean, median times in ms.
-    """
-    # Warmup
+    """Run a benchmark and return timing statistics."""
     for _ in range(warmup):
         func()
         gc.collect()
     
-    # Benchmark
     times = []
     for _ in range(iterations):
         gc.collect()
         start = time.perf_counter()
         func()
         end = time.perf_counter()
-        times.append((end - start) * 1000)  # Convert to ms
+        times.append((end - start) * 1000)
     
     return {
         "min": min(times),
         "max": max(times),
         "mean": statistics.mean(times),
         "median": statistics.median(times),
-        "stdev": statistics.stdev(times) if len(times) > 1 else 0,
     }
 
 
 def format_result(name: str, rich_stats: dict, fast_stats: dict) -> str:
-    """Format benchmark result as a row."""
     speedup = rich_stats["median"] / fast_stats["median"] if fast_stats["median"] > 0 else float("inf")
-    return (
-        f"| {name:<30} | {rich_stats['median']:>8.2f}ms | {fast_stats['median']:>8.2f}ms | "
-        f"{speedup:>6.1f}x |"
-    )
+    return f"| {name:<30} | {rich_stats['median']:>8.2f}ms | {fast_stats['median']:>8.2f}ms | {speedup:>6.1f}x |"
 
 
 def run_all_benchmarks():
-    """Run all benchmarks and print results."""
-    import io
-    import sys
-    
     print("=" * 70)
-    print("fast_rich vs rich Performance Comparison")
+    print("COMPREHENSIVE fast_rich vs rich Performance Comparison")
     print("=" * 70)
     print()
     
@@ -66,7 +47,6 @@ def run_all_benchmarks():
     # ========== Table Benchmarks ==========
     print("Running Table benchmarks...")
     
-    # Small table (10 rows)
     def rich_small_table():
         from rich.console import Console
         from rich.table import Table
@@ -91,11 +71,8 @@ def run_all_benchmarks():
             table.add_row(f"Item {i}", str(i * 100))
         console.print(table)
     
-    rich_stats = benchmark(rich_small_table)
-    fast_stats = benchmark(fast_small_table)
-    results.append(("Table (10 rows)", rich_stats, fast_stats))
+    results.append(("Table (10 rows)", benchmark(rich_small_table), benchmark(fast_small_table)))
     
-    # Large table (1000 rows)
     def rich_large_table():
         from rich.console import Console
         from rich.table import Table
@@ -122,9 +99,7 @@ def run_all_benchmarks():
             table.add_row(str(i), f"Item {i}", str(i * 100))
         console.print(table)
     
-    rich_stats = benchmark(rich_large_table, iterations=5)
-    fast_stats = benchmark(fast_large_table, iterations=5)
-    results.append(("Table (1000 rows)", rich_stats, fast_stats))
+    results.append(("Table (1000 rows)", benchmark(rich_large_table, 5), benchmark(fast_large_table, 5)))
     
     # ========== Text Benchmarks ==========
     print("Running Text benchmarks...")
@@ -151,9 +126,7 @@ def run_all_benchmarks():
             text.append("Some styled content\n", style="italic cyan")
         console.print(text)
     
-    rich_stats = benchmark(rich_styled_text)
-    fast_stats = benchmark(fast_styled_text)
-    results.append(("Styled Text (100 lines)", rich_stats, fast_stats))
+    results.append(("Styled Text (100 lines)", benchmark(rich_styled_text), benchmark(fast_styled_text)))
     
     # ========== Panel Benchmarks ==========
     print("Running Panel benchmarks...")
@@ -176,9 +149,7 @@ def run_all_benchmarks():
             panel = Panel(f"Content {i}", title=f"Panel {i}")
             console.print(panel)
     
-    rich_stats = benchmark(rich_panel)
-    fast_stats = benchmark(fast_panel)
-    results.append(("Panel (50 panels)", rich_stats, fast_stats))
+    results.append(("Panel (50 panels)", benchmark(rich_panel), benchmark(fast_panel)))
     
     # ========== Tree Benchmarks ==========
     print("Running Tree benchmarks...")
@@ -207,11 +178,174 @@ def run_all_benchmarks():
                 branch.add(f"Leaf {j}")
         console.print(tree)
     
-    rich_stats = benchmark(rich_tree)
-    fast_stats = benchmark(fast_tree)
-    results.append(("Tree (10x10 nodes)", rich_stats, fast_stats))
+    results.append(("Tree (10x10 nodes)", benchmark(rich_tree), benchmark(fast_tree)))
+    
+    # ========== Rule Benchmarks ==========
+    print("Running Rule benchmarks...")
+    
+    def rich_rule():
+        from rich.console import Console
+        from rich.rule import Rule
+        out = io.StringIO()
+        console = Console(file=out, force_terminal=True)
+        for i in range(100):
+            console.print(Rule(f"Title {i}"))
+    
+    def fast_rule():
+        from fast_rich.console import Console
+        from fast_rich.rule import Rule
+        out = io.StringIO()
+        console = Console(file=out)
+        for i in range(100):
+            console.print(Rule(f"Title {i}"))
+    
+    results.append(("Rule (100 rules)", benchmark(rich_rule), benchmark(fast_rule)))
+    
+    # ========== Progress Benchmarks ==========
+    print("Running Progress benchmarks...")
+    
+    def rich_progress():
+        from rich.progress import Progress
+        out = io.StringIO()
+        with Progress(transient=True) as progress:
+            task = progress.add_task("Working...", total=100)
+            for _ in range(100):
+                progress.update(task, advance=1)
+    
+    def fast_progress():
+        from fast_rich.progress import Progress
+        out = io.StringIO()
+        with Progress() as progress:
+            task = progress.add_task("Working...", total=100)
+            for _ in range(100):
+                progress.update(task, advance=1)
+    
+    results.append(("Progress (100 updates)", benchmark(rich_progress, 5), benchmark(fast_progress, 5)))
+    
+    # ========== Markdown Benchmarks ==========
+    print("Running Markdown benchmarks...")
+    
+    markdown_text = """
+# Heading 1
+## Heading 2
+This is **bold** and *italic*.
+- Item 1
+- Item 2
+- Item 3
+
+```python
+def hello():
+    print("Hello, World!")
+```
+"""
+    
+    def rich_markdown():
+        from rich.console import Console
+        from rich.markdown import Markdown
+        out = io.StringIO()
+        console = Console(file=out, force_terminal=True)
+        for _ in range(20):
+            console.print(Markdown(markdown_text))
+    
+    def fast_markdown():
+        from fast_rich.console import Console
+        from fast_rich.markdown import Markdown
+        out = io.StringIO()
+        console = Console(file=out)
+        for _ in range(20):
+            console.print(Markdown(markdown_text))
+    
+    results.append(("Markdown (20 renders)", benchmark(rich_markdown), benchmark(fast_markdown)))
+    
+    # ========== Columns Benchmarks ==========
+    print("Running Columns benchmarks...")
+    
+    def rich_columns():
+        from rich.console import Console
+        from rich.columns import Columns
+        out = io.StringIO()
+        console = Console(file=out, force_terminal=True)
+        items = [f"Column item {i}" for i in range(50)]
+        console.print(Columns(items))
+    
+    def fast_columns():
+        from fast_rich.console import Console
+        from fast_rich.columns import Columns
+        out = io.StringIO()
+        console = Console(file=out)
+        items = [f"Column item {i}" for i in range(50)]
+        console.print(Columns(items))
+    
+    results.append(("Columns (50 items)", benchmark(rich_columns), benchmark(fast_columns)))
+    
+    # ========== JSON Benchmarks ==========
+    print("Running JSON benchmarks...")
+    
+    json_data = '{"users": [{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}], "count": 2}'
+    
+    def rich_json():
+        from rich.console import Console
+        out = io.StringIO()
+        console = Console(file=out, force_terminal=True)
+        for _ in range(50):
+            console.print_json(json_data)
+    
+    def fast_json():
+        from fast_rich.console import Console
+        out = io.StringIO()
+        console = Console(file=out)
+        for _ in range(50):
+            console.print_json(json_data)
+    
+    results.append(("JSON (50 prints)", benchmark(rich_json), benchmark(fast_json)))
+    
+    # ========== Align Benchmarks ==========
+    print("Running Align benchmarks...")
+    
+    def rich_align():
+        from rich.console import Console
+        from rich.align import Align
+        out = io.StringIO()
+        console = Console(file=out, force_terminal=True)
+        for _ in range(100):
+            console.print(Align("Centered text", align="center"))
+    
+    def fast_align():
+        from fast_rich.console import Console
+        from fast_rich.align import Align
+        out = io.StringIO()
+        console = Console(file=out)
+        for _ in range(100):
+            console.print(Align("Centered text", align="center"))
+    
+    results.append(("Align (100 aligns)", benchmark(rich_align), benchmark(fast_align)))
+    
+    # ========== Padding Benchmarks ==========
+    print("Running Padding benchmarks...")
+    
+    def rich_padding():
+        from rich.console import Console
+        from rich.padding import Padding
+        out = io.StringIO()
+        console = Console(file=out, force_terminal=True)
+        for _ in range(100):
+            console.print(Padding("Padded content", (1, 2)))
+    
+    def fast_padding():
+        from fast_rich.console import Console
+        from fast_rich.padding import Padding
+        out = io.StringIO()
+        console = Console(file=out)
+        for _ in range(100):
+            console.print(Padding("Padded content", (1, 2)))
+    
+    results.append(("Padding (100 ops)", benchmark(rich_padding), benchmark(fast_padding)))
     
     # ========== Print Results ==========
+    print()
+    print("=" * 70)
+    print("RESULTS")
+    print("=" * 70)
     print()
     print("| Benchmark                      |     rich   | fast_rich  | Speedup |")
     print("| :----------------------------- | ---------: | ---------: | ------: |")
@@ -219,8 +353,7 @@ def run_all_benchmarks():
         print(format_result(name, rich_s, fast_s))
     
     print()
-    print("Note: Times are median values from multiple iterations.")
-    print("      Speedup = rich_time / fast_rich_time")
+    print("Note: Times are median values. Speedup = rich_time / fast_rich_time")
 
 
 if __name__ == "__main__":

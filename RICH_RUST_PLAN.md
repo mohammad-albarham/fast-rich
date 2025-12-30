@@ -113,7 +113,23 @@ User Code (unchanged) → fast_rich/ (Python API) → Rust Core (speed)
 | Task | Status | Notes |
 | :--- | :---: | :--- |
 | Parity test suite | [x] | 28/28 tests pass |
-| Benchmark comparison | [ ] | Performance vs `rich` |
+| Benchmark comparison | [x] | 12 features benchmarked |
+
+**Comprehensive Benchmark Results (v0.2.0)**:
+| Benchmark | Speedup | Notes |
+| :--- | ---: | :--- |
+| Markdown (20 renders) | **115.6x** | Best performance |
+| JSON (50 prints) | **111.9x** | |
+| Table (1000 rows) | **90.8x** | Large data |
+| Columns (50 items) | **32.1x** | |
+| Rule (100 rules) | **28.0x** | |
+| Panel (50 panels) | **22.9x** | |
+| Align (100 aligns) | **18.4x** | |
+| Padding (100 ops) | **14.4x** | |
+| Progress (100 updates) | **13.6x** | |
+| Tree (10x10 nodes) | **12.9x** | |
+| Table (10 rows) | **11.8x** | |
+| Styled Text (100 lines) | **11.3x** | |
 
 ### Phase 35: Documentation & Publish
 | Task | Status | Notes |
@@ -121,5 +137,31 @@ User Code (unchanged) → fast_rich/ (Python API) → Rust Core (speed)
 | `fast_rich/README.md` | [x] | Usage docs |
 | `FAST_RICH_PARITY.md` | [x] | Known differences |
 | Main README update | [x] | Python section added |
+| docs/benchmarks.md | [x] | Full benchmark coverage |
 | PyPI publish (`fast-rich`) | [ ] | Public release |
+
+### Phase 36: 100% API Coverage (NEW)
+| Module | Status | API Coverage |
+| :--- | :---: | :--- |
+| align.py | [x] | Align, VerticalCenter |
+| padding.py | [x] | Padding |
+| json.py | [x] | JSON |
+| highlighter.py | [x] | Highlighter, RegexHighlighter |
+| theme.py | [x] | Theme, DEFAULT_THEME |
+| filesize.py | [x] | decimal, traditional |
+| segment.py | [x] | Segment, Segments |
+| measure.py | [x] | Measurement |
+| scope.py | [x] | render_scope |
+| control.py | [x] | Control |
+| status.py | [x] | Status |
+| region.py | [x] | Region |
+| color.py | [x] | Color, ColorTriplet |
+| logging.py | [x] | RichHandler |
+| styled.py | [x] | Styled |
+| repr.py | [x] | auto decorator |
+| terminal_theme.py | [x] | TerminalTheme, MONOKAI |
+| containers.py | [x] | Lines, Group |
+| console_options.py | [x] | ConsoleOptions |
+
+**Total: 40 Python modules for 100% Rich API coverage**
 

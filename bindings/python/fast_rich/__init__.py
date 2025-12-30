@@ -53,6 +53,33 @@ from fast_rich.pretty import Pretty, pprint
 from fast_rich.emoji import Emoji
 from fast_rich.spinner import Spinner
 
+# 100% coverage modules
+from fast_rich.status import Status
+from fast_rich.align import Align, VerticalCenter
+from fast_rich.padding import Padding
+from fast_rich.json import JSON
+from fast_rich.highlighter import (
+    Highlighter,
+    NullHighlighter,
+    RegexHighlighter,
+    ReprHighlighter,
+    JSONHighlighter,
+)
+from fast_rich.theme import Theme, DEFAULT_THEME
+from fast_rich.filesize import decimal as filesize
+from fast_rich.segment import Segment, Segments
+from fast_rich.measure import Measurement
+from fast_rich.scope import render_scope
+from fast_rich.control import Control
+from fast_rich.region import Region
+from fast_rich.color import Color, ColorTriplet
+from fast_rich.logging import RichHandler
+from fast_rich.styled import Styled
+from fast_rich.repr import auto as repr_auto
+from fast_rich.terminal_theme import TerminalTheme, MONOKAI
+from fast_rich.containers import Lines, Renderables, Group, group
+from fast_rich.console_options import ConsoleOptions, ConsoleDimensions
+
 # Global print function
 from fast_rich._print import print
 
@@ -93,7 +120,48 @@ __all__ = [
     "pprint",
     "Emoji",
     "Spinner",
+    "Status",
+    # 100% coverage - Alignment & Layout
+    "Align",
+    "VerticalCenter",
+    "Padding",
+    # JSON
+    "JSON",
+    # Highlighters
+    "Highlighter",
+    "NullHighlighter",
+    "RegexHighlighter",
+    "ReprHighlighter",
+    "JSONHighlighter",
+    # Theme
+    "Theme",
+    "DEFAULT_THEME",
+    "TerminalTheme",
+    "MONOKAI",
     # Utilities
+    "filesize",
+    "Segment",
+    "Segments",
+    "Measurement",
+    "render_scope",
+    "Control",
+    "Region",
+    "Color",
+    "ColorTriplet",
+    "Styled",
+    "repr_auto",
+    # Containers
+    "Lines",
+    "Renderables",
+    "Group",
+    "group",
+    # Console
+    "ConsoleOptions",
+    "ConsoleDimensions",
+    # Logging
+    "RichHandler",
+    # Global print
     "print",
 ]
+
 

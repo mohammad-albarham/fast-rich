@@ -51,5 +51,4 @@ manifest-path = "Cargo.toml"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 
-[tool.ty]
-src = ["fast_rich"]
+# ty linter config - use default settings

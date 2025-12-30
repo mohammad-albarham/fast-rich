@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use rich_rust::console::{Console, RenderContext};
+use rich_rust::console::RenderContext;
 use rich_rust::markup;
 use rich_rust::prelude::*;
 use rich_rust::table::Table;

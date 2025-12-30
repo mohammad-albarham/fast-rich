@@ -42,6 +42,8 @@ pub mod text;
 
 // Renderables
 pub mod columns;
+pub mod filesize;
+pub mod log;
 pub mod panel;
 pub mod rule;
 pub mod table;
@@ -52,7 +54,7 @@ pub mod progress;
 
 // Utilities
 pub mod inspect;
-pub mod log;
+pub mod prompt;
 pub mod traceback;
 
 // Optional feature-gated modules

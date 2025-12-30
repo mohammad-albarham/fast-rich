@@ -22,13 +22,12 @@ where
     I: Iterator,
 {
     fn new(inner: I, description: &str, total: Option<u64>) -> Self {
-        let progress = Progress::new()
-            .columns(vec![
-                ProgressColumn::Description,
-                ProgressColumn::Bar,
-                ProgressColumn::Percentage,
-                ProgressColumn::Count,
-            ]);
+        let progress = Progress::new().columns(vec![
+            ProgressColumn::Description,
+            ProgressColumn::Bar,
+            ProgressColumn::Percentage,
+            ProgressColumn::Count,
+        ]);
 
         let task_id = progress.add_task(description, total);
 

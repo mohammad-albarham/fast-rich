@@ -1,7 +1,7 @@
-use pyo3::prelude::*;
-use rich_rust::text::{Text, Span};
-use rich_rust::style::Style;
 use crate::style::PyStyle;
+use pyo3::prelude::*;
+use rich_rust::style::Style;
+use rich_rust::text::{Span, Text};
 
 #[pyclass(name = "Span")]
 #[derive(Clone)]
@@ -14,7 +14,11 @@ impl PySpan {
     #[new]
     #[pyo3(signature = (text, style=None))]
     fn new(text: String, style: Option<PyStyle>) -> Self {
-        let s = if let Some(ps) = style { ps.inner } else { Style::new() };
+        let s = if let Some(ps) = style {
+            ps.inner
+        } else {
+            Style::new()
+        };
         PySpan {
             inner: Span::styled(text, s),
         }
@@ -47,10 +51,14 @@ impl PyText {
 
     #[pyo3(signature = (text, style=None))]
     fn append(&mut self, text: &str, style: Option<PyStyle>) {
-        let s = if let Some(ps) = style { ps.inner } else { Style::new() };
+        let s = if let Some(ps) = style {
+            ps.inner
+        } else {
+            Style::new()
+        };
         self.inner.push_styled(text.to_string(), s);
     }
-    
+
     fn set_style(&mut self, _start: usize, _end: usize, _style: PyStyle) {
         // Simple approximation: apply style to spans that overlap?
         // rich-rust native Text doesn't support range-based styling post-construction easily yet without split_at

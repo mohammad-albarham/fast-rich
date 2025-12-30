@@ -2,7 +2,7 @@
 //!
 //! Demonstrates the high-performance syntax highlighting capabilities using syntect.
 
-use rich_rust::{Console, syntax::Syntax};
+use rich_rust::{syntax::Syntax, Console};
 
 fn main() {
     let console = Console::new();
@@ -35,14 +35,11 @@ host = "0.0.0.0"
     console.println("");
 
     console.println("[yellow]Python Code (Solarized):[/]");
-    let syntax = Syntax::new(python_code, "python")
-        .theme(rich_rust::syntax::Theme::SolarizedDark);
+    let syntax = Syntax::new(python_code, "python").theme(rich_rust::syntax::Theme::SolarizedDark);
     console.print_renderable(&syntax);
     console.println("");
-    
+
     console.println("[yellow]TOML Config (No Panel):[/]");
-    let syntax = Syntax::new(config, "toml")
-        .panel(false)
-        .line_numbers(false);
+    let syntax = Syntax::new(config, "toml").panel(false).line_numbers(false);
     console.print_renderable(&syntax);
 }

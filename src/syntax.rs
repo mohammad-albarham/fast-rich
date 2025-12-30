@@ -8,11 +8,11 @@ use crate::panel::{BorderStyle, Panel};
 use crate::renderable::{Renderable, Segment};
 use crate::style::{Color, Style};
 use crate::text::{Span, Text};
+use std::sync::OnceLock;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style as SyntectStyle, ThemeSet};
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
-use std::sync::OnceLock;
 
 static SYNTAX_SET: OnceLock<SyntaxSet> = OnceLock::new();
 static THEME_SET: OnceLock<ThemeSet> = OnceLock::new();
@@ -84,8 +84,6 @@ pub struct Syntax {
     language: String,
     /// Configuration
     config: SyntaxConfig,
-
-
 }
 
 impl Syntax {
@@ -221,10 +219,7 @@ impl Renderable for Syntax {
 
             panel.render(context)
         } else {
-            highlighted_lines
-                .into_iter()
-                .map(Segment::line)
-                .collect()
+            highlighted_lines.into_iter().map(Segment::line).collect()
         }
     }
 }
@@ -267,8 +262,7 @@ mod tests {
 
     #[test]
     fn test_syntax_themes() {
-        let syntax = Syntax::new("let x = 42;", "rust")
-            .theme(Theme::SolarizedDark);
+        let syntax = Syntax::new("let x = 42;", "rust").theme(Theme::SolarizedDark);
         let context = RenderContext { width: 60 };
         let segments = syntax.render(&context);
 

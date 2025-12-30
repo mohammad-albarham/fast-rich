@@ -13,7 +13,7 @@ impl PyMarkdown {
     fn new(markup: &str, code_theme: Option<String>, justify: Option<bool>) -> Self {
         // Rust Markdown struct primarily takes string content.
         // TODO: Pass theme and justify to Rust Markdown if supported.
-        let _ = code_theme; 
+        let _ = code_theme;
         let _ = justify;
         PyMarkdown {
             inner: Markdown::new(markup),

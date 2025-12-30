@@ -186,7 +186,11 @@ impl Text {
 
     fn truncate_spans(&self, width: usize, ellipsis: bool) -> Vec<Span> {
         let mut result = Vec::new();
-        let mut remaining_width = if ellipsis { width.saturating_sub(1) } else { width };
+        let mut remaining_width = if ellipsis {
+            width.saturating_sub(1)
+        } else {
+            width
+        };
 
         for span in &self.spans {
             if remaining_width == 0 {
@@ -371,8 +375,8 @@ fn break_word(word: &str, max_width: usize) -> Vec<String> {
         let grapheme_width = UnicodeWidthStr::width(grapheme);
 
         if current_width + grapheme_width > max_width && !current.is_empty() {
-                parts.push(std::mem::take(&mut current));
-                current_width = 0;
+            parts.push(std::mem::take(&mut current));
+            current_width = 0;
         }
 
         current.push_str(grapheme);

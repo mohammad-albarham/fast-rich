@@ -13,5 +13,5 @@ mod track;
 
 pub use bar::{Progress, ProgressBar, ProgressColumn, Task};
 pub use spinner::{Spinner, SpinnerStyle};
-pub use status::{Status, with_status};
+pub use status::{with_status, Status};
 pub use track::track;

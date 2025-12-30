@@ -25,7 +25,7 @@ impl PyProgress {
     fn update(&mut self, task_id: usize, completed: u64) {
         self.inner.update(task_id, completed);
     }
-    
+
     /// Advance a task's progress.
     fn advance(&mut self, task_id: usize, amount: u64) {
         self.inner.advance(task_id, amount);

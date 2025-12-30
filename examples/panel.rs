@@ -9,8 +9,7 @@ fn main() {
     console.println("");
 
     // Basic panel
-    let panel = Panel::new("This is a basic panel with some content.")
-        .title("Basic Panel");
+    let panel = Panel::new("This is a basic panel with some content.").title("Basic Panel");
     console.print_renderable(&panel);
 
     console.println("");
@@ -35,9 +34,7 @@ fn main() {
     ];
 
     for (style, name) in styles {
-        let panel = Panel::new("Content here")
-            .title(name)
-            .border_style(style);
+        let panel = Panel::new("Content here").title(name).border_style(style);
         console.print_renderable(&panel);
         console.println("");
     }

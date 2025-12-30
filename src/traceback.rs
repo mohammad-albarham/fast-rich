@@ -58,9 +58,9 @@ impl Traceback {
             },
         };
 
-        let location = info.location().map(|loc| {
-            format!("{}:{}:{}", loc.file(), loc.line(), loc.column())
-        });
+        let location = info
+            .location()
+            .map(|loc| format!("{}:{}:{}", loc.file(), loc.line(), loc.column()));
 
         Traceback {
             message,
@@ -138,7 +138,11 @@ impl Traceback {
         let mut result = String::new();
         for (i, line) in lines.iter().enumerate().take(end).skip(start) {
             let line_number = i + 1;
-            let prefix = if line_number == line_num { "→ " } else { "  " };
+            let prefix = if line_number == line_num {
+                "→ "
+            } else {
+                "  "
+            };
             result.push_str(&format!("{}{:4} │ {}\n", prefix, line_number, line));
         }
 

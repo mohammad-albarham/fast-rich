@@ -274,12 +274,7 @@ impl Panel {
         }
     }
 
-    fn render_content_line(
-        &self,
-        spans: Vec<Span>,
-        width: usize,
-        chars: &BorderChars,
-    ) -> Segment {
+    fn render_content_line(&self, spans: Vec<Span>, width: usize, chars: &BorderChars) -> Segment {
         let inner_width = width.saturating_sub(2 + self.padding_x * 2);
         let content_width: usize = spans.iter().map(|s| s.width()).sum();
         let padding_right = inner_width.saturating_sub(content_width);

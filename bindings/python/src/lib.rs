@@ -2,29 +2,29 @@ mod console;
 mod style;
 mod table;
 
-mod text;
-mod panel;
-mod rule;
-mod progress;
-mod tree;
-mod markdown;
-mod syntax;
 mod columns;
+mod markdown;
+mod panel;
+mod progress;
+mod rule;
+mod syntax;
+mod text;
 mod traceback;
+mod tree;
 
-use pyo3::prelude::*;
-use crate::console::PyConsole;
-use crate::style::PyStyle;
-use crate::table::PyTable;
-use crate::progress::PyProgress;
-use crate::text::PyText;
-use crate::panel::PyPanel;
-use crate::rule::PyRule;
-use crate::tree::PyTree;
-use crate::markdown::PyMarkdown;
-use crate::syntax::PySyntax;
 use crate::columns::PyColumns;
+use crate::console::PyConsole;
+use crate::markdown::PyMarkdown;
+use crate::panel::PyPanel;
+use crate::progress::PyProgress;
+use crate::rule::PyRule;
+use crate::style::PyStyle;
+use crate::syntax::PySyntax;
+use crate::table::PyTable;
+use crate::text::PyText;
 use crate::traceback::PyTraceback;
+use crate::tree::PyTree;
+use pyo3::prelude::*;
 
 /// A Python module implemented in Rust.
 #[pymodule]

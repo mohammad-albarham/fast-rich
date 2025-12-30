@@ -23,6 +23,6 @@ impl PyTable {
         let refs: Vec<&str> = cells.iter().map(|s| s.as_str()).collect();
         self.inner.add_row_strs(&refs);
     }
-    
+
     // TODO: Add render method or hook into Console
 }

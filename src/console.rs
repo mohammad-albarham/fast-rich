@@ -124,11 +124,8 @@ impl Console {
 
     /// Get the current terminal width.
     pub fn get_width(&self) -> usize {
-        self.width.unwrap_or_else(|| {
-            terminal::size()
-                .map(|(w, _)| w as usize)
-                .unwrap_or(80)
-        })
+        self.width
+            .unwrap_or_else(|| terminal::size().map(|(w, _)| w as usize).unwrap_or(80))
     }
 
     /// Detect if color output is supported.

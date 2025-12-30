@@ -9,20 +9,13 @@ fn main() {
     console.println("");
 
     // Creating styles programmatically
-    let error_style = Style::new()
-        .foreground(Color::Red)
-        .bold();
+    let error_style = Style::new().foreground(Color::Red).bold();
 
-    let warning_style = Style::new()
-        .foreground(Color::Yellow)
-        .bold();
+    let warning_style = Style::new().foreground(Color::Yellow).bold();
 
-    let success_style = Style::new()
-        .foreground(Color::Green)
-        .bold();
+    let success_style = Style::new().foreground(Color::Green).bold();
 
-    let info_style = Style::new()
-        .foreground(Color::Blue);
+    let info_style = Style::new().foreground(Color::Blue);
 
     // Using Text with spans
     let mut text = rich_rust::text::Text::new();
@@ -54,8 +47,14 @@ fn main() {
     // Bright colors
     console.println("");
     let bright_colors = [
-        "bright_black", "bright_red", "bright_green", "bright_yellow",
-        "bright_blue", "bright_magenta", "bright_cyan", "bright_white",
+        "bright_black",
+        "bright_red",
+        "bright_green",
+        "bright_yellow",
+        "bright_blue",
+        "bright_magenta",
+        "bright_cyan",
+        "bright_white",
     ];
 
     for color in &bright_colors {
@@ -87,7 +86,10 @@ fn main() {
         let r = (i * 8).min(255);
         let g = 100;
         let b = 255 - (i * 8).min(255);
-        console.print(&format!("[rgb({},{},{}) on rgb({},{},{})]  [/]", r, g, b, r, g, b));
+        console.print(&format!(
+            "[rgb({},{},{}) on rgb({},{},{})]  [/]",
+            r, g, b, r, g, b
+        ));
     }
     console.println("");
 }

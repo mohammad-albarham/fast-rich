@@ -11,7 +11,7 @@
 //! - `[[` - Escaped `[`
 //! - `]]` - Escaped `]`
 
-use crate::style::{Color, Style};
+use crate::style::Style;
 use crate::text::{Span, Text};
 
 /// A parsed token from markup text.
@@ -187,6 +187,7 @@ pub fn render_plain(input: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::style::Color;
 
     #[test]
     fn test_tokenize_plain() {

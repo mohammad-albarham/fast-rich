@@ -62,6 +62,7 @@ struct TreeGuideChars {
     horizontal: char,
     branch: char,
     last_branch: char,
+    #[allow(dead_code)]
     space: char,
 }
 

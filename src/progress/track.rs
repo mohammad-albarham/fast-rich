@@ -1,7 +1,6 @@
 //! Track iterator with progress display.
 
 use super::{Progress, ProgressColumn};
-use std::io::{self, Write};
 
 /// An iterator wrapper that displays progress.
 pub struct TrackedIterator<I>
@@ -11,7 +10,9 @@ where
     inner: I,
     progress: Progress,
     task_id: usize,
+    #[allow(dead_code)]
     description: String,
+    #[allow(dead_code)]
     total: Option<u64>,
     current: u64,
 }
@@ -101,6 +102,7 @@ where
 /// Wrap an iterator with progress display (unknown length).
 ///
 /// Use this when the iterator doesn't implement ExactSizeIterator.
+#[allow(dead_code)]
 pub fn track_unknown<I>(iter: I, description: &str) -> TrackedIterator<I::IntoIter>
 where
     I: IntoIterator,

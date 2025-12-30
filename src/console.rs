@@ -14,12 +14,11 @@
 
 use crate::markup;
 use crate::renderable::{Renderable, Segment};
-use crate::style::Style;
 use crate::text::{Span, Text};
 
 use crossterm::{
     execute,
-    style::{Attribute, Color as CrosstermColor, Print, ResetColor, SetAttribute, SetBackgroundColor, SetForegroundColor},
+    style::{Attribute, Print, ResetColor, SetAttribute, SetBackgroundColor, SetForegroundColor},
     terminal,
 };
 use std::io::{self, Write};
@@ -289,7 +288,7 @@ impl Console {
 
     /// Show a rule (horizontal line).
     pub fn rule(&self, title: &str) {
-        let width = self.get_width();
+        let _width = self.get_width();
         let rule = crate::rule::Rule::new(title);
         self.print_renderable(&rule);
         self.newline();

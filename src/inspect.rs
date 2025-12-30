@@ -6,8 +6,7 @@ use crate::console::RenderContext;
 use crate::panel::{BorderStyle, Panel};
 use crate::renderable::{Renderable, Segment};
 use crate::style::{Color, Style};
-use crate::table::{ColumnAlign, Table};
-use crate::text::{Span, Text};
+use crate::text::Text;
 use std::any::type_name;
 use std::fmt::Debug;
 
@@ -230,7 +229,9 @@ mod tests {
     fn test_inspect_struct() {
         #[derive(Debug)]
         struct TestStruct {
+            #[allow(dead_code)]
             name: String,
+            #[allow(dead_code)]
             value: i32,
         }
 

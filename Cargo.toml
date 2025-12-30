@@ -25,7 +25,8 @@ default = []
 markdown = ["dep:pulldown-cmark"]
 syntax = ["dep:syntect"]
 logging = ["dep:log"]
-full = ["markdown", "syntax", "logging"]
+std = []
+full = ["markdown", "syntax", "logging", "std"]
 
 [dev-dependencies]
 insta = "1.40"  # Snapshot testing

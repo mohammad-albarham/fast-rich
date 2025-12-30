@@ -14,7 +14,7 @@ fn main() {
     console.println("[dim]Using track() for simple iteration:[/]");
     console.println("");
 
-    for i in track(0..20, "Processing items") {
+    for _i in track(0..20, "Processing items") {
         // Simulate work
         thread::sleep(Duration::from_millis(50));
     }
@@ -44,7 +44,7 @@ fn main() {
     }
 
     // Finish second task
-    for i in 25..50 {
+    for _i in 25..50 {
         progress.advance(task2, 1);
         progress.print();
         thread::sleep(Duration::from_millis(30));

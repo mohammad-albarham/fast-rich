@@ -55,9 +55,11 @@ pub struct Column {
     pub style: Style,
     /// Whether to wrap content
     pub wrap: bool,
-    /// Minimum width (computed)
+    /// Minimum width (computed, reserved for future use)
+    #[allow(dead_code)]
     min_width: usize,
-    /// Maximum width (computed)
+    /// Maximum width (computed, reserved for future use)
+    #[allow(dead_code)]
     max_width: usize,
 }
 
@@ -491,7 +493,7 @@ impl Table {
         for (i, width) in widths.iter().enumerate() {
             let cell = cells.get(i);
             let content = cell.map(|c| c.plain_text()).unwrap_or_default();
-            let content_width = UnicodeWidthStr::width(content.as_str());
+            let _content_width = UnicodeWidthStr::width(content.as_str());
             let cell_style = cell_styles.get(i).copied().unwrap_or_default();
 
             let align = self.columns.get(i).map(|c| c.align).unwrap_or_default();

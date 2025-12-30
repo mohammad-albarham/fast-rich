@@ -6,7 +6,7 @@ use crate::console::RenderContext;
 use crate::panel::{BorderStyle, Panel};
 use crate::renderable::{Renderable, Segment};
 use crate::style::{Color, Style};
-use crate::text::{Span, Text};
+use crate::text::Text;
 use std::panic::{self, PanicHookInfo};
 use std::sync::Once;
 
@@ -167,7 +167,7 @@ static PANIC_HOOK_INSTALLED: Once = Once::new();
 /// nicely formatted tracebacks using rich formatting.
 pub fn install_panic_hook() {
     PANIC_HOOK_INSTALLED.call_once(|| {
-        let default_hook = panic::take_hook();
+        let _default_hook = panic::take_hook();
 
         panic::set_hook(Box::new(move |info| {
             // Create and render traceback

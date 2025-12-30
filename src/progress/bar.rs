@@ -199,8 +199,10 @@ pub struct Progress {
     /// Progress bar configuration
     bar: ProgressBar,
     /// Whether to show the progress
+    #[allow(dead_code)]
     visible: bool,
     /// Refresh rate in milliseconds
+    #[allow(dead_code)]
     refresh_rate_ms: u64,
 }
 
@@ -341,7 +343,7 @@ impl Progress {
         let _ = io::stdout().flush();
     }
 
-    fn render_column(&self, column: ProgressColumn, task: &Task, width: usize) -> Vec<Span> {
+    fn render_column(&self, column: ProgressColumn, task: &Task, _width: usize) -> Vec<Span> {
         match column {
             ProgressColumn::Description => {
                 let desc = if task.description.len() > 20 {

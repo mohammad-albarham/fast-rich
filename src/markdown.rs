@@ -232,7 +232,7 @@ impl Renderable for Markdown {
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
         let mut segments = Vec::new();
         let mut current_line: Vec<Span> = Vec::new();
-        let mut in_heading = false;
+        let mut _in_heading = false;
         let mut heading_level = 0;
 
         for element in self.parse() {
@@ -241,7 +241,7 @@ impl Renderable for Markdown {
                     if !current_line.is_empty() {
                         segments.push(Segment::line(std::mem::take(&mut current_line)));
                     }
-                    in_heading = true;
+                    _in_heading = true;
                     heading_level = level;
                     // Add heading prefix
                     let prefix = "#".repeat(level + 1) + " ";
@@ -266,7 +266,7 @@ impl Renderable for Markdown {
                             self.config.heading_styles[1],
                         )]));
                     }
-                    in_heading = false;
+                    _in_heading = false;
                     segments.push(Segment::line(vec![])); // Blank line
                 }
                 MarkdownElement::StartParagraph => {}

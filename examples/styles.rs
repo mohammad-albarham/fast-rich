@@ -1,7 +1,6 @@
 //! Styles example demonstrating the style system.
 
 use rich_rust::prelude::*;
-use rich_rust::text::Span;
 
 fn main() {
     let console = Console::new();

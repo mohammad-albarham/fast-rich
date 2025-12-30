@@ -111,6 +111,7 @@ impl StatusGuard {
     }
 
     /// Create with a custom spinner style.
+    #[allow(dead_code)]
     pub fn with_style(message: &str, spinner_style: SpinnerStyle) -> Self {
         let mut status = Status::new(message).spinner_style(spinner_style);
         status.start();
@@ -118,6 +119,7 @@ impl StatusGuard {
     }
 
     /// Update the message.
+    #[allow(dead_code)]
     pub fn update(&mut self, message: &str) {
         self.status.update(message);
     }

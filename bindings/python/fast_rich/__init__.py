@@ -48,6 +48,11 @@ from fast_rich.live import Live
 from fast_rich.prompt import Prompt, Confirm
 from fast_rich.inspect import inspect
 
+# Additional features (new)
+from fast_rich.pretty import Pretty, pprint
+from fast_rich.emoji import Emoji
+from fast_rich.spinner import Spinner
+
 # Global print function
 from fast_rich._print import print
 
@@ -83,6 +88,12 @@ __all__ = [
     "Prompt",
     "Confirm",
     "inspect",
+    # Additional features
+    "Pretty",
+    "pprint",
+    "Emoji",
+    "Spinner",
     # Utilities
     "print",
 ]
+

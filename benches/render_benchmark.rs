@@ -3,7 +3,6 @@ use rich_rust::console::RenderContext;
 use rich_rust::markup;
 use rich_rust::prelude::*;
 use rich_rust::table::Table;
-use rich_rust::text::Text;
 
 fn bench_markup_parsing(c: &mut Criterion) {
     let markup = "[bold red]Hello[/] [blue]World[/]! ".repeat(20);

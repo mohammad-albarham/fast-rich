@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-12-30
+
+### Added
+- **Layout**: New tiling layout engine (`Layout`, `split_row`, `split_column`).
+- **Live**: Live display updating (`Live` context manager).
+- **Prompt**: Interactive user input handling (`Prompt.ask`).
+- **Inspect**: Object introspection tool (`inspect()`) for Rust and Python objects.
+- **Filesize**: Utilities for human-readable file sizes (`decimal`, `binary`).
+- **Bindings**: Full Python bindings for all new modules.
+- **Benchmarks**: Comparisons for `Layout` and `Inspect` scenarios.
+- **CI**: Strict enforcing of atomic commits and formatting.
+
 ## [0.1.1] - 2025-12-30
 
 ### Improved

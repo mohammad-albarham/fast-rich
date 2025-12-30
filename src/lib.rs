@@ -43,6 +43,8 @@ pub mod text;
 // Renderables
 pub mod columns;
 pub mod filesize;
+pub mod layout;
+pub mod live;
 pub mod log;
 pub mod panel;
 pub mod rule;

@@ -98,4 +98,24 @@ impl PyConsole {
         use rich_rust::log::ConsoleLog;
         self.inner.error(message);
     }
+
+    /// Print JSON with syntax highlighting.
+    fn print_json(&self, json_str: &str) {
+        self.inner.print_json(json_str);
+    }
+
+    /// Export text representation of a renderable.
+    fn export_text(&self, text: &PyText) -> String {
+        self.inner.export_text(&text.inner)
+    }
+
+    /// Export HTML representation of a renderable.
+    fn export_html(&self, text: &PyText) -> String {
+        self.inner.export_html(&text.inner)
+    }
+
+    /// Export SVG representation of a renderable.
+    fn export_svg(&self, text: &PyText) -> String {
+        self.inner.export_svg(&text.inner)
+    }
 }

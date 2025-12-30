@@ -17,6 +17,8 @@ impl PyLive {
     }
 
     fn refresh(&self) -> PyResult<()> {
-        self.inner.refresh().map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))
+        self.inner
+            .refresh()
+            .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))
     }
 }

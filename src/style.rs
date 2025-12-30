@@ -177,6 +177,31 @@ impl Color {
             },
         }
     }
+
+    /// Convert color to CSS color string.
+    pub fn to_css(&self) -> String {
+        match self {
+            Color::Default => "inherit".to_string(),
+            Color::Black => "#000000".to_string(),
+            Color::Red => "#cd0000".to_string(),
+            Color::Green => "#00cd00".to_string(),
+            Color::Yellow => "#cdcd00".to_string(),
+            Color::Blue => "#0000cd".to_string(),
+            Color::Magenta => "#cd00cd".to_string(),
+            Color::Cyan => "#00cdcd".to_string(),
+            Color::White => "#e5e5e5".to_string(),
+            Color::BrightBlack => "#7f7f7f".to_string(),
+            Color::BrightRed => "#ff0000".to_string(),
+            Color::BrightGreen => "#00ff00".to_string(),
+            Color::BrightYellow => "#ffff00".to_string(),
+            Color::BrightBlue => "#5c5cff".to_string(),
+            Color::BrightMagenta => "#ff00ff".to_string(),
+            Color::BrightCyan => "#00ffff".to_string(),
+            Color::BrightWhite => "#ffffff".to_string(),
+            Color::Ansi256(code) => format!("var(--ansi-{})", code),
+            Color::Rgb { r, g, b } => format!("#{:02x}{:02x}{:02x}", r, g, b),
+        }
+    }
 }
 
 /// Style attributes for text.
@@ -398,6 +423,37 @@ impl Style {
         }
 
         attrs
+    }
+
+    /// Convert this style to CSS inline style string.
+    ///
+    /// Returns a string suitable for use in HTML style attributes.
+    pub fn to_css(&self) -> String {
+        let mut parts = Vec::new();
+
+        if let Some(ref fg) = self.foreground {
+            parts.push(format!("color: {}", fg.to_css()));
+        }
+        if let Some(ref bg) = self.background {
+            parts.push(format!("background-color: {}", bg.to_css()));
+        }
+        if self.bold {
+            parts.push("font-weight: bold".to_string());
+        }
+        if self.italic {
+            parts.push("font-style: italic".to_string());
+        }
+        if self.underline {
+            parts.push("text-decoration: underline".to_string());
+        }
+        if self.strikethrough {
+            parts.push("text-decoration: line-through".to_string());
+        }
+        if self.dim {
+            parts.push("opacity: 0.5".to_string());
+        }
+
+        parts.join("; ")
     }
 }
 

@@ -14,6 +14,7 @@ When asking to write code or implement features, strictly follow this workflow:
     *   **Test-Driven**: Write tests *alongside* the code.
     *   **Verify**: Run `cargo check` and `cargo test` immediately.
     *   **Lint**: Run `cargo clippy` and `cargo fmt --all`.
+    *   **Strict Check**: You MUST run `cargo fmt --all -- --check` to verify CI compliance.
     *   **Commit**: **IMMEDIATELY** add and commit verification passes.
         *   Command: `git add <files> && git commit -m "feat: <concise description>"`
         *   *Never accumulate multiple features in one uncommitted state.*

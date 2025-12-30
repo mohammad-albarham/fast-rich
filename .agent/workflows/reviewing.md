@@ -5,7 +5,8 @@ description: workflow for reviewing code quality, correctness, and enforcing pro
 When asked to review code:
 
 1.  **Strict Linting & Formatting**:
-    *   **Format**: Run `cargo fmt --all` (apply fixes, don't just check).
+    *   **Format**: Run `cargo fmt --all`.
+    *   **CI Compliance**: Run `cargo fmt --all -- --check` to guarantee CI passes.
     *   **Lint**: Run `cargo clippy --workspace -- -D warnings`.
     *   **Commit Fixes**: If the review triggers changes, `git commit -m "style: apply review fixes"` immediately.
 

@@ -3,9 +3,11 @@ mod style;
 mod table;
 
 mod columns;
+mod filesize;
 mod markdown;
 mod panel;
 mod progress;
+mod prompt;
 mod rule;
 mod syntax;
 mod text;
@@ -41,5 +43,10 @@ fn rich_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PySyntax>()?;
     m.add_class::<PyColumns>()?;
     m.add_class::<PyTraceback>()?;
+    m.add_class::<crate::prompt::PyPrompt>()?;
+        
+    // Functions
+    m.add_function(wrap_pyfunction!(filesize::decimal, m)?)?;
+    m.add_function(wrap_pyfunction!(filesize::binary, m)?)?;
     Ok(())
 }

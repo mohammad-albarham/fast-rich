@@ -1,23 +1,26 @@
 ---
-description: workflow for reviewing code quality and correctness
+description: workflow for reviewing code quality, correctness, and enforcing professional standards
 ---
 
 When asked to review code:
 
-1.  **Static Analysis**:
-    *   Run `cargo clippy --all-features` to catch common mistakes.
-    *   Run `cargo check` to ensure compilation.
-    *   check for `dead_code`, `unused_imports`, or `unused_variables` warnings.
+1.  **Strict Linting & Formatting**:
+    *   **Format**: Run `cargo fmt --all` (apply fixes, don't just check).
+    *   **Lint**: Run `cargo clippy --workspace -- -D warnings`.
+    *   **Commit Fixes**: If the review triggers changes, `git commit -m "style: apply review fixes"` immediately.
 
-2.  **Logic & Design Review**:
-    *   Check for proper error handling (no `unwrap()` in library code, use `?` or `expect()` with reason).
-    *   Verify public API documentation exists.
-    *   Check for potential panics or unsafe blocks.
+2.  **Safety Logic**:
+    *   **Unsafe Audit**: Grep for `unsafe`. If found, it MUST have a `// SAFETY:` comment explaining why it holds.
+    *   **Error Handling**: No `unwrap()` in `src/` (library code). Use `?` and custom errors.
+    *   **Public API**: Ensure all `pub` items have doc strings.
 
-3.  **Tests**:
-    *   Ensure new functionality has corresponding unit tests.
-    *   Check if tests cover edge cases (empty inputs, large inputs, etc.).
+3.  **Test Coverage**:
+    *   Run `cargo test --workspace`.
+    *   If a bug is found, write a reproduction test case *first*.
 
-4.  **Feedback**:
-    *   Provide actionable feedback.
-    *   If fixing issues, verify the fix with tests.
+4.  **Documentation**:
+    *   Check `README.md` and `CHANGELOG.md` are consistent with the code.
+    *   Ensure `examples/` compile and run.
+
+5.  **Final Polish**:
+    *   Does code look "Professional"? (Consistent naming, no commented-out blocks, no "TODOs" left in critical paths).

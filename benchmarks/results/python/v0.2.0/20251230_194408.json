@@ -1,0 +1,54 @@
+{
+  "metadata": {
+    "version": "v0.2.0",
+    "timestamp": "20251230_194408",
+    "commit": "cec471e92be712d394905c7196fbeab69c8991b6",
+    "platform": "darwin"
+  },
+  "benchmarks": {
+    "rule": {
+      "Python": 0.1564,
+      "Rust": 0.0325
+    },
+    "panel": {
+      "Python": 0.4737,
+      "Rust": 0.0771
+    },
+    "text": {
+      "Python": 1.5497,
+      "Rust": 0.5605
+    },
+    "table": {
+      "Python": 0.19,
+      "Rust": 0.0032
+    },
+    "logging": {
+      "Python": 2.9915,
+      "Rust": 0.1296
+    },
+    "syntax": {
+      "Python": 11.1843,
+      "Rust": 3.2496
+    },
+    "traceback": {
+      "Python": 0.8948,
+      "Rust": 0.0499
+    },
+    "tree": {
+      "Python": 7.9605,
+      "Rust": 0.417
+    },
+    "markdown": {
+      "Python": 2.5394,
+      "Rust": 0.2385
+    },
+    "progress": {
+      "Python": 0.0309,
+      "Rust": 0.0005
+    },
+    "columns": {
+      "Python": 1.3308,
+      "Rust": 0.0295
+    }
+  }
+}

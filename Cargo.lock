@@ -813,7 +813,7 @@ checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
 
 [[package]]
 name = "rich-rust"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "criterion",
  "crossterm",
@@ -828,7 +828,7 @@ dependencies = [
 
 [[package]]
 name = "rich-rust-py"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pyo3",
  "rich-rust",

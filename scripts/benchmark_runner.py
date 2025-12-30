@@ -8,7 +8,7 @@ from datetime import datetime
 
 BENCH_DIR = "benchmarks/python"
 RESULTS_DIR = "benchmarks/results/python"
-VERSION = "v0.1.0"
+VERSION = "v0.2.0"
 
 def get_git_revision_hash():
     return subprocess.check_output(['git', 'rev-parse', 'HEAD']).strip().decode('ascii')
@@ -40,7 +40,7 @@ def main():
         print(f"Benchmarking {name}...")
         try:
             # Run in venv
-            cmd = f"source benchmarks/python/venv/bin/activate && python {path}"
+            cmd = f"source benchmarks/venv/bin/activate && python {path}"
             output = subprocess.check_output(cmd, shell=True, executable="/bin/zsh").decode("utf-8")
             
             # Parse output: expecting "Python X: 1.23s\nRust X: 0.12s"

@@ -31,9 +31,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/mohammad-albarham/rich-rust"
-Repository = "https://github.com/mohammad-albarham/rich-rust"
-Documentation = "https://github.com/mohammad-albarham/rich-rust#readme"
+Homepage = "https://github.com/mohammad-albarham/fast-rich"
+Repository = "https://github.com/mohammad-albarham/fast-rich"
+Documentation = "https://github.com/mohammad-albarham/fast-rich#readme"
 
 [project.optional-dependencies]
 dev = [

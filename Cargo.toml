@@ -4,9 +4,12 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A Rust port of Python's Rich library for beautiful terminal formatting"
-repository = "https://github.com/yourusername/rich-rust"
+repository = "https://github.com/mohammad-albarham/rich-rust"
 keywords = ["terminal", "console", "color", "formatting", "rich"]
 categories = ["command-line-interface", "development-tools"]
+
+[workspace]
+members = ["bindings/python"]
 
 [dependencies]
 # Core dependencies

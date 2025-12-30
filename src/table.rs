@@ -20,24 +20,17 @@ pub enum ColumnAlign {
 }
 
 /// Column width specification.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ColumnWidth {
     /// Automatic width based on content
+    #[default]
     Auto,
-    /// Fixed character width
+    /// Fixed width
     Fixed(usize),
-    /// Ratio of available space
-    Ratio(f32),
-    /// Minimum width with auto expansion
+    /// Min width
     Min(usize),
-    /// Maximum width with auto shrinking
+    /// Max width
     Max(usize),
-}
-
-impl Default for ColumnWidth {
-    fn default() -> Self {
-        ColumnWidth::Auto
-    }
 }
 
 /// A table column definition.
@@ -540,7 +533,7 @@ fn truncate_string(s: &str, width: usize) -> String {
     for grapheme in s.graphemes(true) {
         let grapheme_width = UnicodeWidthStr::width(grapheme);
         if current_width + grapheme_width > width {
-            if width > 1 && current_width + 1 <= width {
+            if width > 1 && current_width < width {
                 result.push('…');
             }
             break;

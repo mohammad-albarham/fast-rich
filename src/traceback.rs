@@ -136,10 +136,10 @@ impl Traceback {
         let end = (line_num + context).min(lines.len());
 
         let mut result = String::new();
-        for i in start..end {
+        for (i, line) in lines.iter().enumerate().take(end).skip(start) {
             let line_number = i + 1;
             let prefix = if line_number == line_num { "→ " } else { "  " };
-            result.push_str(&format!("{}{:4} │ {}\n", prefix, line_number, lines[i]));
+            result.push_str(&format!("{}{:4} │ {}\n", prefix, line_number, line));
         }
 
         Some(result)

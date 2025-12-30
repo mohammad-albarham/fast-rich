@@ -181,11 +181,7 @@ impl Color {
     }
 }
 
-impl Default for Color {
-    fn default() -> Self {
-        Color::Default
-    }
-}
+
 
 /// Style attributes for text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]

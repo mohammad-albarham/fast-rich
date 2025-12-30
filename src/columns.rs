@@ -115,7 +115,7 @@ impl Renderable for Columns {
         }
 
         let num_cols = self.calculate_columns(context.width);
-        let num_rows = (self.items.len() + num_cols - 1) / num_cols;
+        let num_rows = self.items.len().div_ceil(num_cols);
 
         // Calculate column widths
         let total_gap = self.gap * (num_cols.saturating_sub(1));

@@ -12,6 +12,10 @@ use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style as SyntectStyle, ThemeSet};
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
+use std::sync::OnceLock;
+
+static SYNTAX_SET: OnceLock<SyntaxSet> = OnceLock::new();
+static THEME_SET: OnceLock<ThemeSet> = OnceLock::new();
 
 /// Syntax highlighting theme.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -80,10 +84,8 @@ pub struct Syntax {
     language: String,
     /// Configuration
     config: SyntaxConfig,
-    /// Cached syntax set
-    syntax_set: SyntaxSet,
-    /// Cached theme set
-    theme_set: ThemeSet,
+
+
 }
 
 impl Syntax {
@@ -93,8 +95,6 @@ impl Syntax {
             code: code.to_string(),
             language: language.to_string(),
             config: SyntaxConfig::default(),
-            syntax_set: SyntaxSet::load_defaults_newlines(),
-            theme_set: ThemeSet::load_defaults(),
         }
     }
 
@@ -139,17 +139,18 @@ impl Syntax {
 
     /// Highlight the code and return styled lines.
     fn highlight(&self) -> Vec<Vec<Span>> {
-        let syntax = self
-            .syntax_set
-            .find_syntax_by_extension(&self.language)
-            .or_else(|| self.syntax_set.find_syntax_by_name(&self.language))
-            .unwrap_or_else(|| self.syntax_set.find_syntax_plain_text());
+        let syntax_set = SYNTAX_SET.get_or_init(SyntaxSet::load_defaults_newlines);
+        let theme_set = THEME_SET.get_or_init(ThemeSet::load_defaults);
 
-        let theme = self
-            .theme_set
+        let syntax = syntax_set
+            .find_syntax_by_extension(&self.language)
+            .or_else(|| syntax_set.find_syntax_by_name(&self.language))
+            .unwrap_or_else(|| syntax_set.find_syntax_plain_text());
+
+        let theme = theme_set
             .themes
             .get(self.config.theme.name())
-            .unwrap_or_else(|| self.theme_set.themes.values().next().unwrap());
+            .unwrap_or_else(|| theme_set.themes.values().next().unwrap());
 
         let mut highlighter = HighlightLines::new(syntax, theme);
         let mut lines = Vec::new();
@@ -180,7 +181,7 @@ impl Syntax {
 
             // Highlight the line content
             let highlighted = highlighter
-                .highlight_line(line, &self.syntax_set)
+                .highlight_line(line, syntax_set)
                 .unwrap_or_default();
 
             for (style, text) in highlighted {

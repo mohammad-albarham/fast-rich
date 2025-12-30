@@ -7,14 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-12-30
+
+### Improved
+- **Syntax Highlighting Performance**: Optimized `Syntax` rendering speed by **3.5x** (14.5s -> 4.2s for 1000 iterations) by using `OnceLock` for global syntax/theme set caching. This resolved a major bottleneck where large binary dumps were reloaded on every instantiation.
+
+## [0.1.0] - 2025-12-30
+
 ### Added
-- Initial project structure
-- Console abstraction with print functionality
-- Style system (colors, attributes)
-- Markup parser for `[tag]...[/]` syntax
-- Text with spans and word wrapping
-- Renderable trait
+- **Core Library**: Implemented Rust port of Rich's core components:
+  - `Console` with style and color support.
+  - `Table` with auto-sizing and unicode borders.
+  - `Tree` for hierarchical data.
+  - `Panel` and `Rule` layouts.
+  - `Progress` bars with spinners.
+  - `Markdown` rendering via `pulldown-cmark`.
+  - `Syntax` highlighting via `syntect`.
+  - `Traceback` beautiful error reporting.
+  - `Logging` handler.
+- **Python Bindings**: Full ABI3-compatible Python extension module (`rich_rust`) exposing all core components.
+- **Benchmarks**: Comprehensive suite proving 2x-24x performance improvements over Python `rich`.
+  - Logging: 24x faster.
+  - Columns: 23x faster.
+  - Table: 17x faster.
+  - Tree: 11x faster.
+  - Markdown: 9x faster.
 
-## [0.1.0] - TBD
-
-- Initial release
+### Fixed
+- Fixed duplicate `dev-dependencies` in `Cargo.toml`.
+- Resolved all Clippy warnings in core and bindings.

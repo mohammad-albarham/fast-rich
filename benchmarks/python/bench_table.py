@@ -22,10 +22,9 @@ def bench_python_rich():
     console.print(table)
 
 def bench_rust_rich():
-    console = rich_rust.Console() # Default prints to stdout, we need to suppress for bench? 
+    console = rich_rust.Console() 
     # Current bindings don't support custom writers comfortably yet, 
     # but let's assume we want to measure object construction + rendering mostly.
-    # To avoid noise, we might redirect stdout at OS level if running this script.
     
     table = rich_rust.Table()
     
@@ -37,20 +36,13 @@ def bench_rust_rich():
         row = [f"Cell {i},{j}" for j in range(COLS)]
         table.add_row(row)
     
-    # console.print_renderable(table) - TODO: Expose generic print/render
-    # For now, we only exposed specific methods on Table from python side? 
-    # No, we didn't expose render on Table in bindings yet.
-    # We need to fix bindings/python/src/table.rs or console.rs to print objects.
-    # console.print() takes string.
-    # We need console.print(table) support.
-    pass
+    console.print_table(table)
 
 if __name__ == "__main__":
     start = time.time()
     bench_python_rich()
     print(f"Python Rich: {time.time() - start:.4f}s")
     
-    # Rust part commented out until we fix API
-    # start = time.time()
-    # bench_rust_rich()
-    # print(f"Rust Rich:   {time.time() - start:.4f}s")
+    start = time.time()
+    bench_rust_rich()
+    print(f"Rust Rich:   {time.time() - start:.4f}s")

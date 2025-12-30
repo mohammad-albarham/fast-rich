@@ -23,6 +23,21 @@ use crossterm::{
 };
 use std::io::{self, Write};
 
+/// Escape HTML special characters.
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+/// Escape SVG special characters.
+fn svg_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
 /// Rendering context passed to Renderable objects.
 #[derive(Debug, Clone)]
 pub struct RenderContext {
@@ -289,6 +304,120 @@ impl Console {
         let rule = crate::rule::Rule::new(title);
         self.print_renderable(&rule);
         self.newline();
+    }
+
+    /// Print JSON with syntax highlighting.
+    ///
+    /// This method prints a JSON string with automatic syntax highlighting.
+    /// The input should be a valid JSON string.
+    #[cfg(feature = "syntax")]
+    pub fn print_json(&self, json_str: &str) {
+        let syntax = crate::syntax::Syntax::new(json_str, "json");
+        self.print_renderable(&syntax);
+        self.newline();
+    }
+
+    /// Export a renderable as plain text.
+    ///
+    /// Returns the plain text representation without any ANSI codes.
+    pub fn export_text(&self, renderable: &dyn Renderable) -> String {
+        let context = RenderContext {
+            width: self.get_width(),
+        };
+        let segments = renderable.render(&context);
+        let mut result = String::new();
+        for segment in &segments {
+            result.push_str(&segment.plain_text());
+            if segment.newline {
+                result.push('\n');
+            }
+        }
+        result
+    }
+
+    /// Export a renderable as HTML with inline styles.
+    ///
+    /// Returns an HTML string with styled `<span>` elements.
+    pub fn export_html(&self, renderable: &dyn Renderable) -> String {
+        let context = RenderContext {
+            width: self.get_width(),
+        };
+        let segments = renderable.render(&context);
+        let mut html = String::from("<pre style=\"font-family: monospace; background: #1e1e1e; color: #d4d4d4; padding: 1em;\">\n");
+
+        for segment in &segments {
+            for span in &segment.spans {
+                let style_css = span.style.to_css();
+                if style_css.is_empty() {
+                    html.push_str(&html_escape(&span.text));
+                } else {
+                    html.push_str(&format!(
+                        "<span style=\"{}\">{}</span>",
+                        style_css,
+                        html_escape(&span.text)
+                    ));
+                }
+            }
+            if segment.newline {
+                html.push('\n');
+            }
+        }
+
+        html.push_str("</pre>");
+        html
+    }
+
+    /// Export a renderable as SVG.
+    ///
+    /// Returns an SVG string with text elements.
+    pub fn export_svg(&self, renderable: &dyn Renderable) -> String {
+        let context = RenderContext {
+            width: self.get_width(),
+        };
+        let segments = renderable.render(&context);
+
+        let char_width = 9.6; // Approximate monospace character width
+        let line_height = 20.0;
+        let padding = 10.0;
+
+        let mut lines: Vec<String> = Vec::new();
+        let mut current_line = String::new();
+
+        for segment in &segments {
+            for span in &segment.spans {
+                current_line.push_str(&span.text);
+            }
+            if segment.newline {
+                lines.push(std::mem::take(&mut current_line));
+            }
+        }
+        if !current_line.is_empty() {
+            lines.push(current_line);
+        }
+
+        let max_chars = lines.iter().map(|l| l.len()).max().unwrap_or(80);
+        let width = (max_chars as f64 * char_width) + padding * 2.0;
+        let height = (lines.len() as f64 * line_height) + padding * 2.0;
+
+        let mut svg = format!(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {:.0} {:.0}\">\n",
+            width, height
+        );
+        svg.push_str("  <rect width=\"100%\" height=\"100%\" fill=\"#1e1e1e\"/>\n");
+        svg.push_str("  <text font-family=\"monospace\" font-size=\"14\" fill=\"#d4d4d4\">\n");
+
+        for (i, line) in lines.iter().enumerate() {
+            let y = padding + (i as f64 + 1.0) * line_height;
+            svg.push_str(&format!(
+                "    <tspan x=\"{}\" y=\"{:.1}\">{}</tspan>\n",
+                padding,
+                y,
+                svg_escape(line)
+            ));
+        }
+
+        svg.push_str("  </text>\n</svg>");
+        svg
     }
 }
 

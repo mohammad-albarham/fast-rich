@@ -17,10 +17,10 @@ fn format_size(size: u64, divisor: f64, suffixes: &[&str]) -> String {
     if size == 0 {
         return format!("0 {}", suffixes[0]);
     }
-    
+
     let size_f = size as f64;
     let i = (size_f.log(divisor).floor() as usize).min(suffixes.len() - 1);
-    
+
     if i == 0 {
         format!("{} {}", size, suffixes[0])
     } else {

@@ -58,7 +58,7 @@ impl Layout {
         self.direction = Direction::Vertical;
         self.children = layouts;
     }
-    
+
     /// Set a name for debugging/lookup.
     pub fn with_name(mut self, name: &str) -> Self {
         self.name = Some(name.to_string());
@@ -75,34 +75,34 @@ impl Default for Layout {
 impl Renderable for Layout {
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
         if self.children.is_empty() {
-             // Leaf node: Render content
-             if let Some(r) = &self.renderable {
-                 return r.render(context);
-             }
-             // Empty box if no content
-             return vec![Segment::new(vec![Span::raw(" ".repeat(context.width))])];
+            // Leaf node: Render content
+            if let Some(r) = &self.renderable {
+                return r.render(context);
+            }
+            // Empty box if no content
+            return vec![Segment::new(vec![Span::raw(" ".repeat(context.width))])];
         }
 
         // Branch node: Render children based on direction
         let mut result = Vec::new();
-        
+
         if self.direction == Direction::Vertical {
             // Split height: Simple vertical stacking
             for child in &self.children {
-                 let segments = child.render(context);
-                 result.extend(segments);
-                 result.push(Segment::empty_line()); 
+                let segments = child.render(context);
+                result.extend(segments);
+                result.push(Segment::empty_line());
             }
         } else {
-             // Split width (Horizontal)
-             // Simple delegation to existing Columns-like logic would be complex here without proper 2D buffer.
-             // For MVP, we just stack vertically or render children sequentially.
-             // TODO: Proper columns implementation for Layout using 'Columns' logic.
-             for child in &self.children {
-                  result.extend(child.render(context));
-             }
+            // Split width (Horizontal)
+            // Simple delegation to existing Columns-like logic would be complex here without proper 2D buffer.
+            // For MVP, we just stack vertically or render children sequentially.
+            // TODO: Proper columns implementation for Layout using 'Columns' logic.
+            for child in &self.children {
+                result.extend(child.render(context));
+            }
         }
-        
+
         result
     }
 }

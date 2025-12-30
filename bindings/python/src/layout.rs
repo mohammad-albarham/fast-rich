@@ -11,14 +11,16 @@ pub struct PyLayout {
 impl PyLayout {
     #[new]
     fn new() -> Self {
-        PyLayout { inner: Layout::new() }
+        PyLayout {
+            inner: Layout::new(),
+        }
     }
 
     fn split_row(&mut self, _others: Vec<PyRef<PyLayout>>) {
-         // TODO: Implement conversion from PyLayout to layout trees
+        // TODO: Implement conversion from PyLayout to layout trees
     }
-    
+
     fn split_column(&mut self, _others: Vec<PyRef<PyLayout>>) {
-         // TODO
+        // TODO
     }
 }

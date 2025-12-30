@@ -64,6 +64,37 @@ rich-rust = { version = "0.1", features = ["markdown", "syntax"] }
 | `logging` | Integration with the `log` crate |
 | `full` | All optional features |
 
+## Python Bindings: fast_rich
+
+**fast_rich** is a drop-in replacement for Python Rich, powered by this Rust library.
+
+```bash
+pip install fast-rich
+```
+
+```python
+# Just change your imports!
+from fast_rich.console import Console
+from fast_rich.table import Table
+
+console = Console()
+table = Table(title="Users")
+table.add_column("Name", style="cyan")
+table.add_row("Alice")
+console.print(table)
+```
+
+### Performance vs Python Rich
+
+| Benchmark | Speedup |
+| :--- | ---: |
+| Table (1000 rows) | **73.8x** |
+| Panel (50 panels) | **13.8x** |
+| Tree (10x10) | **8.5x** |
+| Text (100 lines) | **7.3x** |
+
+See [bindings/python/fast_rich/README.md](bindings/python/fast_rich/README.md) for details.
+
 ## Examples
 
 See the [`examples/`](examples/) directory for more usage examples.

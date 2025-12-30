@@ -3,7 +3,7 @@ use rich_rust::Table;
 
 #[pyclass(name = "Table")]
 pub struct PyTable {
-    inner: Table,
+    pub(crate) inner: Table,
 }
 
 #[pymethods]

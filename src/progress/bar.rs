@@ -337,7 +337,7 @@ impl Progress {
 
         // Clear lines and print
         for line in output.lines() {
-            print!("\x1B[2K{}\n", line);
+            println!("\x1B[2K{}", line);
         }
 
         let _ = io::stdout().flush();
@@ -375,7 +375,7 @@ impl Progress {
             ProgressColumn::Eta => {
                 let eta_str = task
                     .eta()
-                    .map(|d| format_duration(d))
+                    .map(format_duration)
                     .unwrap_or_else(|| "--:--".to_string());
                 vec![Span::styled(
                     format!("ETA {:>6}", eta_str),

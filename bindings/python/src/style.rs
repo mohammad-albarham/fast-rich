@@ -23,6 +23,7 @@ impl PyStyle {
         hidden = false,
         strikethrough = false
     ))]
+    #[allow(clippy::too_many_arguments)]
     fn new(
         color: Option<&str>,
         bgcolor: Option<&str>,

@@ -120,7 +120,7 @@ impl Renderable for crate::text::Text {
         self.spans
             .iter()
             .flat_map(|s| s.text.split_whitespace())
-            .map(|w| unicode_width::UnicodeWidthStr::width(w))
+            .map(unicode_width::UnicodeWidthStr::width)
             .max()
             .unwrap_or(1)
     }

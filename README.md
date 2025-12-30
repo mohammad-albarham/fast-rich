@@ -10,11 +10,13 @@ A Rust port of Python's [Rich](https://github.com/Textualize/rich) library for b
 
 - 🎨 **Rich text** with colors, styles, and markup
 - 📊 **Tables** with Unicode borders and auto-sizing
+- 📚 **Columns** layout for arranging content
 - 📈 **Progress bars** with multiple tasks and spinners
 - 🌳 **Tree views** for hierarchical data
 - 📝 **Markdown** rendering (optional)
 - 🔍 **Syntax highlighting** (optional)
-- 🐛 **Pretty tracebacks** for better error display
+- 🐛 **Traceback** beautiful error reporting
+- 🪵 **Logging** integration
 
 ## Quick Start
 

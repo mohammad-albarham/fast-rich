@@ -33,6 +33,7 @@ full = ["markdown", "syntax", "logging", "std"]
 
 [dev-dependencies]
 insta = "1.40"  # Snapshot testing
+criterion = "0.5"
 
 [[example]]
 name = "hello"
@@ -61,3 +62,8 @@ path = "examples/progress.rs"
 [[example]]
 name = "tree"
 path = "examples/tree.rs"
+
+[[bench]]
+name = "render_benchmark"
+harness = false
+required-features = ["markdown", "syntax"]

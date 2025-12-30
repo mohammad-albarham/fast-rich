@@ -370,11 +370,9 @@ fn break_word(word: &str, max_width: usize) -> Vec<String> {
     for grapheme in word.graphemes(true) {
         let grapheme_width = UnicodeWidthStr::width(grapheme);
 
-        if current_width + grapheme_width > max_width {
-            if !current.is_empty() {
+        if current_width + grapheme_width > max_width && !current.is_empty() {
                 parts.push(std::mem::take(&mut current));
                 current_width = 0;
-            }
         }
 
         current.push_str(grapheme);

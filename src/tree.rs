@@ -229,9 +229,7 @@ impl Tree {
             for (i, child) in node.children.iter().enumerate() {
                 let is_last_child = i == child_count - 1;
 
-                let new_prefix = if is_root && self.hide_root {
-                    String::new()
-                } else if is_root {
+                let new_prefix = if is_root {
                     String::new()
                 } else {
                     let connector = if is_last {

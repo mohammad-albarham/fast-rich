@@ -4,6 +4,9 @@ mod table;
 
 mod columns;
 mod filesize;
+mod inspect;
+mod layout;
+mod live;
 mod markdown;
 mod panel;
 mod progress;
@@ -44,9 +47,12 @@ fn rich_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyColumns>()?;
     m.add_class::<PyTraceback>()?;
     m.add_class::<crate::prompt::PyPrompt>()?;
-        
+    m.add_class::<crate::layout::PyLayout>()?;
+    m.add_class::<crate::live::PyLive>()?;
+                
     // Functions
     m.add_function(wrap_pyfunction!(filesize::decimal, m)?)?;
     m.add_function(wrap_pyfunction!(filesize::binary, m)?)?;
+    m.add_function(wrap_pyfunction!(inspect::inspect, m)?)?;
     Ok(())
 }

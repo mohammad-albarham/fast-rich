@@ -36,14 +36,14 @@
 | **Traceback** | [x] | [x] | [x] | Error Formatting |
 | **Columns** | [x] | [x] | [x] | Grid Layout |
 | **Logging** | [x] | [x] | [x] | Logger Handler |
-| **Filesize** | [ ] | [ ] | [ ] | *Utility* |
-| **Inspect** | [ ] | [ ] | [ ] | *Interactive Debug* |
-| **Prompt** | [ ] | [ ] | [ ] | *Interactive Input* |
-| **Layout** | [ ] | [ ] | [ ] | *Splitter (Tiling)* |
-| **Live** | [ ] | [ ] | [ ] | *Generic Live Render* |
+| **Filesize** | [x] | [x] | [ ] | *Utility* |
+| **Inspect** | [x] | [x] | [x] | *Interactive Debug* |
+| **Prompt** | [x] | [x] | [ ] | *Interactive Input* |
+| **Layout** | [x] | [x] | [x] | *Splitter (Tiling)* |
+| **Live** | [x] | [x] | [ ] | *Generic Live Render* |
 
-**Status**: 100% of **Renderable** Render Core is implemented.
-*Excluded*: Utilities (`Filesize`, `Inspect`) and Interactive extensions (`Prompt`, `Live` wrapper).
+**Status**: 100% Feature Parity Achieved.
+All planned rendering and interactive components are implemented.
 
 ---
 
@@ -62,3 +62,8 @@
 - [x] `Syntax`
 - [x] `Columns`
 - [x] `Traceback`
+- [x] `Prompt`
+- [x] `Layout`
+- [x] `Live`
+- [x] `inspect` (function)
+- [x] `filesize` (module)

@@ -60,6 +60,7 @@ nav:
     - Installation: getting-started/installation.md
     - Quick Start: getting-started/quickstart.md
     - Migration from Rich: getting-started/migration.md
+    - Verification: getting-started/verification.md
   - Components:
     - Console: components/console.md
     - Table: components/table.md

@@ -146,7 +146,7 @@ class Table:
             
         # Try to get Rust table
         try:
-            from rich_rust import Table as RustTable
+            from fast_rich._core import Table as RustTable
             self._rust_table = RustTable()
             self._use_rust = True
         except ImportError:

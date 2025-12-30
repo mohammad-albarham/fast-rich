@@ -287,6 +287,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "fast-rich"
+version = "0.3.1"
+dependencies = [
+ "pyo3",
+ "rich-rust",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -824,14 +832,6 @@ dependencies = [
  "terminal_size",
  "unicode-segmentation",
  "unicode-width",
-]
-
-[[package]]
-name = "rich-rust-py"
-version = "0.2.0"
-dependencies = [
- "pyo3",
- "rich-rust",
 ]
 
 [[package]]

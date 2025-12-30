@@ -11,6 +11,7 @@ from typing import (
     Optional,
     Union,
 )
+import io
 
 from fast_rich.style import Style
 from fast_rich.text import Text
@@ -107,12 +108,32 @@ class Console:
         
         # Try to import Rust bindings
         try:
-            from rich_rust import Console as RustConsole
-            self._rust_console = RustConsole()
+            from fast_rich._core import Console as RustConsole
+            self._rust_console = RustConsole(force_terminal=force_terminal)
             self._use_rust = True
         except ImportError:
             self._rust_console = None
             self._use_rust = False
+
+        if self._use_rust:
+            # Check if file matches standard streams (Rust limitation)
+            # Rust console only supports stdout (1) and stderr (2) currently
+            try:
+                fileno = self._file.fileno()
+                is_stdout = fileno == 1
+                is_stderr = fileno == 2
+                
+                # If specifically wrapping stdout/stderr, allow it
+                if self._file is sys.stdout and not is_stdout:
+                     # Pytest capture or similar
+                     self._use_rust = False
+                elif self._file is sys.stderr and not is_stderr:
+                     self._use_rust = False
+                elif not (is_stdout or is_stderr):
+                    self._use_rust = False
+            except (AttributeError, ValueError, io.UnsupportedOperation):
+                # StringIO or file without fileno
+                self._use_rust = False
 
     @property
     def width(self) -> int:
@@ -193,7 +214,10 @@ class Console:
                     self._file.write(end)
                     self._file.flush()
                 return
-            except Exception:
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print(f"Rust Error: {e}")
                 pass  # Fall back to Python
 
         # Python fallback

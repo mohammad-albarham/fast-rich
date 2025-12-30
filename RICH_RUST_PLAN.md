@@ -119,6 +119,7 @@ User Code (unchanged) → fast_rich/ (Python API) → Rust Core (speed)
 | Task | Status | Notes |
 | :--- | :---: | :--- |
 | `fast_rich/README.md` | [x] | Usage docs |
-| `FAST_RICH_PARITY.md` | [ ] | Known differences |
+| `FAST_RICH_PARITY.md` | [x] | Known differences |
+| Main README update | [x] | Python section added |
 | PyPI publish (`fast-rich`) | [ ] | Public release |
 

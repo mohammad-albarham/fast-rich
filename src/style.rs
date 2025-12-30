@@ -90,9 +90,7 @@ impl Color {
             "magenta" => return Some(Color::Magenta),
             "cyan" => return Some(Color::Cyan),
             "white" => return Some(Color::White),
-            "bright_black" | "brightblack" | "grey" | "gray" => {
-                return Some(Color::BrightBlack)
-            }
+            "bright_black" | "brightblack" | "grey" | "gray" => return Some(Color::BrightBlack),
             "bright_red" | "brightred" => return Some(Color::BrightRed),
             "bright_green" | "brightgreen" => return Some(Color::BrightGreen),
             "bright_yellow" | "brightyellow" => return Some(Color::BrightYellow),
@@ -180,8 +178,6 @@ impl Color {
         }
     }
 }
-
-
 
 /// Style attributes for text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -488,11 +484,8 @@ mod tests {
 
     #[test]
     fn test_style_builder() {
-        let style = Style::new()
-            .foreground(Color::Green)
-            .bold()
-            .underline();
-        
+        let style = Style::new().foreground(Color::Green).bold().underline();
+
         assert!(style.bold);
         assert!(style.underline);
         assert_eq!(style.foreground, Some(Color::Green));

@@ -409,7 +409,12 @@ impl Progress {
 fn format_duration(d: Duration) -> String {
     let secs = d.as_secs();
     if secs >= 3600 {
-        format!("{:02}:{:02}:{:02}", secs / 3600, (secs % 3600) / 60, secs % 60)
+        format!(
+            "{:02}:{:02}:{:02}",
+            secs / 3600,
+            (secs % 3600) / 60,
+            secs % 60
+        )
     } else {
         format!("{:02}:{:02}", secs / 60, secs % 60)
     }

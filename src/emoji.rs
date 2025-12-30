@@ -63,7 +63,7 @@ static EMOJI_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(
     m.insert("ghost", "👻");
     m.insert("alien", "👽");
     m.insert("robot", "🤖");
-    
+
     // People & Body
     m.insert("wave", "👋");
     m.insert("raised_hand", "✋");
@@ -107,7 +107,7 @@ static EMOJI_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(
     m.insert("woman", "👩");
     m.insert("older_man", "👴");
     m.insert("older_woman", "👵");
-    
+
     // Animals & Nature
     m.insert("dog", "🐶");
     m.insert("cat", "🐱");
@@ -159,7 +159,7 @@ static EMOJI_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(
     m.insert("t_rex", "🦖");
     m.insert("raccoon", "🦝");
     m.insert("vampire", "🧛");
-    
+
     // Food & Drink
     m.insert("apple", "🍎");
     m.insert("green_apple", "🍏");
@@ -211,7 +211,7 @@ static EMOJI_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(
     m.insert("wine", "🍷");
     m.insert("cocktail", "🍸");
     m.insert("champagne", "🍾");
-    
+
     // Objects & Symbols
     m.insert("heart", "❤️");
     m.insert("red_heart", "❤️");
@@ -306,7 +306,7 @@ static EMOJI_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(
     m.insert("paperclip", "📎");
     m.insert("scissors", "✂️");
     m.insert("wastebasket", "🗑️");
-    
+
     // Status & Indicators
     m.insert("check", "✓");
     m.insert("checkmark", "✓");
@@ -374,7 +374,7 @@ static EMOJI_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(
     m.insert("orange_square", "🟧");
     m.insert("purple_square", "🟪");
     m.insert("brown_square", "🟫");
-    
+
     // Development
     m.insert("rocket", "🚀");
     m.insert("construction", "🚧");
@@ -390,7 +390,7 @@ static EMOJI_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(
     m.insert("partying_face", "🥳");
     m.insert("mechanical_arm", "🦾");
     m.insert("mechanical_leg", "🦿");
-    
+
     m
 });
 

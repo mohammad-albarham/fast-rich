@@ -269,9 +269,7 @@ pub fn from_directory(path: &std::path::Path) -> std::io::Result<Tree> {
         let mut node = TreeNode::new(name);
 
         if path.is_dir() {
-            let mut entries: Vec<_> = std::fs::read_dir(path)?
-                .filter_map(|e| e.ok())
-                .collect();
+            let mut entries: Vec<_> = std::fs::read_dir(path)?.filter_map(|e| e.ok()).collect();
 
             entries.sort_by_key(|e| e.file_name());
 
@@ -294,8 +292,7 @@ mod tests {
 
     #[test]
     fn test_tree_simple() {
-        let tree = Tree::new("root")
-            .guide_style(GuideStyle::Unicode);
+        let tree = Tree::new("root").guide_style(GuideStyle::Unicode);
 
         let context = RenderContext { width: 40 };
         let segments = tree.render(&context);

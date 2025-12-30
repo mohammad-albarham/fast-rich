@@ -18,7 +18,9 @@ fn main() {
 
     // Background colors
     console.println("");
-    console.println("[white on red] Error [/] [black on yellow] Warning [/] [white on green] Success [/]");
+    console.println(
+        "[white on red] Error [/] [black on yellow] Warning [/] [white on green] Success [/]",
+    );
 
     // Emoji support
     console.println("");

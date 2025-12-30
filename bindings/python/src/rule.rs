@@ -1,6 +1,6 @@
+use crate::style::PyStyle;
 use pyo3::prelude::*;
 use rich_rust::rule::Rule;
-use crate::style::PyStyle;
 
 #[pyclass(name = "Rule")]
 pub struct PyRule {
@@ -16,7 +16,7 @@ impl PyRule {
             Some(t) => Rule::new(&t),
             None => Rule::line(),
         };
-        
+
         if let Some(s) = style {
             r = r.style(s.inner);
         }

@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
-use rich_rust::style::Style;
 use rich_rust::style::Color;
+use rich_rust::style::Style;
 
 #[pyclass(name = "Style")]
 #[derive(Clone)]
@@ -37,7 +37,7 @@ impl PyStyle {
         strikethrough: bool,
     ) -> Self {
         let mut style = Style::new();
-        
+
         if let Some(c) = color {
             if let Some(parsed) = Color::parse(c) {
                 style = style.foreground(parsed);
@@ -48,15 +48,31 @@ impl PyStyle {
                 style = style.background(parsed);
             }
         }
-        
-        if bold { style = style.bold(); }
-        if dim { style = style.dim(); }
-        if italic { style = style.italic(); }
-        if underline { style = style.underline(); }
-        if blink { style = style.blink(); }
-        if reverse { style = style.reverse(); }
-        if hidden { style = style.hidden(); }
-        if strikethrough { style = style.strikethrough(); }
+
+        if bold {
+            style = style.bold();
+        }
+        if dim {
+            style = style.dim();
+        }
+        if italic {
+            style = style.italic();
+        }
+        if underline {
+            style = style.underline();
+        }
+        if blink {
+            style = style.blink();
+        }
+        if reverse {
+            style = style.reverse();
+        }
+        if hidden {
+            style = style.hidden();
+        }
+        if strikethrough {
+            style = style.strikethrough();
+        }
 
         PyStyle { inner: style }
     }
@@ -64,7 +80,7 @@ impl PyStyle {
     #[staticmethod]
     fn parse(s: &str) -> Self {
         PyStyle {
-            inner: Style::parse(s)
+            inner: Style::parse(s),
         }
     }
 }

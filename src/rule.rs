@@ -105,7 +105,8 @@ impl Renderable for Rule {
             }
             Some(title) => {
                 let title_with_spacing = format!(" {} ", title);
-                let title_width = unicode_width::UnicodeWidthStr::width(title_with_spacing.as_str());
+                let title_width =
+                    unicode_width::UnicodeWidthStr::width(title_with_spacing.as_str());
 
                 if title_width >= width {
                     // Title is too long, just show title

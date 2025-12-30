@@ -326,7 +326,10 @@ impl Table {
     /// Add a row from string slices (convenience method).
     pub fn add_row_strs(&mut self, cells: &[&str]) -> &mut Self {
         let text_cells: Vec<Text> = cells.iter().map(|s| Text::plain(s.to_string())).collect();
-        self.rows.push(Row { cells: text_cells, style: None });
+        self.rows.push(Row {
+            cells: text_cells,
+            style: None,
+        });
         self
     }
 

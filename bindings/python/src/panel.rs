@@ -1,7 +1,7 @@
-use pyo3::prelude::*;
-use rich_rust::panel::Panel;
 use crate::style::PyStyle;
 use crate::text::PyText;
+use pyo3::prelude::*;
+use rich_rust::panel::Panel;
 
 #[pyclass(name = "Panel")]
 pub struct PyPanel {
@@ -21,7 +21,7 @@ impl PyPanel {
         }
         // TODO: Map BorderStyle enum from string or object
         // if let Some(bs) = border_style { ... }
-        
+
         PyPanel { inner: p }
     }
 }

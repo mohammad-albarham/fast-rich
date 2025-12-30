@@ -74,19 +74,19 @@ pub use tree::{Tree, TreeNode};
 
 /// Prelude module for convenient imports.
 pub mod prelude {
-    pub use crate::console::Console;
     pub use crate::columns::Columns;
+    pub use crate::console::Console;
+    pub use crate::inspect::{inspect, InspectConfig};
+    pub use crate::log::ConsoleLog;
     pub use crate::panel::{BorderStyle, Panel};
-    pub use crate::progress::{Progress, ProgressBar, Spinner, SpinnerStyle, Status, track};
+    pub use crate::progress::{track, Progress, ProgressBar, Spinner, SpinnerStyle, Status};
     pub use crate::renderable::Renderable;
     pub use crate::rule::Rule;
     pub use crate::style::{Color, Style};
     pub use crate::table::{Column, ColumnAlign, Table};
     pub use crate::text::{Alignment, Text};
-    pub use crate::tree::{GuideStyle, Tree, TreeNode};
-    pub use crate::inspect::{inspect, InspectConfig};
     pub use crate::traceback::install_panic_hook;
-    pub use crate::log::ConsoleLog;
+    pub use crate::tree::{GuideStyle, Tree, TreeNode};
 }
 
 /// Print text with markup to stdout.
@@ -119,10 +119,7 @@ mod tests {
 
     #[test]
     fn test_style_builder() {
-        let style = Style::new()
-            .foreground(Color::Red)
-            .bold()
-            .underline();
+        let style = Style::new().foreground(Color::Red).bold().underline();
 
         assert!(style.bold);
         assert!(style.underline);
@@ -142,6 +139,8 @@ mod tests {
         table.add_row_strs(&["a", "b"]);
 
         // Table should have columns and rows
-        assert!(!table.render(&console::RenderContext { width: 40 }).is_empty());
+        assert!(!table
+            .render(&console::RenderContext { width: 40 })
+            .is_empty());
     }
 }

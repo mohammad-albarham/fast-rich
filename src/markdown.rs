@@ -121,7 +121,9 @@ impl Markdown {
                             pulldown_cmark::CodeBlockKind::Indented => String::new(),
                         };
                     }
-                    Tag::Link { dest_url, title: _, .. } => {
+                    Tag::Link {
+                        dest_url, title: _, ..
+                    } => {
                         style_stack.push(self.config.link_style);
                         elements.push(MarkdownElement::StartLink(dest_url.to_string()));
                     }
@@ -184,7 +186,9 @@ impl Markdown {
                     if in_code_block {
                         code_block_content.push_str(&text);
                     } else {
-                        let style = style_stack.iter().fold(Style::new(), |acc, s| acc.combine(s));
+                        let style = style_stack
+                            .iter()
+                            .fold(Style::new(), |acc, s| acc.combine(s));
                         elements.push(MarkdownElement::Text(text.to_string(), style));
                     }
                 }
@@ -245,10 +249,7 @@ impl Renderable for Markdown {
                     heading_level = level;
                     // Add heading prefix
                     let prefix = "#".repeat(level + 1) + " ";
-                    current_line.push(Span::styled(
-                        prefix,
-                        self.config.heading_styles[level],
-                    ));
+                    current_line.push(Span::styled(prefix, self.config.heading_styles[level]));
                 }
                 MarkdownElement::EndHeading => {
                     if !current_line.is_empty() {
@@ -362,7 +363,7 @@ mod tests {
         let md = Markdown::new("# Hello\n\nWorld");
         let context = RenderContext { width: 40 };
         let segments = md.render(&context);
-        
+
         assert!(!segments.is_empty());
     }
 
@@ -371,7 +372,7 @@ mod tests {
         let md = Markdown::new("*italic* and **bold**");
         let context = RenderContext { width: 40 };
         let segments = md.render(&context);
-        
+
         assert!(!segments.is_empty());
     }
 
@@ -380,7 +381,7 @@ mod tests {
         let md = Markdown::new("```rust\nlet x = 42;\n```");
         let context = RenderContext { width: 40 };
         let segments = md.render(&context);
-        
+
         assert!(!segments.is_empty());
     }
 }

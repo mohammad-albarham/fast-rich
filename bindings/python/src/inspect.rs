@@ -23,7 +23,7 @@ pub fn inspect(_py: Python<'_>, obj: Bound<'_, PyAny>, methods: bool, help: bool
     
     if methods {
         report.push_str("\n\n[bold]Attributes/Methods:[/]");
-        let dir_list = obj.dir();
+        let dir_list = obj.dir()?;
         for name in dir_list {
              let name_str = name.extract::<String>()?;
              if !name_str.starts_with('_') { // Simple filter

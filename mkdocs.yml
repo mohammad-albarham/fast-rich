@@ -1,0 +1,41 @@
+site_name: rich-rust
+site_url: https://github.com/mohammad-albarham/rich-rust
+repo_url: https://github.com/mohammad-albarham/rich-rust
+repo_name: rich-rust
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+
+nav:
+  - Home: index.md
+  - Python API: python_api.md
+  - Rust API: api.md
+  - Benchmarks: benchmarks.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - attr_list
+  - pymdownx.details

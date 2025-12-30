@@ -1,0 +1,59 @@
+[package]
+name = "rich-rust"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "A Rust port of Python's Rich library for beautiful terminal formatting"
+repository = "https://github.com/yourusername/rich-rust"
+keywords = ["terminal", "console", "color", "formatting", "rich"]
+categories = ["command-line-interface", "development-tools"]
+
+[dependencies]
+# Core dependencies
+unicode-width = "0.2"
+unicode-segmentation = "1.10"
+terminal_size = "0.4"
+crossterm = "0.28"
+
+# Optional dependencies
+pulldown-cmark = { version = "0.12", optional = true }
+syntect = { version = "5.2", optional = true }
+log = { version = "0.4", optional = true }
+
+[features]
+default = []
+markdown = ["dep:pulldown-cmark"]
+syntax = ["dep:syntect"]
+logging = ["dep:log"]
+full = ["markdown", "syntax", "logging"]
+
+[dev-dependencies]
+insta = "1.40"  # Snapshot testing
+
+[[example]]
+name = "hello"
+path = "examples/hello.rs"
+
+[[example]]
+name = "styles"
+path = "examples/styles.rs"
+
+[[example]]
+name = "markup"
+path = "examples/markup.rs"
+
+[[example]]
+name = "table"
+path = "examples/table.rs"
+
+[[example]]
+name = "panel"
+path = "examples/panel.rs"
+
+[[example]]
+name = "progress"
+path = "examples/progress.rs"
+
+[[example]]
+name = "tree"
+path = "examples/tree.rs"

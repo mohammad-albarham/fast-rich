@@ -41,9 +41,13 @@
 | **Prompt** | [x] | [x] | [ ] | *Interactive Input* |
 | **Layout** | [x] | [x] | [x] | *Splitter (Tiling)* |
 | **Live** | [x] | [x] | [ ] | *Generic Live Render* |
+| **print_json** | [x] | [x] | [ ] | *JSON pretty-printing* |
+| **export_text** | [x] | [x] | [ ] | *Plain text export* |
+| **export_html** | [x] | [x] | [ ] | *HTML export* |
+| **export_svg** | [x] | [x] | [ ] | *SVG export* |
 
 **Status**: 100% Feature Parity Achieved.
-All planned rendering and interactive components are implemented.
+All planned rendering, interactive, and export components are implemented.
 
 ---
 

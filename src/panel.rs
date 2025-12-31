@@ -8,6 +8,8 @@ use crate::renderable::{Renderable, Segment};
 use crate::style::Style;
 use crate::text::{Span, Text};
 
+use crate::box_drawing::{self, Box};
+
 /// Border style for panels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BorderStyle {
@@ -22,84 +24,56 @@ pub enum BorderStyle {
     Double,
     /// ASCII-only borders
     Ascii,
+    /// ASCII double-head
+    AsciiDoubleHead,
     /// Minimal borders (dashes)
     Minimal,
+    /// Minimal heavy head
+    MinimalHeavyHead,
+    /// Minimal double head
+    MinimalDoubleHead,
+    /// Horizontals only
+    Horizontals,
+    /// Square double head
+    SquareDoubleHead,
+    /// Heavy edge
+    HeavyEdge,
+    /// Heavy head
+    HeavyHead,
+    /// Double edge
+    DoubleEdge,
     /// No visible border (but space is reserved)
     Hidden,
 }
 
 impl BorderStyle {
-    /// Get the border characters for this style.
-    fn chars(&self) -> BorderChars {
+    /// Get the box characters for this style.
+    pub fn to_box(&self) -> Box {
         match self {
-            BorderStyle::Rounded => BorderChars {
-                top_left: '╭',
-                top_right: '╮',
-                bottom_left: '╰',
-                bottom_right: '╯',
-                horizontal: '─',
-                vertical: '│',
-            },
-            BorderStyle::Square => BorderChars {
-                top_left: '┌',
-                top_right: '┐',
-                bottom_left: '└',
-                bottom_right: '┘',
-                horizontal: '─',
-                vertical: '│',
-            },
-            BorderStyle::Heavy => BorderChars {
-                top_left: '┏',
-                top_right: '┓',
-                bottom_left: '┗',
-                bottom_right: '┛',
-                horizontal: '━',
-                vertical: '┃',
-            },
-            BorderStyle::Double => BorderChars {
-                top_left: '╔',
-                top_right: '╗',
-                bottom_left: '╚',
-                bottom_right: '╝',
-                horizontal: '═',
-                vertical: '║',
-            },
-            BorderStyle::Ascii => BorderChars {
-                top_left: '+',
-                top_right: '+',
-                bottom_left: '+',
-                bottom_right: '+',
-                horizontal: '-',
-                vertical: '|',
-            },
-            BorderStyle::Minimal => BorderChars {
-                top_left: ' ',
-                top_right: ' ',
-                bottom_left: ' ',
-                bottom_right: ' ',
-                horizontal: '─',
-                vertical: ' ',
-            },
-            BorderStyle::Hidden => BorderChars {
-                top_left: ' ',
-                top_right: ' ',
-                bottom_left: ' ',
-                bottom_right: ' ',
-                horizontal: ' ',
-                vertical: ' ',
+            BorderStyle::Rounded => box_drawing::ROUNDED,
+            BorderStyle::Square => box_drawing::SQUARE,
+            BorderStyle::Heavy => box_drawing::HEAVY,
+            BorderStyle::Double => box_drawing::DOUBLE,
+            BorderStyle::Ascii => box_drawing::ASCII,
+            BorderStyle::AsciiDoubleHead => box_drawing::ASCII_DOUBLE_HEAD,
+            BorderStyle::Minimal => box_drawing::MINIMAL,
+            BorderStyle::MinimalHeavyHead => box_drawing::MINIMAL_HEAVY_HEAD,
+            BorderStyle::MinimalDoubleHead => box_drawing::MINIMAL_DOUBLE_HEAD,
+            BorderStyle::Horizontals => box_drawing::HORIZONTALS,
+            BorderStyle::SquareDoubleHead => box_drawing::SQUARE_DOUBLE_HEAD,
+            BorderStyle::HeavyEdge => box_drawing::HEAVY_EDGE,
+            BorderStyle::HeavyHead => box_drawing::HEAVY_HEAD,
+            BorderStyle::DoubleEdge => box_drawing::DOUBLE_EDGE,
+            BorderStyle::Hidden => Box {
+                top: box_drawing::Line::new(' ', ' ', ' ', ' '),
+                head: box_drawing::Line::new(' ', ' ', ' ', ' '),
+                mid: box_drawing::Line::new(' ', ' ', ' ', ' '),
+                bottom: box_drawing::Line::new(' ', ' ', ' ', ' '),
+                header: box_drawing::Line::new(' ', ' ', ' ', ' '),
+                cell: box_drawing::Line::new(' ', ' ', ' ', ' '),
             },
         }
     }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct BorderChars {
-    top_left: char,
-    top_right: char,
-    bottom_left: char,
-    bottom_right: char,
-    horizontal: char,
-    vertical: char,
 }
 
 /// A panel that wraps content in a box.
@@ -194,16 +168,17 @@ impl Panel {
         self
     }
 
-    fn render_top_border(&self, width: usize, chars: &BorderChars) -> Segment {
+    fn render_top_border(&self, width: usize, box_chars: &Box) -> Segment {
         let inner_width = width.saturating_sub(2);
+        let chars = box_chars.top;
 
         match &self.title {
             None => {
-                let line = chars.horizontal.to_string().repeat(inner_width);
+                let line = chars.mid.to_string().repeat(inner_width);
                 Segment::line(vec![
-                    Span::styled(chars.top_left.to_string(), self.style),
+                    Span::styled(chars.left.to_string(), self.style),
                     Span::styled(line, self.style),
-                    Span::styled(chars.top_right.to_string(), self.style),
+                    Span::styled(chars.right.to_string(), self.style),
                 ])
             }
             Some(title) => {
@@ -211,11 +186,11 @@ impl Panel {
                 let title_width = unicode_width::UnicodeWidthStr::width(title_with_space.as_str());
 
                 if title_width >= inner_width {
-                    let line = chars.horizontal.to_string().repeat(inner_width);
+                    let line = chars.mid.to_string().repeat(inner_width);
                     return Segment::line(vec![
-                        Span::styled(chars.top_left.to_string(), self.style),
+                        Span::styled(chars.left.to_string(), self.style),
                         Span::styled(line, self.style),
-                        Span::styled(chars.top_right.to_string(), self.style),
+                        Span::styled(chars.right.to_string(), self.style),
                     ]);
                 }
 
@@ -224,26 +199,27 @@ impl Panel {
                 let right_len = remaining - left_len;
 
                 Segment::line(vec![
-                    Span::styled(chars.top_left.to_string(), self.style),
-                    Span::styled(chars.horizontal.to_string().repeat(left_len), self.style),
+                    Span::styled(chars.left.to_string(), self.style),
+                    Span::styled(chars.mid.to_string().repeat(left_len), self.style),
                     Span::styled(title_with_space, self.title_style),
-                    Span::styled(chars.horizontal.to_string().repeat(right_len), self.style),
-                    Span::styled(chars.top_right.to_string(), self.style),
+                    Span::styled(chars.mid.to_string().repeat(right_len), self.style),
+                    Span::styled(chars.right.to_string(), self.style),
                 ])
             }
         }
     }
 
-    fn render_bottom_border(&self, width: usize, chars: &BorderChars) -> Segment {
+    fn render_bottom_border(&self, width: usize, box_chars: &Box) -> Segment {
         let inner_width = width.saturating_sub(2);
+        let chars = box_chars.bottom;
 
         match &self.subtitle {
             None => {
-                let line = chars.horizontal.to_string().repeat(inner_width);
+                let line = chars.mid.to_string().repeat(inner_width);
                 Segment::line(vec![
-                    Span::styled(chars.bottom_left.to_string(), self.style),
+                    Span::styled(chars.left.to_string(), self.style),
                     Span::styled(line, self.style),
-                    Span::styled(chars.bottom_right.to_string(), self.style),
+                    Span::styled(chars.right.to_string(), self.style),
                 ])
             }
             Some(subtitle) => {
@@ -251,11 +227,11 @@ impl Panel {
                 let sub_width = unicode_width::UnicodeWidthStr::width(sub_with_space.as_str());
 
                 if sub_width >= inner_width {
-                    let line = chars.horizontal.to_string().repeat(inner_width);
+                    let line = chars.mid.to_string().repeat(inner_width);
                     return Segment::line(vec![
-                        Span::styled(chars.bottom_left.to_string(), self.style),
+                        Span::styled(chars.left.to_string(), self.style),
                         Span::styled(line, self.style),
-                        Span::styled(chars.bottom_right.to_string(), self.style),
+                        Span::styled(chars.right.to_string(), self.style),
                     ]);
                 }
 
@@ -264,37 +240,39 @@ impl Panel {
                 let left_len = remaining - right_len;
 
                 Segment::line(vec![
-                    Span::styled(chars.bottom_left.to_string(), self.style),
-                    Span::styled(chars.horizontal.to_string().repeat(left_len), self.style),
+                    Span::styled(chars.left.to_string(), self.style),
+                    Span::styled(chars.mid.to_string().repeat(left_len), self.style),
                     Span::styled(sub_with_space, self.title_style),
-                    Span::styled(chars.horizontal.to_string().repeat(right_len), self.style),
-                    Span::styled(chars.bottom_right.to_string(), self.style),
+                    Span::styled(chars.mid.to_string().repeat(right_len), self.style),
+                    Span::styled(chars.right.to_string(), self.style),
                 ])
             }
         }
     }
 
-    fn render_content_line(&self, spans: Vec<Span>, width: usize, chars: &BorderChars) -> Segment {
+    fn render_content_line(&self, spans: Vec<Span>, width: usize, box_chars: &Box) -> Segment {
         let inner_width = width.saturating_sub(2 + self.padding_x * 2);
         let content_width: usize = spans.iter().map(|s| s.width()).sum();
         let padding_right = inner_width.saturating_sub(content_width);
+        let chars = box_chars.cell;
 
         let mut line_spans = Vec::new();
-        line_spans.push(Span::styled(chars.vertical.to_string(), self.style));
-        line_spans.push(Span::raw(" ".repeat(self.padding_x)));
+        line_spans.push(Span::styled(chars.left.to_string(), self.style));
+        line_spans.push(Span::styled(" ".repeat(self.padding_x), self.style));
         line_spans.extend(spans);
-        line_spans.push(Span::raw(" ".repeat(padding_right + self.padding_x)));
-        line_spans.push(Span::styled(chars.vertical.to_string(), self.style));
+        line_spans.push(Span::styled(" ".repeat(padding_right + self.padding_x), self.style));
+        line_spans.push(Span::styled(chars.right.to_string(), self.style));
 
         Segment::line(line_spans)
     }
 
-    fn render_empty_line(&self, width: usize, chars: &BorderChars) -> Segment {
+    fn render_empty_line(&self, width: usize, box_chars: &Box) -> Segment {
         let inner_width = width.saturating_sub(2);
+        let chars = box_chars.cell;
         Segment::line(vec![
-            Span::styled(chars.vertical.to_string(), self.style),
-            Span::raw(" ".repeat(inner_width)),
-            Span::styled(chars.vertical.to_string(), self.style),
+            Span::styled(chars.left.to_string(), self.style),
+            Span::styled(" ".repeat(inner_width), self.style),
+            Span::styled(chars.right.to_string(), self.style),
         ])
     }
 }
@@ -307,7 +285,7 @@ impl<T: Into<Text>> From<T> for Panel {
 
 impl Renderable for Panel {
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
-        let chars = self.border_style.chars();
+        let box_chars = self.border_style.to_box();
         let width = if self.expand {
             context.width
         } else {
@@ -322,25 +300,25 @@ impl Renderable for Panel {
         let mut segments = Vec::new();
 
         // Top border
-        segments.push(self.render_top_border(width, &chars));
+        segments.push(self.render_top_border(width, &box_chars));
 
         // Top padding
         for _ in 0..self.padding_y {
-            segments.push(self.render_empty_line(width, &chars));
+            segments.push(self.render_empty_line(width, &box_chars));
         }
 
         // Content lines
         for line_spans in content_lines {
-            segments.push(self.render_content_line(line_spans, width, &chars));
+            segments.push(self.render_content_line(line_spans, width, &box_chars));
         }
 
         // Bottom padding
         for _ in 0..self.padding_y {
-            segments.push(self.render_empty_line(width, &chars));
+            segments.push(self.render_empty_line(width, &box_chars));
         }
 
         // Bottom border
-        segments.push(self.render_bottom_border(width, &chars));
+        segments.push(self.render_bottom_border(width, &box_chars));
 
         segments
     }

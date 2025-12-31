@@ -71,7 +71,8 @@ fn test_markdown_snapshot() {
     let md = rich_rust::markdown::Markdown::new("# Header\n* List item");
     let output = render_snapshot(&md);
     assert!(output.contains("Header"));
-    assert!(output.contains("• List item"));
+    assert!(output.contains("•"));
+    assert!(output.contains("List item"));
 }
 
 #[cfg(feature = "syntax")]

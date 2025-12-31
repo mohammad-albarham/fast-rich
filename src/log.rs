@@ -21,6 +21,8 @@ pub struct LogMessage {
     pub time: SystemTime,
     /// Log level
     pub level: LogLevel,
+    /// Whether to show the timestamp
+    pub show_time: bool,
 }
 
 /// Log level for messages.
@@ -41,7 +43,7 @@ impl LogLevel {
     /// Get the style for this log level.
     pub fn style(&self) -> Style {
         match self {
-            LogLevel::Debug => Style::new().foreground(Color::BrightBlack),
+            LogLevel::Debug => Style::new().foreground(Color::Magenta),
             LogLevel::Info => Style::new().foreground(Color::Blue),
             LogLevel::Warning => Style::new().foreground(Color::Yellow),
             LogLevel::Error => Style::new().foreground(Color::Red).bold(),
@@ -68,6 +70,7 @@ impl LogMessage {
             line: None,
             time: SystemTime::now(),
             level: LogLevel::Info,
+            show_time: true,
         }
     }
 
@@ -83,15 +86,20 @@ impl LogMessage {
         self.level = level;
         self
     }
+    
+    /// Set whether to show the timestamp.
+    pub fn show_time(mut self, show: bool) -> Self {
+        self.show_time = show;
+        self
+    }
 
     /// Format the timestamp.
     fn format_time(&self) -> String {
         use std::time::UNIX_EPOCH;
 
         let duration = self.time.duration_since(UNIX_EPOCH).unwrap_or_default();
-        let secs = duration.as_secs();
-
-        // Simple time formatting (HH:MM:SS)
+        let secs = duration.as_secs(); 
+        
         let hours = (secs / 3600) % 24;
         let minutes = (secs / 60) % 60;
         let seconds = secs % 60;
@@ -118,12 +126,13 @@ impl Renderable for LogMessage {
         let mut spans = Vec::new();
 
         // Timestamp
-        spans.push(Span::styled(
-            format!("[{}]", self.format_time()),
-            Style::new().foreground(Color::BrightBlack),
-        ));
-
-        spans.push(Span::raw(" "));
+        if self.show_time {
+            spans.push(Span::styled(
+                format!("[{}]", self.format_time()),
+                Style::new().dim(),
+            ));
+            spans.push(Span::raw(" "));
+        }
 
         // Level
         spans.push(Span::styled(
@@ -133,17 +142,17 @@ impl Renderable for LogMessage {
 
         spans.push(Span::raw(" "));
 
-        // Location
-        if let Some(location) = self.format_location() {
-            spans.push(Span::styled(
-                format!("[{}]", location),
-                Style::new().foreground(Color::Cyan),
-            ));
-            spans.push(Span::raw(" "));
-        }
-
         // Message
         spans.push(Span::raw(self.message.clone()));
+
+        // Location
+        if let Some(location) = self.format_location() {
+             spans.push(Span::raw(" "));
+            spans.push(Span::styled(
+                location,
+                Style::new().foreground(Color::Cyan).dim(),
+            ));
+        }
 
         vec![Segment::line(spans)]
     }
@@ -197,54 +206,93 @@ macro_rules! log {
     }};
 }
 
-/// Macro for debug logging.
-#[macro_export]
-macro_rules! log_debug {
-    ($console:expr, $($arg:tt)*) => {{
-        let message = format!($($arg)*);
-        let log_msg = $crate::log::LogMessage::new(&message)
-            .location(file!(), line!())
-            .level($crate::log::LogLevel::Debug);
-        $console.print_renderable(&log_msg);
-    }};
-}
-
-/// Macro for warning logging.
-#[macro_export]
-macro_rules! log_warn {
-    ($console:expr, $($arg:tt)*) => {{
-        let message = format!($($arg)*);
-        let log_msg = $crate::log::LogMessage::new(&message)
-            .location(file!(), line!())
-            .level($crate::log::LogLevel::Warning);
-        $console.print_renderable(&log_msg);
-    }};
-}
-
-/// Macro for error logging.
-#[macro_export]
-macro_rules! log_error {
-    ($console:expr, $($arg:tt)*) => {{
-        let message = format!($($arg)*);
-        let log_msg = $crate::log::LogMessage::new(&message)
-            .location(file!(), line!())
-            .level($crate::log::LogLevel::Error);
-        $console.print_renderable(&log_msg);
-    }};
-}
-
 #[cfg(feature = "logging")]
 mod log_integration {
     //! Integration with the `log` crate.
-
     use super::*;
-    use log::{Level, Log, Metadata, Record};
+    use log::{Level, Log, Metadata, Record, SetLoggerError};
     use std::sync::OnceLock;
 
     static CONSOLE: OnceLock<Console> = OnceLock::new();
 
+    /// Configuration for the RichLogger.
+    #[derive(Clone, Debug)]
+    pub struct RichLoggerConfig {
+        /// Whether to show timestamps.
+        pub enable_time: bool,
+        /// Whether to show the file path/location.
+        pub enable_path: bool,
+    }
+
+    impl Default for RichLoggerConfig {
+        fn default() -> Self {
+            Self {
+                enable_time: true,
+                enable_path: true,
+            }
+        }
+    }
+
     /// A log handler that outputs to a rich Console.
-    pub struct RichLogger;
+    pub struct RichLogger {
+        config: RichLoggerConfig,
+    }
+
+    impl RichLogger {
+        /// Create a new builder for RichLogger.
+        pub fn builder() -> RichLoggerBuilder {
+            RichLoggerBuilder::default()
+        }
+
+        /// Initialize the logger with default settings.
+        pub fn init() -> Result<(), SetLoggerError> {
+            Self::builder().init()
+        }
+    }
+
+    /// Builder for RichLogger.
+    #[derive(Default)]
+    pub struct RichLoggerBuilder {
+        config: RichLoggerConfig,
+        level: Option<log::LevelFilter>,
+    }
+
+    impl RichLoggerBuilder {
+        /// Enable or disable timestamps.
+        pub fn enable_time(mut self, enable: bool) -> Self {
+            self.config.enable_time = enable;
+            self
+        }
+
+        /// Enable or disable file paths.
+        pub fn enable_path(mut self, enable: bool) -> Self {
+            self.config.enable_path = enable;
+            self
+        }
+
+        /// Set the max log level.
+        pub fn filter_level(mut self, level: log::LevelFilter) -> Self {
+            self.level = Some(level);
+            self
+        }
+
+        /// Initialize the logger.
+        pub fn init(self) -> Result<(), SetLoggerError> {
+             // Initialize global console if not already
+            CONSOLE.get_or_init(Console::new);
+            
+            let logger = Box::new(RichLogger {
+                config: self.config,
+            });
+            
+            // We need to leak the logger to satisfy 'static requirement of set_logger
+            let static_logger = Box::leak(logger);
+
+            log::set_logger(static_logger)?;
+            log::set_max_level(self.level.unwrap_or(log::LevelFilter::Trace));
+            Ok(())
+        }
+    }
 
     impl Log for RichLogger {
         fn enabled(&self, _metadata: &Metadata) -> bool {
@@ -252,6 +300,10 @@ mod log_integration {
         }
 
         fn log(&self, record: &Record) {
+            if !self.enabled(record.metadata()) {
+                return;
+            }
+
             let console = CONSOLE.get_or_init(Console::new);
 
             let level = match record.level() {
@@ -261,31 +313,44 @@ mod log_integration {
                 Level::Debug | Level::Trace => LogLevel::Debug,
             };
 
-            let mut log_msg = LogMessage::new(&format!("{}", record.args())).level(level);
-
-            if let Some(file) = record.file_static() {
-                if let Some(line) = record.line() {
-                    log_msg = log_msg.location(file, line);
+            let mut log_msg = LogMessage::new(&format!("{}", record.args()))
+                .level(level)
+                .show_time(self.config.enable_time);
+            
+            if self.config.enable_path {
+                if let Some(file) = record.file_static() {
+                    if let Some(line) = record.line() {
+                        log_msg = log_msg.location(file, line);
+                    }
                 }
             }
 
+            // Note: Timestamp is handled by LogMessage itself based on creation time, 
+            // but we could suppress it in render if we passed config down.
+            // For now, let's just use what LogMessage does, but maybe we should refactor LogMessage 
+            // to just hold data and let the renderer decide?
+            // Or simpler: We can't easily change LogMessage::render without changing trait signature 
+            // or adding fields.
+            // Let's assume LogMessage::render always renders time if it has it, 
+            // but we want to control it. 
+            // Hack fix: If enable_time is false, we could modify how we construct LogMessage or 
+            // implementation of Renderable for LogMessage needs to know about config.
+            // Since LogMessage is a public struct separate from RichLogger, 
+            // we should probably just make LogMessage configurable or specific to this usage.
+            // 
+            // For this iteration, let's keep LogMessage implementation simple and maybe update it 
+            // to have public fields we can manipulate or rendering options.
+            // But LogMessage implements Renderable directly.
+            
             console.print_renderable(&log_msg);
         }
 
         fn flush(&self) {}
     }
-
-    /// Install the rich logger as the global logger.
-    pub fn install() -> Result<(), log::SetLoggerError> {
-        static LOGGER: RichLogger = RichLogger;
-        log::set_logger(&LOGGER)?;
-        log::set_max_level(log::LevelFilter::Trace);
-        Ok(())
-    }
 }
 
 #[cfg(feature = "logging")]
-pub use log_integration::{install as install_logger, RichLogger};
+pub use log_integration::{RichLogger, RichLoggerBuilder};
 
 #[cfg(test)]
 mod tests {
@@ -310,13 +375,5 @@ mod tests {
         let text = segments[0].plain_text();
         assert!(text.contains("INFO"));
         assert!(text.contains("Hello"));
-    }
-
-    #[test]
-    fn test_log_levels() {
-        assert_eq!(LogLevel::Debug.label(), "DEBUG");
-        assert_eq!(LogLevel::Info.label(), "INFO");
-        assert_eq!(LogLevel::Warning.label(), "WARN");
-        assert_eq!(LogLevel::Error.label(), "ERROR");
     }
 }

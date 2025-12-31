@@ -8,6 +8,7 @@ use crate::panel::BorderStyle;
 use crate::renderable::{Renderable, Segment};
 use crate::style::Style;
 use crate::text::{Span, Text};
+use crate::box_drawing::Line;
 use unicode_width::UnicodeWidthStr;
 
 /// Column alignment.
@@ -140,106 +141,7 @@ impl Row {
     }
 }
 
-/// Table border characters.
-#[derive(Debug, Clone, Copy)]
-struct TableBorderChars {
-    top_left: char,
-    top_right: char,
-    bottom_left: char,
-    bottom_right: char,
-    horizontal: char,
-    vertical: char,
-    cross: char,
-    top_t: char,
-    bottom_t: char,
-    left_t: char,
-    right_t: char,
-}
-
-impl TableBorderChars {
-    fn from_style(style: BorderStyle) -> Self {
-        match style {
-            BorderStyle::Rounded => TableBorderChars {
-                top_left: '╭',
-                top_right: '╮',
-                bottom_left: '╰',
-                bottom_right: '╯',
-                horizontal: '─',
-                vertical: '│',
-                cross: '┼',
-                top_t: '┬',
-                bottom_t: '┴',
-                left_t: '├',
-                right_t: '┤',
-            },
-            BorderStyle::Square => TableBorderChars {
-                top_left: '┌',
-                top_right: '┐',
-                bottom_left: '└',
-                bottom_right: '┘',
-                horizontal: '─',
-                vertical: '│',
-                cross: '┼',
-                top_t: '┬',
-                bottom_t: '┴',
-                left_t: '├',
-                right_t: '┤',
-            },
-            BorderStyle::Heavy => TableBorderChars {
-                top_left: '┏',
-                top_right: '┓',
-                bottom_left: '┗',
-                bottom_right: '┛',
-                horizontal: '━',
-                vertical: '┃',
-                cross: '╋',
-                top_t: '┳',
-                bottom_t: '┻',
-                left_t: '┣',
-                right_t: '┫',
-            },
-            BorderStyle::Double => TableBorderChars {
-                top_left: '╔',
-                top_right: '╗',
-                bottom_left: '╚',
-                bottom_right: '╝',
-                horizontal: '═',
-                vertical: '║',
-                cross: '╬',
-                top_t: '╦',
-                bottom_t: '╩',
-                left_t: '╠',
-                right_t: '╣',
-            },
-            BorderStyle::Ascii => TableBorderChars {
-                top_left: '+',
-                top_right: '+',
-                bottom_left: '+',
-                bottom_right: '+',
-                horizontal: '-',
-                vertical: '|',
-                cross: '+',
-                top_t: '+',
-                bottom_t: '+',
-                left_t: '+',
-                right_t: '+',
-            },
-            BorderStyle::Minimal | BorderStyle::Hidden => TableBorderChars {
-                top_left: ' ',
-                top_right: ' ',
-                bottom_left: ' ',
-                bottom_right: ' ',
-                horizontal: '─',
-                vertical: ' ',
-                cross: '─',
-                top_t: '─',
-                bottom_t: '─',
-                left_t: '─',
-                right_t: '─',
-            },
-        }
-    }
-}
+    // Removed TableBorderChars struct and implementation
 
 /// A table for displaying structured data.
 #[derive(Debug, Clone)]
@@ -455,25 +357,22 @@ impl Table {
     fn render_horizontal_line(
         &self,
         widths: &[usize],
-        chars: &TableBorderChars,
-        left: char,
-        mid: char,
-        right: char,
+        line: &Line,
     ) -> Segment {
-        let mut spans = vec![Span::styled(left.to_string(), self.style)];
+        let mut spans = vec![Span::styled(line.left.to_string(), self.style)];
 
         for (i, &width) in widths.iter().enumerate() {
             let cell_width = width + self.padding * 2;
             spans.push(Span::styled(
-                chars.horizontal.to_string().repeat(cell_width),
+                line.mid.to_string().repeat(cell_width),
                 self.style,
             ));
             if i < widths.len() - 1 {
-                spans.push(Span::styled(mid.to_string(), self.style));
+                spans.push(Span::styled(line.cross.to_string(), self.style));
             }
         }
 
-        spans.push(Span::styled(right.to_string(), self.style));
+        spans.push(Span::styled(line.right.to_string(), self.style));
         Segment::line(spans)
     }
 
@@ -481,7 +380,7 @@ impl Table {
         &self,
         cells: &[Text],
         widths: &[usize],
-        chars: &TableBorderChars,
+        line: &Line,
         cell_styles: &[Style],
     ) -> Vec<Segment> {
         // For simplicity, render single-line rows
@@ -489,7 +388,7 @@ impl Table {
         let mut spans = Vec::new();
 
         if self.show_border {
-            spans.push(Span::styled(chars.vertical.to_string(), self.style));
+            spans.push(Span::styled(line.left.to_string(), self.style));
         }
 
         for (i, width) in widths.iter().enumerate() {
@@ -506,8 +405,10 @@ impl Table {
             spans.push(Span::styled(padded, cell_style));
             spans.push(Span::raw(" ".repeat(self.padding)));
 
-            if i < widths.len() - 1 || self.show_border {
-                spans.push(Span::styled(chars.vertical.to_string(), self.style));
+            if i < widths.len() - 1 {
+                spans.push(Span::styled(line.cross.to_string(), self.style));
+            } else if self.show_border {
+                spans.push(Span::styled(line.right.to_string(), self.style));
             }
         }
 
@@ -578,7 +479,7 @@ impl Renderable for Table {
             return vec![];
         }
 
-        let chars = TableBorderChars::from_style(self.border_style);
+        let box_chars = self.border_style.to_box();
         let widths = self.calculate_widths(context.width);
         let mut segments = Vec::new();
 
@@ -621,10 +522,7 @@ impl Renderable for Table {
         if self.show_border {
             segments.push(self.render_horizontal_line(
                 &widths,
-                &chars,
-                chars.top_left,
-                chars.top_t,
-                chars.top_right,
+                &box_chars.top,
             ));
         }
 
@@ -636,16 +534,14 @@ impl Renderable for Table {
                 .map(|c| Text::styled(c.header.clone(), c.header_style))
                 .collect();
             let header_styles: Vec<Style> = self.columns.iter().map(|c| c.header_style).collect();
-            segments.extend(self.render_row(&header_cells, &widths, &chars, &header_styles));
+            // Use header box line for vertical separators in header
+            segments.extend(self.render_row(&header_cells, &widths, &box_chars.header, &header_styles));
 
             // Header separator
             if self.show_border || self.show_row_lines {
                 segments.push(self.render_horizontal_line(
                     &widths,
-                    &chars,
-                    chars.left_t,
-                    chars.cross,
-                    chars.right_t,
+                    &box_chars.head,
                 ));
             }
         }
@@ -653,16 +549,14 @@ impl Renderable for Table {
         // Data rows
         for (row_idx, row) in self.rows.iter().enumerate() {
             let cell_styles: Vec<Style> = self.columns.iter().map(|c| c.style).collect();
-            segments.extend(self.render_row(&row.cells, &widths, &chars, &cell_styles));
+            // Use cell box line for vertical separators in body
+            segments.extend(self.render_row(&row.cells, &widths, &box_chars.cell, &cell_styles));
 
             // Row separator
             if self.show_row_lines && row_idx < self.rows.len() - 1 {
                 segments.push(self.render_horizontal_line(
                     &widths,
-                    &chars,
-                    chars.left_t,
-                    chars.cross,
-                    chars.right_t,
+                    &box_chars.mid,
                 ));
             }
         }
@@ -671,10 +565,7 @@ impl Renderable for Table {
         if self.show_border {
             segments.push(self.render_horizontal_line(
                 &widths,
-                &chars,
-                chars.bottom_left,
-                chars.bottom_t,
-                chars.bottom_right,
+                &box_chars.bottom,
             ));
         }
 

@@ -128,15 +128,41 @@ impl Syntax {
 
     /// Convert syntect style to our Style.
     fn convert_style(syntect_style: SyntectStyle) -> Style {
-        Style::new().foreground(Color::rgb(
+        let mut style = Style::new().foreground(Color::rgb(
             syntect_style.foreground.r,
             syntect_style.foreground.g,
             syntect_style.foreground.b,
-        ))
+        ));
+        
+        // Only apply background if it's not transparent/default
+        // Syntect ensures colors are RGBA, so we can check alpha or defaults.
+        // Usually, code spans don't have distinct backgrounds unless specified by the theme for that token.
+        // For now, we'll map it if it differs from the theme default, but syntect converts generic theme styles 
+        // to specific style objects. Let's apply it if the alpha is sufficient.
+        if syntect_style.background.a > 0 {
+             style = style.background(Color::rgb(
+                syntect_style.background.r,
+                syntect_style.background.g,
+                syntect_style.background.b,
+            ));
+        }
+        
+        // Font style modifiers
+        if syntect_style.font_style.contains(syntect::highlighting::FontStyle::BOLD) {
+            style = style.bold();
+        }
+        if syntect_style.font_style.contains(syntect::highlighting::FontStyle::ITALIC) {
+            style = style.italic();
+        }
+        if syntect_style.font_style.contains(syntect::highlighting::FontStyle::UNDERLINE) {
+            style = style.underline();
+        }
+        
+        style
     }
 
     /// Highlight the code and return styled lines.
-    fn highlight(&self) -> Vec<Vec<Span>> {
+    fn highlight(&self) -> (Vec<Vec<Span>>, Option<Color>) {
         let syntax_set = SYNTAX_SET.get_or_init(SyntaxSet::load_defaults_newlines);
         let theme_set = THEME_SET.get_or_init(ThemeSet::load_defaults);
 
@@ -149,25 +175,42 @@ impl Syntax {
             .themes
             .get(self.config.theme.name())
             .unwrap_or_else(|| theme_set.themes.values().next().unwrap());
+            
+        // Extract global theme background
+        let theme_bg = theme.settings.background.map(|c| Color::rgb(c.r, c.g, c.b));
 
         let mut highlighter = HighlightLines::new(syntax, theme);
         let mut lines = Vec::new();
-        let line_number_width = (self.code.lines().count() + self.config.start_line)
+        let line_count = self.code.lines().count();
+        // If code ends with newline, lines() might undercount for rendering purposes depending on requirement,
+        // but for line numbers usually standard lines() is fine.
+        
+        let line_number_width = (line_count + self.config.start_line)
             .to_string()
             .len();
 
         for (i, line) in LinesWithEndings::from(&self.code).enumerate() {
+            // Syntect handles syntax by line, but doesn't expand tabs.
+            // We expand tabs to spaces here to ensure width calculations are consistent
+            // for Panel rendering. Standardizing on 4 spaces for now.
+            let line = line.replace('\t', "    ");
+            
             let line_num = i + self.config.start_line;
             let mut spans = Vec::new();
 
             // Add line number if enabled
             if self.config.line_numbers {
                 let is_highlighted = self.config.highlight_lines.contains(&line_num);
-                let line_style = if is_highlighted {
-                    Style::new().foreground(Color::Yellow).bold()
+                let line_color = if is_highlighted {
+                    Color::Yellow
                 } else {
-                    Style::new().foreground(Color::BrightBlack)
+                    Color::BrightBlack
                 };
+                
+                let line_style = Style::new().foreground(line_color);
+                // Also apply theme background to line numbers if we want them to blend in, 
+                // but usually line numbers might be in a "gutter".
+                // For now, let's keep them simple.
 
                 let marker = if is_highlighted { "→ " } else { "  " };
                 spans.push(Span::styled(marker.to_string(), line_style));
@@ -179,7 +222,7 @@ impl Syntax {
 
             // Highlight the line content
             let highlighted = highlighter
-                .highlight_line(line, syntax_set)
+                .highlight_line(&line, syntax_set)
                 .unwrap_or_default();
 
             for (style, text) in highlighted {
@@ -192,13 +235,24 @@ impl Syntax {
             lines.push(spans);
         }
 
-        lines
+        (lines, theme_bg)
     }
 }
 
 impl Renderable for Syntax {
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
-        let highlighted_lines = self.highlight();
+        let (mut highlighted_lines, theme_bg) = self.highlight();
+
+        // Apply theme background to all spans that don't have a specific background
+        if let Some(bg) = theme_bg {
+            for line in &mut highlighted_lines {
+                for span in line {
+                    if span.style.background.is_none() {
+                        span.style = span.style.background(bg);
+                    }
+                }
+            }
+        }
 
         if self.config.panel {
             // Build text content
@@ -212,10 +266,17 @@ impl Renderable for Syntax {
                 }
             }
 
-            let panel = Panel::new(text)
+            let mut panel = Panel::new(text)
                 .title(&self.language)
                 .border_style(self.config.border_style)
                 .style(Style::new().foreground(Color::BrightBlack));
+
+            if let Some(bg) = theme_bg {
+                // Apply background to the panel (border + padding)
+                // Note: We need to preserve the foreground color for the border
+                let current_style = Style::new().foreground(Color::BrightBlack);
+                panel = panel.style(current_style.background(bg));
+            }
 
             panel.render(context)
         } else {

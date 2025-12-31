@@ -1,50 +1,111 @@
 site_name: Fast-Rich
+site_description: High-performance Rust port of Python's Rich library for beautiful terminal formatting
 site_url: https://mohammad-albarham.github.io/fast-rich
 repo_url: https://github.com/mohammad-albarham/fast-rich
-repo_name: fast-rich
+repo_name: mohammad-albarham/fast-rich
+edit_uri: edit/main/docs/
+
 theme:
   name: material
   palette:
-    - scheme: default
-      primary: indigo
-      accent: indigo
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-    - scheme: slate
-      primary: indigo
-      accent: indigo
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/console
   features:
     - content.code.copy
     - content.code.annotate
+    - content.tabs.link
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
     - navigation.expand
     - navigation.indexes
     - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - toc.follow
 
 nav:
   - Home: index.md
-  - Rust Library:
-    - Getting Started: rust_getting_started.md
-    - Examples: rust_examples.md
-    - "Tutorial - Dashboard": tutorial_dashboard.md
+  - Getting Started: getting-started.md
+  - Guides:
+    - guides/index.md
+    - Text & Styles: guides/text-styles.md
+    - Console: guides/console.md
+    - Tables: guides/tables.md
+    - Panels & Rules: guides/panels.md
+    - Progress Bars: guides/progress.md
+    - Live Display: guides/live.md
+    - Tree Views: guides/tree.md
+    - Layouts: guides/layout.md
+    - Syntax Highlighting: guides/syntax.md
+    - Markdown: guides/markdown.md
+    - Logging: guides/logging.md
+    - Tracebacks: guides/traceback.md
+  - Examples: rust_examples.md
+  - Tutorials:
+    - Dashboard: tutorial_dashboard.md
+  - Reference:
+    - API Overview: reference/api.md
     - Benchmarks: benchmarks.md
-    - API Reference: api.md
   - Python Bindings:
     - Installation: python_install.md
     - API Reference: python_api.md
-  - Project Info:
-    - Contributing: CONTRIBUTING.md
+  - Contributing:
+    - contributing/index.md
+    - Building Docs: contributing/building-docs.md
     - Changelog: CHANGELOG.md
 
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - pymdownx.mark
+  - pymdownx.keys
   - admonition
   - attr_list
-  - pymdownx.details
+  - md_in_html
+  - def_list
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/mohammad-albarham/fast-rich
+    - icon: fontawesome/brands/rust
+      link: https://crates.io/crates/fast-rich
+  generator: false
+
+copyright: Copyright &copy; 2024 Mohammad Albarham

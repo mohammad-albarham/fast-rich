@@ -1,5 +1,5 @@
-use pyo3::prelude::*;
 use fast_rich::filesize;
+use pyo3::prelude::*;
 
 #[pyfunction]
 pub fn decimal(size: u64) -> String {

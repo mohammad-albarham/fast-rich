@@ -190,14 +190,10 @@ impl Renderable for Layout {
             return vec![Segment::new(vec![crate::text::Span::raw(blank_line)])];
         }
 
-
         // Branch node: Calculate splits
         let (width, _height) = match self.direction {
             Direction::Horizontal => (context.width as u16, context.height.unwrap_or(0) as u16),
-            Direction::Vertical => (
-                context.width as u16,
-                context.height.unwrap_or(0) as u16,
-            ),
+            Direction::Vertical => (context.width as u16, context.height.unwrap_or(0) as u16),
         };
 
         let mut segments = Vec::new();
@@ -206,7 +202,7 @@ impl Renderable for Layout {
             if let Some(total_height) = context.height {
                 // Fixed height: Calculate splits based on height
                 let splits = self.calculate_splits(total_height as u16);
-                
+
                 for (i, child) in self.children.iter().enumerate() {
                     let h = splits[i] as usize;
                     if h == 0 {
@@ -236,7 +232,9 @@ impl Renderable for Layout {
                     if count < h {
                         let blank_line = " ".repeat(context.width);
                         for _ in count..h {
-                            segments.push(Segment::new(vec![crate::text::Span::raw(blank_line.clone())]));
+                            segments.push(Segment::new(vec![crate::text::Span::raw(
+                                blank_line.clone(),
+                            )]));
                         }
                     }
                 }
@@ -265,8 +263,8 @@ impl Renderable for Layout {
                 }
 
                 // Pass through the parent's height constraint to children
-                let child_ctx = RenderContext { 
-                    width: w, 
+                let child_ctx = RenderContext {
+                    width: w,
                     height: target_height,
                 };
                 let child_segs = child.render(&child_ctx);
@@ -275,9 +273,9 @@ impl Renderable for Layout {
             }
 
             // If we have a target height, use it as the number of lines to output
-            // (Assuming children respected it, max_lines should match target_height, 
+            // (Assuming children respected it, max_lines should match target_height,
             // but we use max_lines if target_height is None, or target_height if Some)
-             let final_lines = target_height.unwrap_or(max_lines);
+            let final_lines = target_height.unwrap_or(max_lines);
 
             // Zip lines
             for line_idx in 0..final_lines {
@@ -410,14 +408,17 @@ mod tests {
         ]);
 
         // Mock context with height
-        let context = RenderContext { width: 80, height: Some(10) };
+        let context = RenderContext {
+            width: 80,
+            height: Some(10),
+        };
         let segments = layout.render(&context);
 
         // Should have 10 lines total
         assert_eq!(segments.len(), 10);
         // 80 chars wide - check first line
         if !segments.is_empty() {
-             assert_eq!(segments[0].plain_text().len(), 80);
+            assert_eq!(segments[0].plain_text().len(), 80);
         }
     }
 
@@ -430,7 +431,10 @@ mod tests {
         ]);
 
         // Unconstrained height
-        let context = RenderContext { width: 80, height: None };
+        let context = RenderContext {
+            width: 80,
+            height: None,
+        };
         let segments = layout.render(&context);
 
         // Each leaf layout renders 1 blank line by default if empty
@@ -446,7 +450,10 @@ mod tests {
         ]);
 
         // If we pass a height, it should be enforced on children (columns)
-        let context = RenderContext { width: 80, height: Some(5) };
+        let context = RenderContext {
+            width: 80,
+            height: Some(5),
+        };
         let segments = layout.render(&context);
 
         // Should have 5 lines

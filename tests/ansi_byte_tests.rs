@@ -14,7 +14,11 @@ use std::path::Path;
 fn load_python_reference(test_name: &str) -> Option<String> {
     let path = format!("tests/ansi_output/python_{}.txt", test_name);
     if Path::new(&path).exists() {
-        Some(fs::read_to_string(&path).expect("Failed to read reference file"))
+        Some(
+            fs::read_to_string(&path)
+                .expect("Failed to read reference file")
+                .replace("\r\n", "\n"),
+        )
     } else {
         None
     }

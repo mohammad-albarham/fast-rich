@@ -218,7 +218,10 @@ mod tests {
     #[test]
     fn test_traceback_render() {
         let tb = Traceback::from_error("Test error");
-        let context = RenderContext { width: 60, height: None };
+        let context = RenderContext {
+            width: 60,
+            height: None,
+        };
         let segments = tb.render(&context);
 
         // Should produce output

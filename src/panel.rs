@@ -260,7 +260,10 @@ impl Panel {
         line_spans.push(Span::styled(chars.left.to_string(), self.style));
         line_spans.push(Span::styled(" ".repeat(self.padding_x), self.style));
         line_spans.extend(spans);
-        line_spans.push(Span::styled(" ".repeat(padding_right + self.padding_x), self.style));
+        line_spans.push(Span::styled(
+            " ".repeat(padding_right + self.padding_x),
+            self.style,
+        ));
         line_spans.push(Span::styled(chars.right.to_string(), self.style));
 
         Segment::line(line_spans)
@@ -331,7 +334,10 @@ mod tests {
     #[test]
     fn test_panel_simple() {
         let panel = Panel::new("Hello");
-        let context = RenderContext { width: 20, height: None };
+        let context = RenderContext {
+            width: 20,
+            height: None,
+        };
         let segments = panel.render(&context);
 
         // Should have top border, content, bottom border
@@ -346,7 +352,10 @@ mod tests {
     #[test]
     fn test_panel_with_title() {
         let panel = Panel::new("Content").title("Title");
-        let context = RenderContext { width: 30, height: None };
+        let context = RenderContext {
+            width: 30,
+            height: None,
+        };
         let segments = panel.render(&context);
 
         let top = segments[0].plain_text();
@@ -356,7 +365,10 @@ mod tests {
     #[test]
     fn test_panel_border_styles() {
         let panel = Panel::new("Test").border_style(BorderStyle::Double);
-        let context = RenderContext { width: 20, height: None };
+        let context = RenderContext {
+            width: 20,
+            height: None,
+        };
         let segments = panel.render(&context);
 
         let top = segments[0].plain_text();

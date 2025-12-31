@@ -3,12 +3,12 @@
 //! Tables support headers, multiple columns with alignment and width control,
 //! and various border styles.
 
+use crate::box_drawing::Line;
 use crate::console::RenderContext;
 use crate::panel::BorderStyle;
 use crate::renderable::{Renderable, Segment};
 use crate::style::Style;
 use crate::text::{Span, Text};
-use crate::box_drawing::Line;
 use unicode_width::UnicodeWidthStr;
 
 /// Column alignment.
@@ -141,7 +141,7 @@ impl Row {
     }
 }
 
-    // Removed TableBorderChars struct and implementation
+// Removed TableBorderChars struct and implementation
 
 /// A table for displaying structured data.
 #[derive(Debug, Clone)]
@@ -354,11 +354,7 @@ impl Table {
         }
     }
 
-    fn render_horizontal_line(
-        &self,
-        widths: &[usize],
-        line: &Line,
-    ) -> Segment {
+    fn render_horizontal_line(&self, widths: &[usize], line: &Line) -> Segment {
         let mut spans = vec![Span::styled(line.left.to_string(), self.style)];
 
         for (i, &width) in widths.iter().enumerate() {
@@ -520,10 +516,7 @@ impl Renderable for Table {
 
         // Top border
         if self.show_border {
-            segments.push(self.render_horizontal_line(
-                &widths,
-                &box_chars.top,
-            ));
+            segments.push(self.render_horizontal_line(&widths, &box_chars.top));
         }
 
         // Header row
@@ -535,14 +528,16 @@ impl Renderable for Table {
                 .collect();
             let header_styles: Vec<Style> = self.columns.iter().map(|c| c.header_style).collect();
             // Use header box line for vertical separators in header
-            segments.extend(self.render_row(&header_cells, &widths, &box_chars.header, &header_styles));
+            segments.extend(self.render_row(
+                &header_cells,
+                &widths,
+                &box_chars.header,
+                &header_styles,
+            ));
 
             // Header separator
             if self.show_border || self.show_row_lines {
-                segments.push(self.render_horizontal_line(
-                    &widths,
-                    &box_chars.head,
-                ));
+                segments.push(self.render_horizontal_line(&widths, &box_chars.head));
             }
         }
 
@@ -554,19 +549,13 @@ impl Renderable for Table {
 
             // Row separator
             if self.show_row_lines && row_idx < self.rows.len() - 1 {
-                segments.push(self.render_horizontal_line(
-                    &widths,
-                    &box_chars.mid,
-                ));
+                segments.push(self.render_horizontal_line(&widths, &box_chars.mid));
             }
         }
 
         // Bottom border
         if self.show_border {
-            segments.push(self.render_horizontal_line(
-                &widths,
-                &box_chars.bottom,
-            ));
+            segments.push(self.render_horizontal_line(&widths, &box_chars.bottom));
         }
 
         segments
@@ -585,7 +574,10 @@ mod tests {
         table.add_row_strs(&["Alice", "30"]);
         table.add_row_strs(&["Bob", "25"]);
 
-        let context = RenderContext { width: 40, height: None };
+        let context = RenderContext {
+            width: 40,
+            height: None,
+        };
         let segments = table.render(&context);
 
         assert!(!segments.is_empty());

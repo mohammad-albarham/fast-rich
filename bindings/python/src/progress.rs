@@ -1,5 +1,5 @@
-use pyo3::prelude::*;
 use fast_rich::progress::Progress;
+use pyo3::prelude::*;
 
 #[pyclass(name = "Progress")]
 pub struct PyProgress {

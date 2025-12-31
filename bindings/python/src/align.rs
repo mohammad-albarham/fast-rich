@@ -1,9 +1,9 @@
 use crate::panel::PyPanel;
 use crate::table::PyTable;
 use crate::text::PyText;
-use pyo3::prelude::*;
 use fast_rich::align::{Align, VerticalAlignment};
 use fast_rich::text::Alignment;
+use pyo3::prelude::*;
 
 #[pyclass(name = "Align")]
 pub struct PyAlign {

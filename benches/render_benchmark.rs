@@ -16,7 +16,10 @@ fn bench_markup_parsing(c: &mut Criterion) {
 fn bench_text_rendering(c: &mut Criterion) {
     let parsing_markup = "[bold red]Hello[/] [blue]World[/]! ".repeat(50);
     let text = markup::parse(&parsing_markup);
-    let context = RenderContext { width: 80, height: None };
+    let context = RenderContext {
+        width: 80,
+        height: None,
+    };
 
     c.bench_function("text render (wrap)", |b| {
         b.iter(|| text.render(black_box(&context)))
@@ -35,7 +38,10 @@ fn bench_table_rendering_100(c: &mut Criterion) {
             format!("Row {} Col 3 Data", i),
         ]);
     }
-    let context = RenderContext { width: 100, height: None };
+    let context = RenderContext {
+        width: 100,
+        height: None,
+    };
 
     c.bench_function("table render (100 rows)", |b| {
         b.iter(|| table.render(black_box(&context)))
@@ -45,7 +51,10 @@ fn bench_table_rendering_100(c: &mut Criterion) {
 fn bench_panel_rendering(c: &mut Criterion) {
     let content = "Panel content ".repeat(20);
     let panel = Panel::new(content).title("Benchmark Panel");
-    let context = RenderContext { width: 80, height: None };
+    let context = RenderContext {
+        width: 80,
+        height: None,
+    };
 
     c.bench_function("panel render", |b| {
         b.iter(|| panel.render(black_box(&context)))
@@ -61,7 +70,10 @@ fn bench_tree_rendering(c: &mut Criterion) {
             child.add(fast_rich::text::Text::from(format!("Grandchild {}", j)));
         }
     }
-    let context = RenderContext { width: 80, height: None };
+    let context = RenderContext {
+        width: 80,
+        height: None,
+    };
 
     c.bench_function("tree render (50 nodes)", |b| {
         b.iter(|| tree.render(black_box(&context)))
@@ -86,7 +98,10 @@ def foo():
     .repeat(10);
 
     let md = Markdown::new(&md_content);
-    let context = RenderContext { width: 80, height: None };
+    let context = RenderContext {
+        width: 80,
+        height: None,
+    };
 
     c.bench_function("markdown render", |b| {
         b.iter(|| md.render(black_box(&context)))
@@ -105,7 +120,10 @@ def factorial(n):
     .repeat(20);
 
     let syntax = Syntax::new(&code, "python");
-    let context = RenderContext { width: 80, height: None };
+    let context = RenderContext {
+        width: 80,
+        height: None,
+    };
 
     c.bench_function("syntax highlight (python)", |b| {
         b.iter(|| syntax.render(black_box(&context)))
@@ -130,7 +148,10 @@ fn bench_traceback_render(c: &mut Criterion) {
     use fast_rich::traceback::Traceback;
 
     let tb = Traceback::from_error("File not found: /path/to/missing/file.txt");
-    let context = RenderContext { width: 80, height: None };
+    let context = RenderContext {
+        width: 80,
+        height: None,
+    };
 
     c.bench_function("traceback render", |b| {
         b.iter(|| tb.render(black_box(&context)))

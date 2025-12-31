@@ -1,13 +1,20 @@
 use fast_rich::box_drawing;
 use fast_rich::console::RenderContext;
 use fast_rich::panel::{BorderStyle, Panel};
-use fast_rich::table::Table;
 use fast_rich::renderable::Renderable;
+use fast_rich::table::Table;
 
 fn render<T: Renderable>(item: &T) -> String {
-    let context = RenderContext { width: 40, height: None };
+    let context = RenderContext {
+        width: 40,
+        height: None,
+    };
     let segments = item.render(&context);
-    segments.iter().map(|s| s.plain_text()).collect::<Vec<_>>().join("\n")
+    segments
+        .iter()
+        .map(|s| s.plain_text())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 #[test]
@@ -53,11 +60,11 @@ fn test_table_heavy_head() {
         .border_style(BorderStyle::HeavyHead)
         .column("Col1");
     table.add_row_strs(&["Val1"]);
-    
+
     let output = render(&table);
     // HeavyHead has heavy top and header separator
     // Top left should be heavy ┏
-    assert!(output.contains('┏')); 
+    assert!(output.contains('┏'));
     // Header separator line uses '┡' for left
     assert!(output.contains('┡'));
     // Bottom left should be light └
@@ -70,7 +77,7 @@ fn test_table_ascii_double_head() {
         .border_style(BorderStyle::AsciiDoubleHead)
         .column("Col1");
     table.add_row_strs(&["Val1"]);
-    
+
     let output = render(&table);
     // Header separator should be =
     assert!(output.contains('='));

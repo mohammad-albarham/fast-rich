@@ -1,5 +1,7 @@
 use crate::console::RenderContext;
-use crate::progress::columns::{BarColumn, PercentageColumn, ProgressColumn, TextColumn, TimeRemainingColumn};
+use crate::progress::columns::{
+    BarColumn, PercentageColumn, ProgressColumn, TextColumn, TimeRemainingColumn,
+};
 use crate::renderable::{Renderable, Segment};
 use crate::style::{Color, Style};
 use crate::text::Span;
@@ -117,7 +119,7 @@ impl ProgressBar {
         }
     }
     // ... setters can stay if needed, but we are moving to columns ...
-    
+
     pub fn width(mut self, width: usize) -> Self {
         self.bar_width = width;
         self
@@ -236,7 +238,10 @@ impl Progress {
 
     /// Render the progress display.
     pub fn render_to_string(&self) -> String {
-        let context = RenderContext { width: 80, height: None };
+        let context = RenderContext {
+            width: 80,
+            height: None,
+        };
         let segments = self.render(&context);
 
         let mut result = String::new();

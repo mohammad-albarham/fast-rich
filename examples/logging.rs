@@ -1,12 +1,12 @@
-use log::{debug, error, info, trace, warn};
 use fast_rich::log::RichLogger;
+use log::{debug, error, info, trace, warn};
 
 fn main() {
     // Initialize the logger with default settings
     RichLogger::init().expect("Failed to initialize logger");
 
     info!("Starting logging example...");
-    
+
     // Test different levels
     trace!("This is a trace message - usually seemingly invisible by default default level?");
     debug!("This is a debug message - useful for developers");
@@ -16,7 +16,7 @@ fn main() {
 
     // Test structured-like logging (Rich style)
     info!("User logged in: user_id={}", 12345);
-    
+
     // Demonstrate logging from a function to see path
     complex_calculation();
 

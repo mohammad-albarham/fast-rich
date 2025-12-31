@@ -34,11 +34,9 @@ fn main() {
     // Print separate tables for each style
     for (name, style) in &styles {
         console.print(&format!("[bold yellow]{}[/]", name));
-        
-        let mut table = Table::new()
-            .border_style(*style)
-            .set_title(name);
-            
+
+        let mut table = Table::new().border_style(*style).set_title(name);
+
         table.add_column("Header 1");
         table.add_column("Header 2");
         table.add_row_strs(&["Cell 1", "Cell 2"]);

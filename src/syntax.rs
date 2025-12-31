@@ -133,31 +133,40 @@ impl Syntax {
             syntect_style.foreground.g,
             syntect_style.foreground.b,
         ));
-        
+
         // Only apply background if it's not transparent/default
         // Syntect ensures colors are RGBA, so we can check alpha or defaults.
         // Usually, code spans don't have distinct backgrounds unless specified by the theme for that token.
-        // For now, we'll map it if it differs from the theme default, but syntect converts generic theme styles 
+        // For now, we'll map it if it differs from the theme default, but syntect converts generic theme styles
         // to specific style objects. Let's apply it if the alpha is sufficient.
         if syntect_style.background.a > 0 {
-             style = style.background(Color::rgb(
+            style = style.background(Color::rgb(
                 syntect_style.background.r,
                 syntect_style.background.g,
                 syntect_style.background.b,
             ));
         }
-        
+
         // Font style modifiers
-        if syntect_style.font_style.contains(syntect::highlighting::FontStyle::BOLD) {
+        if syntect_style
+            .font_style
+            .contains(syntect::highlighting::FontStyle::BOLD)
+        {
             style = style.bold();
         }
-        if syntect_style.font_style.contains(syntect::highlighting::FontStyle::ITALIC) {
+        if syntect_style
+            .font_style
+            .contains(syntect::highlighting::FontStyle::ITALIC)
+        {
             style = style.italic();
         }
-        if syntect_style.font_style.contains(syntect::highlighting::FontStyle::UNDERLINE) {
+        if syntect_style
+            .font_style
+            .contains(syntect::highlighting::FontStyle::UNDERLINE)
+        {
             style = style.underline();
         }
-        
+
         style
     }
 
@@ -175,7 +184,7 @@ impl Syntax {
             .themes
             .get(self.config.theme.name())
             .unwrap_or_else(|| theme_set.themes.values().next().unwrap());
-            
+
         // Extract global theme background
         let theme_bg = theme.settings.background.map(|c| Color::rgb(c.r, c.g, c.b));
 
@@ -184,17 +193,15 @@ impl Syntax {
         let line_count = self.code.lines().count();
         // If code ends with newline, lines() might undercount for rendering purposes depending on requirement,
         // but for line numbers usually standard lines() is fine.
-        
-        let line_number_width = (line_count + self.config.start_line)
-            .to_string()
-            .len();
+
+        let line_number_width = (line_count + self.config.start_line).to_string().len();
 
         for (i, line) in LinesWithEndings::from(&self.code).enumerate() {
             // Syntect handles syntax by line, but doesn't expand tabs.
             // We expand tabs to spaces here to ensure width calculations are consistent
             // for Panel rendering. Standardizing on 4 spaces for now.
             let line = line.replace('\t', "    ");
-            
+
             let line_num = i + self.config.start_line;
             let mut spans = Vec::new();
 
@@ -206,9 +213,9 @@ impl Syntax {
                 } else {
                     Color::BrightBlack
                 };
-                
+
                 let line_style = Style::new().foreground(line_color);
-                // Also apply theme background to line numbers if we want them to blend in, 
+                // Also apply theme background to line numbers if we want them to blend in,
                 // but usually line numbers might be in a "gutter".
                 // For now, let's keep them simple.
 
@@ -297,7 +304,10 @@ mod tests {
     #[test]
     fn test_syntax_basic() {
         let syntax = Syntax::new("let x = 42;", "rust");
-        let context = RenderContext { width: 60, height: None };
+        let context = RenderContext {
+            width: 60,
+            height: None,
+        };
         let segments = syntax.render(&context);
 
         assert!(!segments.is_empty());
@@ -306,7 +316,10 @@ mod tests {
     #[test]
     fn test_syntax_without_panel() {
         let syntax = Syntax::new("print('hello')", "python").panel(false);
-        let context = RenderContext { width: 60, height: None };
+        let context = RenderContext {
+            width: 60,
+            height: None,
+        };
         let segments = syntax.render(&context);
 
         assert!(!segments.is_empty());
@@ -315,7 +328,10 @@ mod tests {
     #[test]
     fn test_syntax_without_line_numbers() {
         let syntax = Syntax::new("x = 1", "python").line_numbers(false);
-        let context = RenderContext { width: 60, height: None };
+        let context = RenderContext {
+            width: 60,
+            height: None,
+        };
         let segments = syntax.render(&context);
 
         assert!(!segments.is_empty());
@@ -324,7 +340,10 @@ mod tests {
     #[test]
     fn test_syntax_themes() {
         let syntax = Syntax::new("let x = 42;", "rust").theme(Theme::SolarizedDark);
-        let context = RenderContext { width: 60, height: None };
+        let context = RenderContext {
+            width: 60,
+            height: None,
+        };
         let segments = syntax.render(&context);
 
         assert!(!segments.is_empty());

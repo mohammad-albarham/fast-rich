@@ -5,7 +5,7 @@ use fast_rich::renderable::Renderable;
 
 fn main() {
     let console = Console::new();
-    
+
     // Create a 3-row layout: Header (Fixed), Body (Flexible), Footer (Fixed)
     let mut root = Layout::new();
     root.split_column(vec![
@@ -15,9 +15,8 @@ fn main() {
     ]);
 
     // Add content
-    let header_panel = Panel::new("Rich Rust TUI Demo")
-        .title("Welcome");
-    
+    let header_panel = Panel::new("Rich Rust TUI Demo").title("Welcome");
+
     // Body will be split horizontally
     let mut body_layout = Layout::new();
     body_layout.split_row(vec![
@@ -26,7 +25,8 @@ fn main() {
     ]);
 
     let left_panel = Panel::new("Sidebar\nMenu Item 1\nMenu Item 2");
-    let right_panel = Panel::new("Main Content Area\n\nThis area should fill the remaining height vertically.");
+    let right_panel =
+        Panel::new("Main Content Area\n\nThis area should fill the remaining height vertically.");
 
     body_layout.children_mut()[0].update(left_panel);
     body_layout.children_mut()[1].update(right_panel);
@@ -45,18 +45,18 @@ fn main() {
     // Header: 3 lines
     // Footer: 3 lines
     // Body: 20 - 3 - 3 = 14 lines
-    let context = RenderContext { 
-        width: 80, 
-        height: Some(20) 
+    let context = RenderContext {
+        width: 80,
+        height: Some(20),
     };
-    
+
     let segments = root.render(&context);
-    
+
     // Print the result line by line to verify structure
     for segment in segments {
         console.print_raw(&segment.plain_text());
         console.newline();
     }
-    
+
     console.print_raw("----------------------------------------\n");
 }

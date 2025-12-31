@@ -1,6 +1,6 @@
 use crate::text::PyText;
-use pyo3::prelude::*;
 use fast_rich::columns::{ColumnMode, Columns};
+use pyo3::prelude::*;
 
 #[pyclass(name = "Columns")]
 pub struct PyColumns {

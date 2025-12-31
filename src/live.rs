@@ -53,24 +53,24 @@ impl<'a> Live<'a> {
         if !self.started {
             return;
         }
-        
+
         // Clean up
         if self.height > 0 {
             self.console.move_cursor_up(self.height as u16);
             // We clear lines downwards to ensure clean exit
-             for _ in 0..self.height {
+            for _ in 0..self.height {
                 self.console.clear_line();
                 self.console.move_cursor_down(1);
             }
-             self.console.move_cursor_up(self.height as u16);
+            self.console.move_cursor_up(self.height as u16);
         }
 
         if !self.transient {
-           // If not transient, we want to leave the last frame visible
-           // So we reprint it one last time, but this time we don't track height
-           // to "lock" it in place (as standard output)
-           self.console.print_renderable(self.renderable.as_ref());
-           self.console.newline(); // Ensure final newline
+            // If not transient, we want to leave the last frame visible
+            // So we reprint it one last time, but this time we don't track height
+            // to "lock" it in place (as standard output)
+            self.console.print_renderable(self.renderable.as_ref());
+            self.console.newline(); // Ensure final newline
         }
 
         self.console.show_cursor(true);
@@ -101,9 +101,9 @@ impl<'a> Live<'a> {
             width,
             height: None,
         };
-        
+
         let segments = self.renderable.render(&context);
-        
+
         // 3. Calculate new height
         // We need to know how many lines this render took.
         // Similar to console.print, but we track lines.
@@ -118,56 +118,56 @@ impl<'a> Live<'a> {
                 lines += 1;
             }
         }
-        
+
         // If the last segment didn't have a newline, it's still occupying a line?
         // Usually renderables ensure newlines or we treat them as flow.
         // For now let's assume one newline per line.
-        
+
         // Wait, Console::print_renderable just writes segments. It behaves linearly.
         // We want to verify if the output ended with a newline or not.
         // Simplest strategy:
         // We write the segments.
         // Then we ensure we end with a newline so the cursor is on the next line?
         // Or we keep the cursor at the end of the last line?
-        
+
         // rich.live typically clears the area and rewrites.
         // To avoid flicker:
         // Move up N lines.
         // Clear line? Or just overwrite? Overwriting is better (less flicker).
         // If new content is shorter than old content, we must clear the remainder.
-        
+
         // Strategy:
         // 1. Buffer the output (optional, but good for flicker).
         // 2. Write output.
         // 3. Count lines written.
         // 4. If new_lines < old_lines, clear remaining old lines.
-        
+
         // Let's rely on Console to write but we need to buffer to count lines?
         // Or we can just count segments newlines?
-        
+
         // Let's buffer it for now to be safe and to support "clearing".
         // Actually, Console has a capture mode but we are using the live console.
         // Let's just write and track.
-        
+
         // NOTE: This simple implementation assumes the renderable *is* the lines.
         self.console.write_segments(&segments);
-        
+
         // If the segments didn't end with a newline, we add one to separate from potential next output?
         // Rich usually ensures block display.
         if !segments.is_empty() && !segments.last().unwrap().newline {
-           self.console.newline();
-           lines += 1;
+            self.console.newline();
+            lines += 1;
         }
 
         let new_height = lines;
-        
+
         // If we shrank, clear the lines below (that were part of old height)
         if self.height > new_height {
             let diff = self.height - new_height;
             // Cursor is currently at end of new content.
             for _ in 0..diff {
                 self.console.clear_line(); // Clear this line
-                self.console.newline();    // Move down
+                self.console.newline(); // Move down
             }
             // Move back up
             self.console.move_cursor_up(diff as u16);

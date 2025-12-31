@@ -1,7 +1,7 @@
 use crate::style::PyStyle;
-use pyo3::prelude::*;
 use fast_rich::style::Style;
 use fast_rich::text::{Span, Text};
+use pyo3::prelude::*;
 
 #[pyclass(name = "Span")]
 #[derive(Clone)]

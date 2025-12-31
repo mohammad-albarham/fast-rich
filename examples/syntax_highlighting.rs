@@ -14,18 +14,17 @@ fn main() {
     // This is a comment
 }"#;
 
-    
-    // Note: line numbering starts at 1 by default. 
+    // Note: line numbering starts at 1 by default.
     // If we want it to start at 10, we need to modify SyntaxConfig or add a method.
     // Checking src/syntax.rs, there is no method exposed to set start_line yet?
     // Let's check SyntaxConfig. It has start_line pub, but Syntax has config() method.
     // We can use that.
-    
+
     let mut config = fast_rich::syntax::SyntaxConfig::default();
     config.start_line = 10;
     config.theme = Theme::Monokai;
     config.highlight_lines = vec![12];
-    
+
     let syntax = Syntax::new(rust_code, "rust").config(config);
     console.print_renderable(&syntax);
     console.print("\n");
@@ -36,7 +35,7 @@ fn main() {
     """Greets the user."""
     print(f"Hello, {name}!")
     return True"#;
-    
+
     let syntax = Syntax::new(python_code, "python")
         .theme(Theme::Base16OceanDark)
         .line_numbers(false);

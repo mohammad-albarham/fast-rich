@@ -1,5 +1,5 @@
-use pyo3::prelude::*;
 use fast_rich::prompt::Prompt;
+use pyo3::prelude::*;
 
 #[pyclass(name = "Prompt")]
 pub struct PyPrompt;

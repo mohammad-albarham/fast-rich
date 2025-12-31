@@ -1,6 +1,6 @@
-use pyo3::prelude::*;
 use fast_rich::console::Console;
 use fast_rich::panel::Panel;
+use pyo3::prelude::*;
 
 #[pyfunction]
 #[pyo3(signature = (obj, methods=false, help=false))]

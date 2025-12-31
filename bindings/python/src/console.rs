@@ -3,10 +3,10 @@ use crate::rule::PyRule;
 use crate::table::PyTable;
 use crate::text::PyText;
 use crate::tree::PyTree;
-use pyo3::prelude::*;
 use fast_rich::style::Style;
 use fast_rich::text::Text;
 use fast_rich::Console;
+use pyo3::prelude::*;
 
 #[pyclass(name = "Console")]
 pub struct PyConsole {

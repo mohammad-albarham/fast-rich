@@ -1,5 +1,5 @@
-use pyo3::prelude::*;
 use fast_rich::markdown::Markdown;
+use pyo3::prelude::*;
 
 #[pyclass(name = "Markdown")]
 pub struct PyMarkdown {

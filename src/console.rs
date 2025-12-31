@@ -70,10 +70,27 @@ pub struct Console {
     soft_wrap: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum ConsoleOutput {
     Stdout,
     Stderr,
+    Buffer(std::sync::Arc<std::sync::Mutex<Vec<u8>>>),
+}
+
+struct BufferWriter {
+    buffer: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
+}
+
+impl Write for BufferWriter {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let mut lock = self.buffer.lock().map_err(|e| io::Error::other(e.to_string()))?;
+        lock.extend_from_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
 }
 
 impl Default for Console {
@@ -101,6 +118,32 @@ impl Console {
         Console {
             output: ConsoleOutput::Stderr,
             ..Self::new()
+        }
+    }
+
+    /// Create a new Console that captures output to memory.
+    /// 
+    /// Useful for testing output verification.
+    pub fn capture() -> Self {
+        Console {
+            output: ConsoleOutput::Buffer(std::sync::Arc::new(std::sync::Mutex::new(Vec::new()))),
+            width: Some(80), // Default width for tests
+            force_color: true, // Force color for tests
+            color_enabled: true,
+            markup: true,
+            emoji: true,
+            soft_wrap: true,
+        }
+    }
+
+    /// Get the captured output as a string (if using capture mode).
+    pub fn get_captured_output(&self) -> String {
+        match &self.output {
+            ConsoleOutput::Buffer(buf) => {
+                let lock = buf.lock().unwrap();
+                String::from_utf8(lock.clone()).unwrap_or_default()
+            }
+            _ => String::new(),
         }
     }
 
@@ -260,15 +303,16 @@ impl Console {
 
     /// Get the writer for this console.
     fn get_writer(&self) -> Box<dyn Write> {
-        match self.output {
+        match &self.output {
             ConsoleOutput::Stdout => Box::new(io::stdout()),
             ConsoleOutput::Stderr => Box::new(io::stderr()),
+            ConsoleOutput::Buffer(buf) => Box::new(BufferWriter { buffer: buf.clone() }),
         }
     }
 
     /// Write raw string to output.
     fn write_raw(&self, s: &str) -> io::Result<()> {
-        match self.output {
+        match &self.output {
             ConsoleOutput::Stdout => {
                 let mut stdout = io::stdout();
                 stdout.write_all(s.as_bytes())
@@ -277,14 +321,20 @@ impl Console {
                 let mut stderr = io::stderr();
                 stderr.write_all(s.as_bytes())
             }
+            ConsoleOutput::Buffer(buf) => {
+                let mut lock = buf.lock().map_err(|e| io::Error::other(e.to_string()))?;
+                lock.extend_from_slice(s.as_bytes());
+                Ok(())
+            }
         }
     }
 
     /// Flush the output.
     fn flush(&self) -> io::Result<()> {
-        match self.output {
+        match &self.output {
             ConsoleOutput::Stdout => io::stdout().flush(),
             ConsoleOutput::Stderr => io::stderr().flush(),
+            ConsoleOutput::Buffer(_) => Ok(()),
         }
     }
 

@@ -26,9 +26,14 @@ theme:
 
 nav:
   - Home: index.md
-  - Python API: python_api.md
-  - Rust API: api.md
-  - Benchmarks: benchmarks.md
+  - Rust Library:
+    - Getting Started: rust_getting_started.md
+    - Examples: rust_examples.md
+    - Benchmarks: benchmarks.md
+    - API Reference: api.md
+  - Python Bindings:
+    - Installation: python_install.md
+    - API Reference: python_api.md
 
 markdown_extensions:
   - pymdownx.highlight:

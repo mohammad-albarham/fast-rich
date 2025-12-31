@@ -34,9 +34,7 @@ fn trigger_error() -> Result<(), MyError> {
     ))
 }
 
-fn main() {
-    let console = Console::new().force_color(true);
-
+fn run(console: &Console) {
     console.rule("[bold red]Traceback & Error Demo[/]");
     console.newline();
 
@@ -81,4 +79,30 @@ fn main() {
     console.print("[dim](Source context requires panic info with file location - see 'cargo run' output on failure)[/]");
 
     console.rule("[bold red]End Traceback Demo[/]");
+}
+
+fn main() {
+    let console = Console::new().force_color(true);
+    run(&console);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_traceback_demo_output() {
+        let console = Console::capture();
+        run(&console);
+        let output = console.get_captured_output();
+        eprintln!("CAPTURED TRACEBACK:\n{}", output);
+
+        assert!(output.contains("Traceback & Error Demo"));
+        assert!(output.contains("install_panic_hook"));
+        assert!(output.contains("Formatting"));
+        assert!(output.contains("Result::Err"));
+        assert!(output.contains("database"));
+        assert!(output.contains("127.0.0.1"));
+        assert!(output.contains("End Traceback Demo"));
+    }
 }

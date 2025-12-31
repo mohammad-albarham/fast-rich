@@ -1,36 +1,27 @@
-//! Hello world example demonstrating basic rich-rust usage.
+use rich_rust::console::Console;
 
-use rich_rust::prelude::*;
+// Logic extracted for testability
+fn run(console: &Console) {
+    console.print("[bold green]Hello[/], [blue]World[/]!");
+    console.newline();
+}
 
 fn main() {
     let console = Console::new();
+    run(&console);
+}
 
-    // Simple styled output
-    console.println("[bold green]Hello[/], [bold magenta]World[/]!");
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    // Use print with multiple styles
-    console.println("");
-    console.println("[bold]Bold[/], [italic]italic[/], [underline]underline[/], [strikethrough]strikethrough[/]");
-
-    // Colors
-    console.println("");
-    console.println("[red]Red[/] [green]Green[/] [blue]Blue[/] [yellow]Yellow[/] [magenta]Magenta[/] [cyan]Cyan[/]");
-
-    // Background colors
-    console.println("");
-    console.println(
-        "[white on red] Error [/] [black on yellow] Warning [/] [white on green] Success [/]",
-    );
-
-    // Emoji support
-    console.println("");
-    console.println(":rocket: rich-rust is ready to go! :sparkles:");
-
-    // RGB colors
-    console.println("");
-    console.println("[#ff6b6b]Coral[/] [#4ecdc4]Teal[/] [#ffe66d]Yellow[/] [#95e1d3]Mint[/]");
-
-    // Nested styles
-    console.println("");
-    console.println("[bold]This is [red]bold red[/red] and this is [blue]bold blue[/blue][/bold]");
+    #[test]
+    fn test_hello_output() {
+        let console = Console::capture();
+        run(&console);
+        let output = console.get_captured_output();
+        assert!(output.contains("Hello"));
+        assert!(output.contains("World"));
+        // Basic check for color codes or captured structure if needed
+    }
 }

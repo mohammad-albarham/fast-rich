@@ -1,8 +1,6 @@
 use rich_rust::prelude::*;
 
-fn main() {
-    let console = Console::new().force_color(true);
-
+fn run(console: &Console) {
     console.rule("[bold cyan]FASTRICH RUST SHOWCASE[/]");
     console.newline();
 
@@ -120,4 +118,33 @@ fn main() {
 
     console.newline();
     console.rule("[bold cyan]End of Showcase[/]");
+}
+
+fn main() {
+    let console = Console::new().force_color(true);
+    run(&console);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_showcase_output() {
+        let console = Console::capture();
+        run(&console);
+        let output = console.get_captured_output();
+
+        assert!(output.contains("FASTRICH RUST SHOWCASE"));
+        assert!(output.contains("Text"));
+        assert!(output.contains("Styles"));
+        assert!(output.contains("Panels"));
+        assert!(output.contains("Panel Example"));
+        assert!(output.contains("Active")); // Table content
+        assert!(output.contains("Tree"));
+        assert!(output.contains("tests/")); // Tree content
+        assert!(output.contains("Progress"));
+        assert!(output.contains("Traceback"));
+        assert!(output.contains("End of Showcase"));
+    }
 }

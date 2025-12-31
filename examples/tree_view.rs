@@ -1,8 +1,6 @@
 use rich_rust::prelude::*;
 
-fn main() {
-    let console = Console::new().force_color(true);
-
+fn run(console: &Console) {
     console.rule("[bold yellow]Tree View Demo[/]");
     console.newline();
 
@@ -53,4 +51,30 @@ fn main() {
     }
 
     console.rule("[bold yellow]End Tree Demo[/]");
+}
+
+fn main() {
+    let console = Console::new().force_color(true);
+    run(&console);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tree_view_output() {
+        let console = Console::capture();
+        run(&console);
+        let output = console.get_captured_output();
+
+        assert!(output.contains("Tree View Demo"));
+        assert!(output.contains("project_root/"));
+        assert!(output.contains("lib.rs"));
+        assert!(output.contains("Guide"));
+        assert!(output.contains("Styles"));
+        assert!(output.contains("Unicode"));
+        assert!(output.contains("Default"));
+        assert!(output.contains("End Tree Demo"));
+    }
 }

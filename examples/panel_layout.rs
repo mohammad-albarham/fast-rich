@@ -1,9 +1,7 @@
 use rich_rust::layout::Layout;
 use rich_rust::prelude::*;
 
-fn main() {
-    let console = Console::new().force_color(true);
-
+fn run(console: &Console) {
     console.rule("[bold green]Panels & Layout Demo[/]");
     console.newline();
 
@@ -68,4 +66,29 @@ fn main() {
     console.print_renderable(&right);
 
     console.rule("[bold green]End Panel Demo[/]");
+}
+
+fn main() {
+    let console = Console::new().force_color(true);
+    run(&console);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_panel_layout_output() {
+        let console = Console::capture();
+        run(&console);
+        let output = console.get_captured_output();
+
+        assert!(output.contains("Panels & Layout Demo"));
+        assert!(output.contains("Simple Panel"));
+        assert!(output.contains("Styled"));
+        assert!(output.contains("Footer"));
+        assert!(output.contains("Left Column"));
+        assert!(output.contains("Right Column"));
+        assert!(output.contains("End Panel Demo"));
+    }
 }

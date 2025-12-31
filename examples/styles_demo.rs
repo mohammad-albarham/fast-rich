@@ -35,7 +35,7 @@ fn run(console: &Console) {
         let g = i * 25;
         let b = 0;
         console.print(&format!(
-            "  [color({},{},{})]RGB Gradient Step {}[/]",
+            "  [rgb({},{},{})]RGB Gradient Step {}[/]",
             r, g, b, i
         ));
     }

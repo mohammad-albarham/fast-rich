@@ -3,8 +3,9 @@
 
   <h1>Fast-Rich</h1>
 
+  [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://mohammad-albarham.github.io/fast-rich)
   [![Crates.io](https://img.shields.io/crates/v/fast-rich.svg)](https://crates.io/crates/fast-rich)
-  [![Documentation](https://docs.rs/fast-rich/badge.svg)](https://docs.rs/fast-rich)
+  [![Rust API](https://docs.rs/fast-rich/badge.svg)](https://docs.rs/fast-rich)
   [![License](https://img.shields.io/crates/l/fast-rich.svg)](https://github.com/mohammad-albarham/fast-rich/blob/main/LICENSE)
   [![Build Status](https://github.com/mohammad-albarham/fast-rich/workflows/CI/badge.svg)](https://github.com/mohammad-albarham/fast-rich/actions)
   ![Status](https://img.shields.io/badge/status-under--development-orange)
@@ -115,11 +116,17 @@ fn main() {
 }
 ```
 
-## Documentation
+## 📚 Documentation
 
-- [Rust API Docs](docs/api.md)
-- [Getting Started](docs/rust_getting_started.md)
-- [Rust Examples](docs/rust_examples.md)
+Detailed guides and API references are available at our official documentation site:
+
+👉 **[mohammad-albarham.github.io/fast-rich](https://mohammad-albarham.github.io/fast-rich)**
+
+### Essential Resources
+- **[Getting Started](https://mohammad-albarham.github.io/fast-rich/getting-started)**: Installation, first steps, and core concepts.
+- **[User Guides](https://mohammad-albarham.github.io/fast-rich/guides)**: Deep dives into Tables, Progress Bars, Live Display, and more.
+- **[API Reference](https://docs.rs/fast-rich)**: Comprehensive technical documentation on `docs.rs`.
+- **[Examples](https://github.com/mohammad-albarham/fast-rich/tree/main/examples)**: Real-world code samples for every feature.
 
 ## Examples
 

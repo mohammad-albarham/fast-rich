@@ -2,13 +2,13 @@
 //!
 //! Provides a less-like paging interface for large outputs.
 
-use std::io::{self, Write};
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEvent},
-    terminal::{self, ClearType},
     cursor,
+    event::{self, Event, KeyCode, KeyEvent},
     execute,
+    terminal::{self, ClearType},
 };
+use std::io::{self, Write};
 
 /// A simple pager for displaying content with pagination.
 pub struct Pager {
@@ -36,12 +36,12 @@ impl Pager {
     /// Show the pager and handle user interaction.
     pub fn show(&mut self) -> io::Result<()> {
         terminal::enable_raw_mode()?;
-        
+
         let result = self.run();
-        
+
         terminal::disable_raw_mode()?;
         execute!(io::stdout(), cursor::Show)?;
-        
+
         result
     }
 
@@ -54,7 +54,9 @@ impl Pager {
                     KeyCode::Char('q') | KeyCode::Esc => break,
                     KeyCode::Down | KeyCode::Char('j') => self.scroll_down(1),
                     KeyCode::Up | KeyCode::Char('k') => self.scroll_up(1),
-                    KeyCode::PageDown | KeyCode::Char(' ') => self.scroll_down(self.terminal_height),
+                    KeyCode::PageDown | KeyCode::Char(' ') => {
+                        self.scroll_down(self.terminal_height)
+                    }
                     KeyCode::PageUp => self.scroll_up(self.terminal_height),
                     KeyCode::Home | KeyCode::Char('g') => self.current_line = 0,
                     KeyCode::End | KeyCode::Char('G') => {
@@ -135,25 +137,31 @@ mod tests {
     fn test_pager_creation() {
         let content = "Line 1\nLine 2\nLine 3".to_string();
         let pager = Pager::new(content);
-        
+
         assert_eq!(pager.line_count(), 3);
         assert_eq!(pager.current_line, 0);
     }
 
     #[test]
     fn test_scroll_down() {
-        let content = (0..100).map(|i| format!("Line {}", i)).collect::<Vec<_>>().join("\n");
+        let content = (0..100)
+            .map(|i| format!("Line {}", i))
+            .collect::<Vec<_>>()
+            .join("\n");
         let mut pager = Pager::new(content);
-        
+
         pager.scroll_down(10);
         assert_eq!(pager.current_line, 10);
     }
 
     #[test]
     fn test_scroll_up() {
-        let content = (0..100).map(|i| format!("Line {}", i)).collect::<Vec<_>>().join("\n");
+        let content = (0..100)
+            .map(|i| format!("Line {}", i))
+            .collect::<Vec<_>>()
+            .join("\n");
         let mut pager = Pager::new(content);
-        
+
         pager.scroll_down(20);
         pager.scroll_up(5);
         assert_eq!(pager.current_line, 15);
@@ -163,11 +171,11 @@ mod tests {
     fn test_scroll_bounds() {
         let content = "Line 1\nLine 2\nLine 3".to_string();
         let mut pager = Pager::new(content);
-        
+
         // Can't scroll up from beginning
         pager.scroll_up(10);
         assert_eq!(pager.current_line, 0);
-        
+
         // Can't scroll past end
         pager.scroll_down(1000);
         assert!(pager.current_line <= pager.line_count());

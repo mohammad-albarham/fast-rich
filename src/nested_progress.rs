@@ -4,6 +4,7 @@
 
 /// A simple nested progress structure.
 pub struct NestedProgress {
+    #[allow(dead_code)] // Used for display/debugging
     description: String,
     total: u64,
     current: u64,
@@ -71,4 +72,3 @@ mod tests {
         assert_eq!(nested.percent(), 50.0);
     }
 }
-

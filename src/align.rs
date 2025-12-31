@@ -107,7 +107,7 @@ impl Renderable for Align {
                     }
                 }
             }
-            
+
             // Reconstruct segment
             if segment.newline {
                 aligned_segments.push(Segment::line(line));
@@ -126,7 +126,8 @@ impl Renderable for Align {
                     VerticalAlignment::Top => {
                         // Add empty lines at bottom
                         for _ in 0..diff {
-                            aligned_segments.push(Segment::line(vec![Span::raw(" ".repeat(width))]));
+                            aligned_segments
+                                .push(Segment::line(vec![Span::raw(" ".repeat(width))]));
                         }
                     }
                     VerticalAlignment::Bottom => {
@@ -141,11 +142,11 @@ impl Renderable for Align {
                         let top_pad = diff / 2;
                         let bottom_pad = diff - top_pad;
                         let mut new_segments = Vec::with_capacity(target_height);
-                         for _ in 0..top_pad {
+                        for _ in 0..top_pad {
                             new_segments.push(Segment::line(vec![Span::raw(" ".repeat(width))]));
                         }
                         new_segments.extend(aligned_segments);
-                         for _ in 0..bottom_pad {
+                        for _ in 0..bottom_pad {
                             new_segments.push(Segment::line(vec![Span::raw(" ".repeat(width))]));
                         }
                         aligned_segments = new_segments;

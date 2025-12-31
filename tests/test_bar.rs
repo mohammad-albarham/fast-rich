@@ -1,18 +1,18 @@
 //! Integration tests for bar charts
 
 use rich_rust::bar::{BarChart, BarData};
-use rich_rust::style::Color;
 use rich_rust::console::RenderContext;
 use rich_rust::renderable::Renderable;
+use rich_rust::style::Color;
 
 #[test]
 fn test_bar_chart_creation() {
     let mut chart = BarChart::new();
     chart.bar("Test", 50.0);
-    
+
     let context = RenderContext { width: 60 };
     let segments = chart.render(&context);
-    
+
     assert_eq!(segments.len(), 1);
 }
 
@@ -37,10 +37,10 @@ fn test_multiple_bars() {
     chart.bar("First", 25.0);
     chart.bar("Second", 50.0);
     chart.bar("Third", 75.0);
-    
+
     let context = RenderContext { width: 60 };
     let segments = chart.render(&context);
-    
+
     assert_eq!(segments.len(), 3);
 }
 
@@ -49,7 +49,7 @@ fn test_empty_chart() {
     let chart = BarChart::new();
     let context = RenderContext { width: 60 };
     let segments = chart.render(&context);
-    
+
     assert_eq!(segments.len(), 1); // Empty line
 }
 
@@ -73,6 +73,6 @@ fn test_bar_chart_character() {
 fn test_bar_chart_show_values() {
     let chart = BarChart::new().show_values(false);
     // show_values is set, verified by compilation
-let _ = chart;
+    let _ = chart;
     assert!(true);
 }

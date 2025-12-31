@@ -18,7 +18,7 @@ use crate::text::{Span, Text};
 
 use crossterm::{
     execute,
-    style::{Attribute, Print, ResetColor, SetAttribute, SetBackgroundColor, SetForegroundColor},
+    style::{Attribute, Print, SetAttribute, SetBackgroundColor, SetForegroundColor},
     terminal,
 };
 use std::io::{self, Write};
@@ -51,6 +51,22 @@ impl Default for RenderContext {
     }
 }
 
+/// Color system capabilities.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ColorSystem {
+    /// No color support
+    NoColor,
+    /// Standard 8/16 colors
+    #[default]
+    Standard,
+    /// 256 colors
+    EightBit,
+    /// True color (16 million colors)
+    TrueColor,
+    /// Windows legacy console (mapped to Standard for ANSI output)
+    Windows,
+}
+
 /// The main console type for rich terminal output.
 #[derive(Debug)]
 pub struct Console {
@@ -62,6 +78,8 @@ pub struct Console {
     force_color: bool,
     /// Whether color is enabled
     color_enabled: bool,
+    /// The detected or forced color system
+    color_system: ColorSystem,
     /// Whether to use markup parsing
     markup: bool,
     /// Whether to translate emoji shortcodes
@@ -109,11 +127,13 @@ impl Default for Console {
 impl Console {
     /// Create a new Console writing to stdout.
     pub fn new() -> Self {
+        let (color_enabled, color_system) = Self::detect_color_system();
         Console {
             output: ConsoleOutput::Stdout,
             width: None,
             force_color: false,
-            color_enabled: Self::detect_color_support(),
+            color_enabled,
+            color_system,
             markup: true,
             emoji: true,
             soft_wrap: true,
@@ -124,9 +144,18 @@ impl Console {
 
     /// Create a new Console writing to stderr.
     pub fn stderr() -> Self {
+        let (color_enabled, color_system) = Self::detect_color_system();
         Console {
             output: ConsoleOutput::Stderr,
-            ..Self::new()
+            width: None,
+            force_color: false,
+            color_enabled,
+            color_system,
+            markup: true,
+            emoji: true,
+            soft_wrap: true,
+            record: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            recording: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
         }
     }
 
@@ -139,6 +168,7 @@ impl Console {
             width: Some(80),   // Default width for tests
             force_color: true, // Force color for tests
             color_enabled: true,
+            color_system: ColorSystem::TrueColor, // Capture assumes good capabilities
             markup: true,
             emoji: true,
             soft_wrap: true,
@@ -169,7 +199,19 @@ impl Console {
         self.force_color = force;
         if force {
             self.color_enabled = true;
+            // If forcing color and we were previously NoColor, assume Standard
+            if self.color_system == ColorSystem::NoColor {
+                self.color_system = ColorSystem::Standard;
+            }
         }
+        self
+    }
+
+    /// Set the color system explicitly.
+    pub fn color_system(mut self, system: ColorSystem) -> Self {
+        self.color_system = system;
+        // If explicitly setting a color system (other than NoColor), enable color
+        self.color_enabled = system != ColorSystem::NoColor;
         self
     }
 
@@ -193,13 +235,15 @@ impl Console {
 
     /// Enable or disable recording of output.
     pub fn record(self, enabled: bool) -> Self {
-        self.record.store(enabled, std::sync::atomic::Ordering::Relaxed);
+        self.record
+            .store(enabled, std::sync::atomic::Ordering::Relaxed);
         self
     }
 
     /// Start recording output.
     pub fn start_recording(&self) {
-        self.record.store(true, std::sync::atomic::Ordering::Relaxed);
+        self.record
+            .store(true, std::sync::atomic::Ordering::Relaxed);
         if let Ok(mut lock) = self.recording.lock() {
             lock.clear();
         }
@@ -207,7 +251,8 @@ impl Console {
 
     /// Stop recording output.
     pub fn stop_recording(&self) {
-        self.record.store(false, std::sync::atomic::Ordering::Relaxed);
+        self.record
+            .store(false, std::sync::atomic::Ordering::Relaxed);
     }
 
     /// Get the current terminal width.
@@ -216,21 +261,36 @@ impl Console {
             .unwrap_or_else(|| terminal::size().map(|(w, _)| w as usize).unwrap_or(80))
     }
 
-    /// Detect if color output is supported.
-    fn detect_color_support() -> bool {
+    /// Detect color support and system.
+    fn detect_color_system() -> (bool, ColorSystem) {
         // Check common environment variables
         if std::env::var("NO_COLOR").is_ok() {
-            return false;
+            return (false, ColorSystem::NoColor);
         }
 
         if std::env::var("FORCE_COLOR").is_ok() {
-            return true;
+            // Default to Standard if forced, can be upgraded by other checks if we were smarter,
+            // but for now FORCE_COLOR just ensures we have *some* color.
+            return (true, ColorSystem::Standard);
         }
 
-        // Check if output is a TTY
-        // For simplicity, assume color is supported
-        // A more complete implementation would use atty crate
-        true
+        // Check COLORTERM for truecolor
+        if let Ok(colorterm) = std::env::var("COLORTERM") {
+            if colorterm.contains("truecolor") || colorterm.contains("24bit") {
+                return (true, ColorSystem::TrueColor);
+            }
+        }
+
+        // Check TERM for 256 colors
+        if let Ok(term) = std::env::var("TERM") {
+            if term.contains("256color") {
+                return (true, ColorSystem::EightBit);
+            }
+        }
+
+        // Fallback to Standard color if TTY (simplified)
+        // In a real app we'd check is_tty
+        (true, ColorSystem::Standard)
     }
 
     /// Print a string with markup support.
@@ -260,23 +320,41 @@ impl Console {
         self.newline();
     }
 
+    /// Print a string without markup parsing.
+    ///
+    /// Use this when printing content that may contain brackets `[...]`
+    /// that should NOT be interpreted as markup (e.g., debug output).
+    pub fn print_raw(&self, content: &str) {
+        let text = Text::plain(content.to_string());
+        self.print_renderable(&text);
+    }
+
+    /// Print a line without markup parsing (with newline at the end).
+    ///
+    /// Use this when printing content that may contain brackets `[...]`
+    /// that should NOT be interpreted as markup (e.g., debug output).
+    pub fn println_raw(&self, content: &str) {
+        self.print_raw(content);
+        self.newline();
+    }
+
     /// Print an empty line.
     pub fn newline(&self) {
         let _ = self.write_raw("\n");
         // Record newline segment if recording
         if self.record.load(std::sync::atomic::Ordering::Relaxed) {
-             if let Ok(mut lock) = self.recording.lock() {
-                 lock.push(Segment::empty_line());
-             }
+            if let Ok(mut lock) = self.recording.lock() {
+                lock.push(Segment::empty_line());
+            }
         }
     }
 
     /// Write segments to the output.
     fn write_segments(&self, segments: &[Segment]) {
         if self.record.load(std::sync::atomic::Ordering::Relaxed) {
-             if let Ok(mut lock) = self.recording.lock() {
-                 lock.extend_from_slice(segments);
-             }
+            if let Ok(mut lock) = self.recording.lock() {
+                lock.extend_from_slice(segments);
+            }
         }
 
         for segment in segments {
@@ -292,21 +370,58 @@ impl Console {
 
     /// Write a single span with styling.
     fn write_span(&self, span: &Span) {
-        if !self.color_enabled || span.style.is_empty() {
+        if !self.color_enabled || self.color_system == ColorSystem::NoColor || span.style.is_empty()
+        {
             let _ = self.write_raw(&span.text);
             return;
         }
 
         let mut writer = self.get_writer();
 
+        // Helper to downsample colors based on system
+        let process_color = |color: crate::style::Color| -> crossterm::style::Color {
+            match self.color_system {
+                ColorSystem::Standard | ColorSystem::Windows => color.to_standard().to_crossterm(),
+                ColorSystem::EightBit => color.to_ansi256().to_crossterm(),
+                ColorSystem::TrueColor => color.to_crossterm(),
+                ColorSystem::NoColor => crossterm::style::Color::Reset, // Should be handled by early return
+            }
+        };
+
         // Set foreground color
         if let Some(color) = span.style.foreground {
-            let _ = execute!(writer, SetForegroundColor(color.to_crossterm()));
+            if matches!(
+                self.color_system,
+                ColorSystem::Standard | ColorSystem::Windows
+            ) {
+                let std_color = color.to_standard();
+                let sgr = std_color.to_sgr_fg();
+                if !sgr.is_empty() {
+                    let _ = self.write_raw(&sgr);
+                } else {
+                    let _ = execute!(writer, SetForegroundColor(std_color.to_crossterm()));
+                }
+            } else {
+                let _ = execute!(writer, SetForegroundColor(process_color(color)));
+            }
         }
 
         // Set background color
         if let Some(color) = span.style.background {
-            let _ = execute!(writer, SetBackgroundColor(color.to_crossterm()));
+            if matches!(
+                self.color_system,
+                ColorSystem::Standard | ColorSystem::Windows
+            ) {
+                let std_color = color.to_standard();
+                let sgr = std_color.to_sgr_bg();
+                if !sgr.is_empty() {
+                    let _ = self.write_raw(&sgr);
+                } else {
+                    let _ = execute!(writer, SetBackgroundColor(std_color.to_crossterm()));
+                }
+            } else {
+                let _ = execute!(writer, SetBackgroundColor(process_color(color)));
+            }
         }
 
         // Set attributes
@@ -338,8 +453,7 @@ impl Console {
         // Write the text
         let _ = execute!(writer, Print(&span.text));
 
-        // Reset
-        let _ = execute!(writer, ResetColor);
+        // Reset all attributes (SGR 0 includes color reset)
         let _ = execute!(writer, SetAttribute(Attribute::Reset));
     }
 
@@ -416,19 +530,20 @@ impl Console {
     /// Uses syntax highlighting if the `syntax` feature is enabled.
     pub fn print_debug<T: std::fmt::Debug>(&self, obj: &T) {
         let content = format!("{:#?}", obj);
-        
+
         #[cfg(feature = "syntax")]
         {
             let syntax = crate::syntax::Syntax::new(&content, "rust");
             self.print_renderable(&syntax);
         }
-        
+
         #[cfg(not(feature = "syntax"))]
         {
-            // fallback to plain printing
-            self.print(&content);
+            // Use Text::plain to avoid parsing brackets as markup
+            let text = Text::plain(content);
+            self.print_renderable(&text);
         }
-        
+
         self.newline();
     }
 

@@ -117,9 +117,11 @@ impl Renderable for BarChart {
 
         // Calculate bar width
         let value_width = if self.show_values { 12 } else { 0 }; // Space for value display
-        let bar_width = self
-            .width
-            .unwrap_or_else(|| context.width.saturating_sub(max_label_width + 3 + value_width));
+        let bar_width = self.width.unwrap_or_else(|| {
+            context
+                .width
+                .saturating_sub(max_label_width + 3 + value_width)
+        });
 
         let mut segments = Vec::new();
 

@@ -133,11 +133,15 @@ impl PyConsole {
 
     /// Save recorded output as HTML.
     fn save_html(&self, path: &str) -> PyResult<()> {
-        self.inner.save_html(path).map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))
+        self.inner
+            .save_html(path)
+            .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))
     }
 
     /// Save recorded output as SVG.
     fn save_svg(&self, path: &str) -> PyResult<()> {
-        self.inner.save_svg(path).map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))
+        self.inner
+            .save_svg(path)
+            .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))
     }
 }

@@ -202,6 +202,243 @@ impl Color {
             Color::Rgb { r, g, b } => format!("#{:02x}{:02x}{:02x}", r, g, b),
         }
     }
+
+    /// Convert to 256-color palette.
+    pub fn to_ansi256(&self) -> Self {
+        match self {
+            Color::Default => Color::Default,
+            Color::Ansi256(_) => *self,
+            Color::Rgb { r, g, b } => {
+                // Find nearest color in the 256-color palette using Euclidean distance
+                let mut min_dist = u32::MAX;
+                let mut best_idx = 0;
+
+                // Standard colors (0-15)
+                // 6x6x6 Color Cube (16-231)
+                // Grayscale (232-255)
+                // We'll iterate through all generated RGB values for 0-255
+                for i in 0..=255 {
+                    let (pr, pg, pb) = Self::ansi256_to_rgb_values(i);
+                    let dr = i32::from(*r) - i32::from(pr);
+                    let dg = i32::from(*g) - i32::from(pg);
+                    let db = i32::from(*b) - i32::from(pb);
+                    let dist = (dr * dr + dg * dg + db * db) as u32;
+
+                    if dist < min_dist {
+                        min_dist = dist;
+                        best_idx = i;
+                        if dist == 0 {
+                            break;
+                        } // Exact match
+                    }
+                }
+                Color::Ansi256(best_idx)
+            }
+            // Map named colors to their specific ANSI codes
+            Color::Black => Color::Ansi256(0),
+            Color::Red => Color::Ansi256(1),
+            Color::Green => Color::Ansi256(2),
+            Color::Yellow => Color::Ansi256(3),
+            Color::Blue => Color::Ansi256(4),
+            Color::Magenta => Color::Ansi256(5),
+            Color::Cyan => Color::Ansi256(6),
+            Color::White => Color::Ansi256(7),
+            Color::BrightBlack => Color::Ansi256(8),
+            Color::BrightRed => Color::Ansi256(9),
+            Color::BrightGreen => Color::Ansi256(10),
+            Color::BrightYellow => Color::Ansi256(11),
+            Color::BrightBlue => Color::Ansi256(12),
+            Color::BrightMagenta => Color::Ansi256(13),
+            Color::BrightCyan => Color::Ansi256(14),
+            Color::BrightWhite => Color::Ansi256(15),
+        }
+    }
+
+    /// Convert to standard 8/16-color ANSI.
+    pub fn to_standard(&self) -> Self {
+        match self {
+            Color::Default
+            | Color::Black
+            | Color::Red
+            | Color::Green
+            | Color::Yellow
+            | Color::Blue
+            | Color::Magenta
+            | Color::Cyan
+            | Color::White
+            | Color::BrightBlack
+            | Color::BrightRed
+            | Color::BrightGreen
+            | Color::BrightYellow
+            | Color::BrightBlue
+            | Color::BrightMagenta
+            | Color::BrightCyan
+            | Color::BrightWhite => *self,
+
+            Color::Ansi256(code) => {
+                if *code < 16 {
+                    // It's already in the standard range
+                    Self::from_ansi_standard_code(*code)
+                } else {
+                    // Convert 256-color to RGB, then find nearest standard color
+                    let (r, g, b) = Self::ansi256_to_rgb_values(*code);
+                    Color::Rgb { r, g, b }.to_standard()
+                }
+            }
+            Color::Rgb { r, g, b } => {
+                // Find nearest standard color
+                let palette = [
+                    (0, 0, 0),       // Black
+                    (128, 0, 0),     // Red
+                    (0, 128, 0),     // Green
+                    (128, 128, 0),   // Yellow
+                    (0, 0, 128),     // Blue
+                    (128, 0, 128),   // Magenta
+                    (0, 128, 128),   // Cyan
+                    (192, 192, 192), // White
+                    (128, 128, 128), // BrightBlack
+                    (255, 0, 0),     // BrightRed
+                    (0, 255, 0),     // BrightGreen
+                    (255, 255, 0),   // BrightYellow
+                    (0, 0, 255),     // BrightBlue
+                    (255, 0, 255),   // BrightMagenta
+                    (0, 255, 255),   // BrightCyan
+                    (255, 255, 255), // BrightWhite
+                ];
+
+                let mut min_dist = u32::MAX;
+                let mut best_idx = 0;
+
+                for (i, (pr, pg, pb)) in palette.iter().enumerate() {
+                    let dr = i32::from(*r) - pr;
+                    let dg = i32::from(*g) - pg;
+                    let db = i32::from(*b) - pb;
+                    let dist = (dr * dr + dg * dg + db * db) as u32;
+                    if dist < min_dist {
+                        min_dist = dist;
+                        best_idx = i;
+                    }
+                }
+
+                Self::from_ansi_standard_code(best_idx as u8)
+            }
+        }
+    }
+    /// Get the SGR foreground sequence for this color (Standard system only).
+    ///
+    /// Returns the ANSI sequence strings (e.g., "\x1b[31m") for standard colors.
+    /// Used when ColorSystem::Standard is enforced.
+    pub fn to_sgr_fg(&self) -> String {
+        match self {
+            Color::Black => "\x1b[30m".to_string(),
+            Color::Red => "\x1b[31m".to_string(),
+            Color::Green => "\x1b[32m".to_string(),
+            Color::Yellow => "\x1b[33m".to_string(),
+            Color::Blue => "\x1b[34m".to_string(),
+            Color::Magenta => "\x1b[35m".to_string(),
+            Color::Cyan => "\x1b[36m".to_string(),
+            Color::White => "\x1b[37m".to_string(),
+            Color::BrightBlack => "\x1b[90m".to_string(),
+            Color::BrightRed => "\x1b[91m".to_string(),
+            Color::BrightGreen => "\x1b[92m".to_string(),
+            Color::BrightYellow => "\x1b[93m".to_string(),
+            Color::BrightBlue => "\x1b[94m".to_string(),
+            Color::BrightMagenta => "\x1b[95m".to_string(),
+            Color::BrightCyan => "\x1b[96m".to_string(),
+            Color::BrightWhite => "\x1b[97m".to_string(),
+            Color::Default => "\x1b[39m".to_string(),
+            // For others, fall back to csi-wrapper (should be handled by downsampling first)
+            _ => String::new(),
+        }
+    }
+
+    /// Get the SGR background sequence for this color (Standard system only).
+    pub fn to_sgr_bg(&self) -> String {
+        match self {
+            Color::Black => "\x1b[40m".to_string(),
+            Color::Red => "\x1b[41m".to_string(),
+            Color::Green => "\x1b[42m".to_string(),
+            Color::Yellow => "\x1b[43m".to_string(),
+            Color::Blue => "\x1b[44m".to_string(),
+            Color::Magenta => "\x1b[45m".to_string(),
+            Color::Cyan => "\x1b[46m".to_string(),
+            Color::White => "\x1b[47m".to_string(),
+            Color::BrightBlack => "\x1b[100m".to_string(),
+            Color::BrightRed => "\x1b[101m".to_string(),
+            Color::BrightGreen => "\x1b[102m".to_string(),
+            Color::BrightYellow => "\x1b[103m".to_string(),
+            Color::BrightBlue => "\x1b[104m".to_string(),
+            Color::BrightMagenta => "\x1b[105m".to_string(),
+            Color::BrightCyan => "\x1b[106m".to_string(),
+            Color::BrightWhite => "\x1b[107m".to_string(),
+            Color::Default => "\x1b[49m".to_string(),
+            _ => String::new(),
+        }
+    }
+    /// Helper to convert standard ANSI code (0-15) to Color.
+    fn from_ansi_standard_code(code: u8) -> Self {
+        match code {
+            0 => Color::Black,
+            1 => Color::Red,
+            2 => Color::Green,
+            3 => Color::Yellow,
+            4 => Color::Blue,
+            5 => Color::Magenta,
+            6 => Color::Cyan,
+            7 => Color::White,
+            8 => Color::BrightBlack,
+            9 => Color::BrightRed,
+            10 => Color::BrightGreen,
+            11 => Color::BrightYellow,
+            12 => Color::BrightBlue,
+            13 => Color::BrightMagenta,
+            14 => Color::BrightCyan,
+            15 => Color::BrightWhite,
+            _ => Color::Default,
+        }
+    }
+
+    /// Helper to get RGB values for an ANSI 256 code.
+    fn ansi256_to_rgb_values(code: u8) -> (u8, u8, u8) {
+        if code < 16 {
+            // Standard colors
+            match code {
+                0 => (0, 0, 0),        // Black
+                1 => (128, 0, 0),      // Red
+                2 => (0, 128, 0),      // Green
+                3 => (128, 128, 0),    // Yellow
+                4 => (0, 0, 128),      // Blue
+                5 => (128, 0, 128),    // Magenta
+                6 => (0, 128, 128),    // Cyan
+                7 => (192, 192, 192),  // White
+                8 => (128, 128, 128),  // BrightBlack
+                9 => (255, 0, 0),      // BrightRed
+                10 => (0, 255, 0),     // BrightGreen
+                11 => (255, 255, 0),   // BrightYellow
+                12 => (0, 0, 255),     // BrightBlue
+                13 => (255, 0, 255),   // BrightMagenta
+                14 => (0, 255, 255),   // BrightCyan
+                15 => (255, 255, 255), // BrightWhite
+                _ => (0, 0, 0),
+            }
+        } else if code < 232 {
+            // 6x6x6 Color Cube
+            // Code = 16 + 36*r + 6*g + b
+            let index = code - 16;
+            let r_idx = index / 36;
+            let g_idx = (index % 36) / 6;
+            let b_idx = index % 6;
+
+            let val = |x| if x == 0 { 0 } else { x * 40 + 55 };
+            (val(r_idx), val(g_idx), val(b_idx))
+        } else {
+            // Grayscale (232-255)
+            // Code = 232 + i
+            let index = code - 232;
+            let val = index * 10 + 8;
+            (val, val, val)
+        }
+    }
 }
 
 /// Style attributes for text.

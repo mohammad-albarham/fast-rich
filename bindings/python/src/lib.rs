@@ -2,6 +2,7 @@ mod console;
 mod style;
 mod table;
 
+mod align;
 mod columns;
 mod filesize;
 mod inspect;
@@ -11,7 +12,6 @@ mod markdown;
 mod panel;
 mod progress;
 mod prompt;
-mod align;
 mod rule;
 mod syntax;
 mod text;

@@ -33,22 +33,22 @@
 //! ```
 
 // Core modules
+pub mod align;
+pub mod bar;
 pub mod console;
 pub mod emoji;
+pub mod group;
+pub mod highlighter;
 pub mod markup;
+pub mod measure;
+pub mod nested_progress;
+pub mod padding;
+pub mod pager;
 pub mod renderable;
+pub mod screen;
 pub mod style;
 pub mod text;
-pub mod align;
-pub mod padding;
-pub mod bar;
 pub mod theme;
-pub mod highlighter;
-pub mod group;
-pub mod measure;
-pub mod pager;
-pub mod screen;
-pub mod nested_progress;
 
 // Renderables
 pub mod columns;

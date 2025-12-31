@@ -57,7 +57,7 @@ impl Theme {
     /// Monokai-inspired theme.
     pub fn monokai() -> Self {
         Theme {
-            primary: Color::rgb(102, 217, 239), // Cyan
+            primary: Color::rgb(102, 217, 239),  // Cyan
             secondary: Color::rgb(249, 38, 114), // Pink
             success: Color::rgb(166, 226, 46),   // Green
             warning: Color::rgb(253, 151, 31),   // Orange
@@ -71,13 +71,13 @@ impl Theme {
     /// Night Owl theme.
     pub fn night_owl() -> Self {
         Theme {
-            primary: Color::rgb(130, 170, 255), // Blue
+            primary: Color::rgb(130, 170, 255),   // Blue
             secondary: Color::rgb(199, 146, 234), // Purple
-            success: Color::rgb(173, 219, 103), // Green
-            warning: Color::rgb(255, 203, 107), // Yellow
-            error: Color::rgb(239, 83, 80),     // Red
-            info: Color::rgb(128, 203, 196),    // Teal
-            muted: Color::rgb(99, 119, 119),    // Gray
+            success: Color::rgb(173, 219, 103),   // Green
+            warning: Color::rgb(255, 203, 107),   // Yellow
+            error: Color::rgb(239, 83, 80),       // Red
+            info: Color::rgb(128, 203, 196),      // Teal
+            muted: Color::rgb(99, 119, 119),      // Gray
             custom: HashMap::new(),
         }
     }

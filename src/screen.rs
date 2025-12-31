@@ -2,12 +2,11 @@
 //!
 //! Provides utilities for entering/exiting alternate screen buffer.
 
-use std::io::{self, Write};
 use crossterm::{
-    execute,
+    cursor, execute,
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
-    cursor,
 };
+use std::io::{self, Write};
 
 /// Guard that automatically exits alternate screen when dropped.
 pub struct AlternateScreen {
@@ -20,7 +19,7 @@ impl AlternateScreen {
         execute!(io::stdout(), EnterAlternateScreen)?;
         terminal::enable_raw_mode()?;
         execute!(io::stdout(), cursor::Hide)?;
-        
+
         Ok(AlternateScreen { active: true })
     }
 
@@ -75,8 +74,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_alternate_screen_creation() {
         // Can't easily test in CI, but we can verify the struct compiles

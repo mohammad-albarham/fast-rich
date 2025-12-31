@@ -1,5 +1,5 @@
-use rich_rust::prelude::*;
 use rich_rust::align::{Align, VerticalAlignment};
+use rich_rust::prelude::*;
 
 fn main() {
     let console = Console::new().width(60);
@@ -21,12 +21,12 @@ fn main() {
 
     console.print("[bold]Vertical Alignment (Height 5, Middle):[/]");
     let panel = Panel::new(text.clone()).title("Panel");
-    
+
     // Vertical alignment needs a container height or explicit height
     console.print_renderable(
         &Align::center(panel)
-        .vertical(VerticalAlignment::Middle)
-        .height(5)
+            .vertical(VerticalAlignment::Middle)
+            .height(5),
     );
 
     console.rule("[bold red]End Demo[/]");

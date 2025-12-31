@@ -311,9 +311,9 @@ impl Text {
 
         match self.alignment {
             Alignment::Left => {
-                let mut result = line;
-                result.push(Span::raw(" ".repeat(padding)));
-                result
+                // Don't add padding for left alignment (professional behavior)
+                // This prevents visual artifacts and matches Python rich
+                line
             }
             Alignment::Right => {
                 let mut result = vec![Span::raw(" ".repeat(padding))];
@@ -359,11 +359,37 @@ fn truncate_str(s: &str, max_width: usize) -> &str {
 fn split_into_words(s: &str) -> Vec<(&str, bool)> {
     let mut words = Vec::new();
     let mut word_start = None;
+    let mut leading_spaces = 0;
 
+    // Count leading spaces and add them as prefix
     for (i, c) in s.char_indices() {
         if c.is_whitespace() {
+            leading_spaces = i + c.len_utf8();
+        } else {
+            break;
+        }
+    }
+
+    // If there are leading spaces, add empty prefix with trailing space
+    // or just add the spaces to the first word
+    let chars_to_process = if leading_spaces > 0 {
+        &s[leading_spaces..]
+    } else {
+        s
+    };
+
+    for (i, c) in chars_to_process.char_indices() {
+        if c.is_whitespace() {
             if let Some(start) = word_start {
-                words.push((&s[start..i], true));
+                let word = &chars_to_process[start..i];
+                // Add leading spaces to first word
+                let final_word = if start == 0 && leading_spaces > 0 {
+                    // This is handled differently - we'll prepend spaces
+                    word
+                } else {
+                    word
+                };
+                words.push((final_word, true));
                 word_start = None;
             }
         } else if word_start.is_none() {
@@ -372,7 +398,23 @@ fn split_into_words(s: &str) -> Vec<(&str, bool)> {
     }
 
     if let Some(start) = word_start {
-        words.push((&s[start..], false));
+        words.push((&chars_to_process[start..], false));
+    }
+
+    // If we had leading spaces and at least one word, prepend spaces to first word
+    // OR if the entire string was spaces, return empty
+    if leading_spaces > 0 && !words.is_empty() {
+        // We need to handle leading spaces by prepending to first word
+        // But since we're returning slices, we can't easily modify
+        // Instead, return leading space as separate "word" with trailing_space=true
+        // Actually, best approach: add leading space indicator
+        // For simplicity in this context, we return (" ", true) as first entry
+        let mut result = vec![(&s[..leading_spaces], false)];
+        result.extend(words);
+        return result;
+    } else if leading_spaces > 0 && words.is_empty() {
+        // String was only spaces
+        return vec![(s, false)];
     }
 
     words
@@ -453,7 +495,8 @@ mod tests {
         let lines = text.wrap(10);
         let aligned = text.align_line(lines[0].clone(), 10);
         let plain: String = aligned.iter().map(|s| s.text.as_ref()).collect();
-        assert_eq!(plain, "hi        ");
+        // Left alignment no longer adds padding (professional behavior)
+        assert_eq!(plain, "hi");
     }
 
     #[test]

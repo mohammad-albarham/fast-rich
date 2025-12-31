@@ -64,10 +64,6 @@ path = "examples/progress.rs"
 name = "tree"
 path = "examples/tree.rs"
 
-[[bin]]
-name = "ansi_comparison"
-path = "tests/ansi_comparison.rs"
-
 [[bench]]
 name = "render_benchmark"
 harness = false

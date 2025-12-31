@@ -89,7 +89,9 @@ impl Padding {
 impl Renderable for Padding {
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
         // Calculate available width for child after horizontal padding
-        let child_width = context.width.saturating_sub(self.spec.left + self.spec.right);
+        let child_width = context
+            .width
+            .saturating_sub(self.spec.left + self.spec.right);
         let child_context = RenderContext { width: child_width };
 
         // Render child
@@ -114,7 +116,7 @@ impl Renderable for Padding {
             // Child content
             padded_spans.extend(segment.spans);
 
-            // Right padding  
+            // Right padding
             if self.spec.right > 0 {
                 padded_spans.push(Span::raw(" ".repeat(self.spec.right)));
             }

@@ -128,7 +128,7 @@ mod tests {
         let mut group = RenderGroup::new();
         group.add(Text::plain("First"));
         group.add(Text::plain("Second"));
-        
+
         assert_eq!(group.renderables.len(), 2);
     }
 

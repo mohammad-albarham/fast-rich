@@ -1,5 +1,5 @@
-use rich_rust::prelude::*;
 use rich_rust::bar::{BarChart, BarData};
+use rich_rust::prelude::*;
 
 fn main() {
     let console = Console::new().width(70);

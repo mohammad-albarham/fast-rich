@@ -43,20 +43,14 @@ impl RegexHighlighter {
     pub fn url_highlighter(style: Style) -> Self {
         let mut hl = RegexHighlighter::new();
         // Simple URL pattern
-        let _ = hl.add_pattern(
-            r"https?://[^\s]+",
-            style,
-        );
+        let _ = hl.add_pattern(r"https?://[^\s]+", style);
         hl
     }
 
     /// Create a highlighter for numbers.
     pub fn number_highlighter(style: Style) -> Self {
         let mut hl = RegexHighlighter::new();
-        let _ = hl.add_pattern(
-            r"\b\d+\.?\d*\b",
-            style,
-        );
+        let _ = hl.add_pattern(r"\b\d+\.?\d*\b", style);
         hl
     }
 
@@ -85,7 +79,7 @@ impl Highlighter for RegexHighlighter {
 
         // Find all matches across all patterns
         let mut matches: Vec<(usize, usize, Style)> = Vec::new();
-        
+
         for (regex, style) in &self.patterns {
             for m in regex.find_iter(text) {
                 matches.push((m.start(), m.end(), *style));
@@ -142,8 +136,9 @@ mod tests {
     #[test]
     fn test_regex_highlighter() {
         let mut hl = RegexHighlighter::new();
-        hl.add_pattern(r"\d+", Style::new().foreground(Color::Cyan)).unwrap();
-        
+        hl.add_pattern(r"\d+", Style::new().foreground(Color::Cyan))
+            .unwrap();
+
         let spans = hl.highlight("Port 8080 is open");
         assert_eq!(spans.len(), 3); // "Port ", "8080", " is open"
     }

@@ -30,7 +30,7 @@ impl Measurement {
     pub fn measure(renderable: &impl Renderable, width: usize) -> Self {
         let context = RenderContext { width };
         let segments = renderable.render(&context);
-        
+
         let lines = segments.len();
         let minimum = renderable.min_width();
         let maximum = renderable.max_width().min(width);
@@ -91,7 +91,7 @@ mod tests {
     fn test_measure_text() {
         let text = Text::plain("Hello, World!");
         let m = Measurement::measure(&text, 80);
-        
+
         assert!(m.minimum > 0);
         assert!(m.lines > 0);
     }

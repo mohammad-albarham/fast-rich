@@ -69,8 +69,8 @@
 | **Tree** | [x] | Nested hierarchy (~6.7µs). |
 | **Markdown** | [x] | Rendering document (~27.3µs). |
 | **Syntax** | [x] | Highlight & Render 20 lines Python (~210µs). |
-| **Progress** | [ ] | Interactive mechanic, hard to bench reliably. |
-| **Traceback** | [ ] | Error formatting logic bench pending. |
+| **Progress** | [x] | Task creation + 100 updates. |
+| **Traceback** | [x] | Error panel rendering. |
 
 **Result Storage**: `benchmarks/results/rust/v0.3.0/results.txt`
 
@@ -140,12 +140,12 @@ User Code (unchanged) → fast_rich/ (Python API) → Rust Core (speed)
 | `console` | `tests/test_console_parity.py` | [x] | None |
 | `table` | `tests/test_table_parity.py` | [x] | None |
 | `text/panel` | `tests/test_text_panel_parity.py` | [x] | None |
-| `markdown` | - | [ ] | **Missing** |
-| `syntax` | - | [ ] | **Missing** |
-| `tree` | - | [ ] | **Missing** |
-| `progress` | - | [ ] | **Missing** |
-| `traceback` | - | [ ] | **Missing** |
-| `json` | - | [ ] | **Missing** |
+| `markdown` | `tests/test_markdown_parity.py` | [x] | None |
+| `syntax` | `tests/test_syntax_parity.py` | [x] | None |
+| `tree` | `tests/test_tree_parity.py` | [x] | None |
+| `progress` | `tests/test_progress_parity.py` | [x] | None |
+| `traceback` | `tests/test_traceback_parity.py` | [x] | None |
+| `json` | `tests/test_json_parity.py` | [x] | None |
 
 ### Phase 35: Example Coverage (Rust)
 

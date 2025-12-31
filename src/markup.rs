@@ -19,8 +19,8 @@ use crate::text::{Span, Text};
 pub enum MarkupToken {
     /// Plain text
     Text(String),
-    /// Opening style tag
-    OpenTag(Style),
+    /// Opening style tag with optional hyperlink
+    OpenTag(Style, Option<String>),
     /// Closing tag
     CloseTag,
     /// Emoji shortcode like :smile:
@@ -85,9 +85,20 @@ pub fn tokenize(input: &str) -> Vec<MarkupToken> {
                     // Explicit close tag like [/bold]
                     tokens.push(MarkupToken::CloseTag);
                 } else {
-                    // Style tag
-                    let style = Style::parse(tag_content);
-                    tokens.push(MarkupToken::OpenTag(style));
+                    // Check for link=URL attribute
+                    let mut link: Option<String> = None;
+                    let mut style_parts = Vec::new();
+
+                    for part in tag_content.split_whitespace() {
+                        if let Some(url) = part.strip_prefix("link=") {
+                            link = Some(url.to_string());
+                        } else {
+                            style_parts.push(part);
+                        }
+                    }
+
+                    let style = Style::parse(&style_parts.join(" "));
+                    tokens.push(MarkupToken::OpenTag(style, link));
                 }
             }
             ':' => {
@@ -150,23 +161,31 @@ pub fn parse(input: &str) -> Text {
     let tokens = tokenize(input);
     let mut spans = Vec::new();
     let mut style_stack: Vec<Style> = Vec::new();
+    let mut link_stack: Vec<Option<String>> = Vec::new();
 
     for token in tokens {
         match token {
             MarkupToken::Text(text) => {
                 let style = style_stack.last().cloned().unwrap_or_default();
-                spans.push(Span::styled(text, style));
+                let link = link_stack.iter().rev().find_map(|l| l.clone());
+                if let Some(url) = link {
+                    spans.push(Span::linked(text, style, url));
+                } else {
+                    spans.push(Span::styled(text, style));
+                }
             }
-            MarkupToken::OpenTag(style) => {
+            MarkupToken::OpenTag(style, link) => {
                 let combined = if let Some(current) = style_stack.last() {
                     current.combine(&style)
                 } else {
                     style
                 };
                 style_stack.push(combined);
+                link_stack.push(link);
             }
             MarkupToken::CloseTag => {
                 style_stack.pop();
+                link_stack.pop();
             }
             MarkupToken::Emoji(name) => {
                 let emoji = crate::emoji::get_emoji(&name).unwrap_or(&name);
@@ -199,7 +218,7 @@ mod tests {
     fn test_tokenize_styled() {
         let tokens = tokenize("[bold]Hello[/]");
         assert_eq!(tokens.len(), 3);
-        assert!(matches!(tokens[0], MarkupToken::OpenTag(_)));
+        assert!(matches!(tokens[0], MarkupToken::OpenTag(_, _)));
         assert_eq!(tokens[1], MarkupToken::Text("Hello".to_string()));
         assert_eq!(tokens[2], MarkupToken::CloseTag);
     }
@@ -257,5 +276,21 @@ mod tests {
         let text = parse("[white on red]Alert[/]");
         assert_eq!(text.spans[0].style.foreground, Some(Color::White));
         assert_eq!(text.spans[0].style.background, Some(Color::Red));
+    }
+
+    #[test]
+    fn test_parse_hyperlink() {
+        let text = parse("[link=https://example.com]Click here[/]");
+        assert_eq!(text.plain_text(), "Click here");
+        assert_eq!(text.spans[0].link, Some("https://example.com".to_string()));
+    }
+
+    #[test]
+    fn test_parse_hyperlink_with_style() {
+        let text = parse("[bold blue link=https://google.com]Google[/]");
+        assert_eq!(text.plain_text(), "Google");
+        assert!(text.spans[0].style.bold);
+        assert_eq!(text.spans[0].style.foreground, Some(Color::Blue));
+        assert_eq!(text.spans[0].link, Some("https://google.com".to_string()));
     }
 }

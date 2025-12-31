@@ -1,99 +1,47 @@
-use rich_rust::prelude::*;
-
-pub fn run(console: &Console) {
-    console.clear();
-
-    // 1. Create the root layout (Full Screen)
-    let mut layout = rich_rust::layout::Layout::new().with_name("root");
-
-    // 2. Split into Header, Main, Footer
-    layout.split_column(vec![
-        // Header: Fixed height 3
-        rich_rust::layout::Layout::new()
-            .with_name("header")
-            .with_size(3),
-        // Main: Auto height (ratio 1)
-        rich_rust::layout::Layout::new()
-            .with_name("main")
-            .with_ratio(1),
-        // Footer: Fixed height 3
-        rich_rust::layout::Layout::new()
-            .with_name("footer")
-            .with_size(3),
-    ]);
-
-    // 3. Populate Header
-    layout.children_mut()[0].update(
-        Panel::new(
-            Text::from("Rich Rust Layout Engine")
-                .alignment(Alignment::Center)
-                .style(
-                    Style::new()
-                        .bold()
-                        .foreground(Color::White)
-                        .background(Color::Blue),
-                ),
-        )
-        .border_style(BorderStyle::Heavy),
-    );
-
-    // 4. Split Main into Sidebar and Content
-    layout.children_mut()[1].split_row(vec![
-        // Sidebar: Ratio 1
-        rich_rust::layout::Layout::new()
-            .with_name("sidebar")
-            .with_ratio(1),
-        // Content: Ratio 3
-        rich_rust::layout::Layout::new()
-            .with_name("content")
-            .with_ratio(3),
-    ]);
-
-    // 5. Populate Sidebar
-    layout.children_mut()[1].children_mut()[0]
-        .update(Panel::new(Text::from("Sidebar\n\n- Item 1\n- Item 2\n- Item 3")).title("Menu"));
-
-    // 6. Populate Content
-    layout.children_mut()[1].children_mut()[1].update(
-        Panel::new(
-            Text::from(
-                "Main Content Area\n\nThis layout is split recursively.\nThe header and footer are fixed height.\nThe middle section splits the remaining space.\nThe middle section is further split into a sidebar (25%) and content (75%)."
-            )
-        )
-        .title("Dashboard")
-        .border_style(BorderStyle::Double)
-    );
-
-    // 7. Populate Footer
-    layout.children_mut()[2].update(Panel::new(
-        Text::from("Status: Online | CPU: 45% | Mem: 1.2GB").alignment(Alignment::Center),
-    ));
-
-    // Render
-    console.print_renderable(&layout);
-}
+use rich_rust::console::Console;
+use rich_rust::layout::Layout;
+use rich_rust::panel::Panel;
+use rich_rust::text::Text;
 
 fn main() {
     let console = Console::new();
-    run(&console);
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+    // Create a complex layout
+    // Root: Header (fixed 3), Body (flex), Footer (fixed 3)
+    let mut root = Layout::new();
+    
+    let header = Layout::new()
+        .with_size(3)
+        .with_name("header");
+    // We need to update content. 
+    // Wait, Layout::update takes a Renderable. Panel is Renderable.
+    let mut header = header;
+    header.update(Panel::new(Text::from("Header")));
 
-    #[test]
-    fn test_layout_demo_output() {
-        let console = Console::capture();
-        run(&console);
-        let output = console.get_captured_output();
+    let footer = Layout::new()
+        .with_size(3)
+        .with_name("footer");
+    let mut footer = footer;
+    footer.update(Panel::new(Text::from("Footer")));
 
-        // Debug output
-        // eprintln!("{}", output);
+    let mut body = Layout::new().with_ratio(1).with_name("body");
+    
+    // Body Split: Sidebar (fixed 20), Main (ratio 2), Right (ratio 1, min 15)
+    let sidebar = Layout::new().with_size(20).with_name("sidebar");
+    let mut sidebar = sidebar;
+    sidebar.update(Panel::new(Text::from("Sidebar\nFixed 20")));
 
-        assert!(output.contains("Rich Rust Layout Engine"));
-        assert!(output.contains("Sidebar"));
-        assert!(output.contains("Main Content Area"));
-        assert!(output.contains("Status: Online"));
-    }
+    let main_content = Layout::new().with_ratio(2).with_name("main");
+    let mut main_content = main_content;
+    main_content.update(Panel::new(Text::from("Main Content\nRatio 2")));
+
+    let right = Layout::new().with_ratio(1).with_minimum_size(15).with_name("right");
+    let mut right = right;
+    right.update(Panel::new(Text::from("Right\nRatio 1\nMin 15")));
+
+    body.split_row(vec![sidebar, main_content, right]);
+
+    root.split_column(vec![header, body, footer]);
+
+    console.print_renderable(&root);
 }

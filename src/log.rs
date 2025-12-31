@@ -303,7 +303,7 @@ mod tests {
     #[test]
     fn test_log_message_render() {
         let msg = LogMessage::new("Hello").level(LogLevel::Info);
-        let context = RenderContext { width: 80 };
+        let context = RenderContext { width: 80, height: None };
         let segments = msg.render(&context);
 
         assert_eq!(segments.len(), 1);

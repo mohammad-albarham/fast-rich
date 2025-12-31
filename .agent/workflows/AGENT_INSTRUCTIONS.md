@@ -311,3 +311,8 @@ When starting a new feature/bug:
 5. In the chat, refer to it as: `Active feature slug: <slug>`.
 
 Follow this pattern for **every** new feature or bug in `rich_rust`.
+
+
+## 10. Commiting the code.
+
+you must commit the code after you complete the feature. 

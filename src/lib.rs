@@ -154,7 +154,7 @@ mod tests {
 
         // Table should have columns and rows
         assert!(!table
-            .render(&console::RenderContext { width: 40 })
+            .render(&console::RenderContext { width: 40, height: None })
             .is_empty());
     }
 }

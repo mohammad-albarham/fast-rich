@@ -694,7 +694,7 @@ mod tests {
         table.add_row_strs(&["Alice", "30"]);
         table.add_row_strs(&["Bob", "25"]);
 
-        let context = RenderContext { width: 40 };
+        let context = RenderContext { width: 40, height: None };
         let segments = table.render(&context);
 
         assert!(!segments.is_empty());

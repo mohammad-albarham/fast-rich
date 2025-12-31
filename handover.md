@@ -15,7 +15,7 @@
 - Complete feature parity with Python rich's core features
 
 ### Key Constraints
-- Python `rich` is the behavioral reference implementation
+- Python `rich` is the behavioral reference implementation  
 - ANSI sequence correctness is critical for terminal compatibility
 - No fake outputs or imaginary test results in development
 
@@ -121,7 +121,7 @@ console.println_raw(&format!("{:?}", data));
 |:-----|:-----|:-----|:-------|:------------|
 | `feature-color-system-control` | Color System Control | **Fundamental** | `Done` | Implement strict `ColorSystem` downsampling (16/256/TrueColor) for exact byte parity. |
 | `feature-box-style-parity` | Box Style Parity | Dependent | `Planned` | Implement missing box styles (Double, Rounded, Heavy, etc.) in `table.rs`. |
-| `feature-layout-parity` | Layout Parity | **Fundamental** | `Planned` | Enhance `layout.rs` with split ratios, arbitrary depth, and minimum sizes to match `rich.layout`. |
+| `feature-layout-parity` | Layout Parity | **Fundamental** | `Implemented` | `Layout` struct supports split ratios, minimum sizes, and arbitrary nesting. |
 | `feature-live-display` | Live Display | **Fundamental** | `Planned` | Implement flicker-free auto-refreshing display (`rich.live`) with cursor management. |
 | `feature-markdown-parity` | Markdown Parity | Dependent | `Planned` | Improve `markdown.rs` to render tables, block quotes, and code blocks similarly to `rich`. |
 | `feature-progress-enhancement` | Progress Enhancement | Dependent | `Planned` | Add spinners, speed columns, and ETA to `progress` module. |
@@ -130,6 +130,7 @@ console.println_raw(&format!("{:?}", data));
 
 ### Recently Completed
 - `ansi-test-infrastructure` (Fundamental) - ✅ Done
+- `feature-layout-parity` (Vertical Parity) - ✅ Done
 
 
 ---
@@ -189,4 +190,7 @@ xxd tests/ansi_output/rust_basic_styles.txt
 - Confirmed `basic_styles` matches Python `rich` output byte-for-byte (46 bytes).
 - Identified color system difference (256 vs 16 color codes), updated tests to accept both semantically.
 - Documented plan for `ColorSystem` control to achieve full byte parity in the future.
+- Documented plan for `ColorSystem` control to achieve full byte parity in the future.
 - Fixed `hexdump` helper and ensured robust verification.
+- **Vertical Layout Parity:** Implemented `height` in `RenderContext` and updated `Layout` to support complex vertical splits with ratios and height constraints.
+

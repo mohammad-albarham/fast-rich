@@ -308,7 +308,7 @@ impl Progress {
 
     /// Render the progress display.
     pub fn render_to_string(&self) -> String {
-        let context = RenderContext { width: 80 };
+        let context = RenderContext { width: 80, height: None };
         let segments = self.render(&context);
 
         let mut result = String::new();

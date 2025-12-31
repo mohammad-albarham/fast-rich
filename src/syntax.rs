@@ -236,7 +236,7 @@ mod tests {
     #[test]
     fn test_syntax_basic() {
         let syntax = Syntax::new("let x = 42;", "rust");
-        let context = RenderContext { width: 60 };
+        let context = RenderContext { width: 60, height: None };
         let segments = syntax.render(&context);
 
         assert!(!segments.is_empty());
@@ -245,7 +245,7 @@ mod tests {
     #[test]
     fn test_syntax_without_panel() {
         let syntax = Syntax::new("print('hello')", "python").panel(false);
-        let context = RenderContext { width: 60 };
+        let context = RenderContext { width: 60, height: None };
         let segments = syntax.render(&context);
 
         assert!(!segments.is_empty());
@@ -254,7 +254,7 @@ mod tests {
     #[test]
     fn test_syntax_without_line_numbers() {
         let syntax = Syntax::new("x = 1", "python").line_numbers(false);
-        let context = RenderContext { width: 60 };
+        let context = RenderContext { width: 60, height: None };
         let segments = syntax.render(&context);
 
         assert!(!segments.is_empty());
@@ -263,7 +263,7 @@ mod tests {
     #[test]
     fn test_syntax_themes() {
         let syntax = Syntax::new("let x = 42;", "rust").theme(Theme::SolarizedDark);
-        let context = RenderContext { width: 60 };
+        let context = RenderContext { width: 60, height: None };
         let segments = syntax.render(&context);
 
         assert!(!segments.is_empty());

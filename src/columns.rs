@@ -195,7 +195,7 @@ mod tests {
         let items = vec!["a", "b", "c", "d", "e", "f"];
         let columns = Columns::new(items).num_columns(3);
 
-        let context = RenderContext { width: 30 };
+        let context = RenderContext { width: 30, height: None };
         let segments = columns.render(&context);
 
         // Should have 2 rows (6 items / 3 cols)
@@ -207,7 +207,7 @@ mod tests {
         let items = vec!["short", "items", "here"];
         let columns = Columns::new(items);
 
-        let context = RenderContext { width: 40 };
+        let context = RenderContext { width: 40, height: None };
         let segments = columns.render(&context);
 
         // Should auto-calculate columns
@@ -217,7 +217,7 @@ mod tests {
     #[test]
     fn test_columns_empty() {
         let columns = Columns::new(Vec::<&str>::new());
-        let context = RenderContext { width: 40 };
+        let context = RenderContext { width: 40, height: None };
         let segments = columns.render(&context);
         assert!(segments.is_empty());
     }

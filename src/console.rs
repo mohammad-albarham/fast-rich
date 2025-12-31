@@ -6,7 +6,7 @@
 //! # Examples
 //!
 //! ```no_run
-//! use rich_rust::Console;
+//! use fast_rich::Console;
 //!
 //! let console = Console::new();
 //! console.print("Hello, [bold magenta]World[/]!");

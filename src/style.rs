@@ -5,7 +5,7 @@
 //! # Examples
 //!
 //! ```
-//! use rich_rust::style::{Color, Style};
+//! use fast_rich::style::{Color, Style};
 //!
 //! let style = Style::new()
 //!     .foreground(Color::Red)

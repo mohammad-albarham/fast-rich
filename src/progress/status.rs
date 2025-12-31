@@ -136,7 +136,7 @@ impl Drop for StatusGuard {
 /// # Example
 ///
 /// ```no_run
-/// use rich_rust::progress::with_status;
+/// use fast_rich::progress::with_status;
 ///
 /// let result = with_status("Loading data...", || {
 ///     // Do some work

@@ -82,7 +82,7 @@ impl<I: ExactSizeIterator> ExactSizeIterator for TrackedIterator<I> {}
 /// # Example
 ///
 /// ```no_run
-/// use rich_rust::progress::track;
+/// use fast_rich::progress::track;
 ///
 /// for item in track(0..100, "Processing") {
 ///     // Do work with item

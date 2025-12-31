@@ -19,7 +19,7 @@
 //! ## Quick Start
 //!
 //! ```no_run
-//! use rich_rust::prelude::*;
+//! use fast_rich::prelude::*;
 //!
 //! let console = Console::new();
 //!
@@ -115,7 +115,7 @@ pub mod prelude {
 /// # Example
 ///
 /// ```no_run
-/// rich_rust::print("[bold green]Success![/]");
+/// fast_rich::print("[bold green]Success![/]");
 /// ```
 pub fn print(content: &str) {
     Console::new().print(content);

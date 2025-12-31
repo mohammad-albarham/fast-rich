@@ -1,26 +1,27 @@
 use crate::console::RenderContext;
 use crate::renderable::{Renderable, Segment};
-use crate::text::Span;
 use std::sync::Arc;
 
-/// A node in the layout tree.
+/// A node in the layout tree for creating splits and grids.
 #[derive(Clone)]
 pub struct Layout {
-    /// Renderable content (optional).
+    /// Renderable content (optional, for leaf nodes).
     renderable: Option<Arc<dyn Renderable + Send + Sync>>,
-    /// Child layouts (if this is a split container).
+    /// Child layouts.
     children: Vec<Layout>,
-    /// Direction of children.
+    /// Split direction.
     direction: Direction,
-    /// Fixed size (width or height depend on parent direction).
-    #[allow(dead_code)]
-    size: Option<usize>,
-    /// Ratio of remaining space.
-    #[allow(dead_code)]
+    /// Fixed size (width or height depending on parent direction).
+    size: Option<u16>,
+    /// Ratio for flexible sizing.
     ratio: u32,
-    /// Name of this layout section.
-    #[allow(dead_code)]
+    /// Name for debugging.
     name: Option<String>,
+    /// Minimum size.
+    #[allow(dead_code)]
+    minimum_size: u16,
+    /// Is this layout visible?
+    visible: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -30,7 +31,7 @@ pub enum Direction {
 }
 
 impl Layout {
-    /// Create a new layout with optional content.
+    /// Create a new empty layout.
     pub fn new() -> Self {
         Self {
             renderable: None,
@@ -39,12 +40,37 @@ impl Layout {
             size: None,
             ratio: 1,
             name: None,
+            minimum_size: 0,
+            visible: true,
         }
     }
 
-    /// Set the renderable content for this layout part.
+    /// Set the name of the layout (useful for debugging).
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.name = Some(name.to_string());
+        self
+    }
+
+    /// Set a fixed size for this layout.
+    pub fn with_size(mut self, size: u16) -> Self {
+        self.size = Some(size);
+        self
+    }
+
+    /// Set a ratio for this layout (default is 1).
+    pub fn with_ratio(mut self, ratio: u32) -> Self {
+        self.ratio = ratio;
+        self
+    }
+
+    /// Set the renderable content.
     pub fn update<R: Renderable + Send + Sync + 'static>(&mut self, renderable: R) {
         self.renderable = Some(Arc::new(renderable));
+    }
+
+    /// Get mutable access to children.
+    pub fn children_mut(&mut self) -> &mut Vec<Layout> {
+        &mut self.children
     }
 
     /// Split the layout horizontally (into columns).
@@ -59,10 +85,49 @@ impl Layout {
         self.children = layouts;
     }
 
-    /// Set a name for debugging/lookup.
-    pub fn with_name(mut self, name: &str) -> Self {
-        self.name = Some(name.to_string());
-        self
+    /// Calculate split sizes for a given total space.
+    fn calculate_splits(&self, total_size: u16) -> Vec<u16> {
+        let count = self.children.len();
+        if count == 0 {
+            return Vec::new();
+        }
+
+        let mut sizes = vec![0; count];
+        let mut remaining = total_size;
+        let mut total_ratio = 0;
+        let mut flexible_indices = Vec::new();
+
+        // 1. Assign fixed sizes & min sizes
+        for (i, child) in self.children.iter().enumerate() {
+            if let Some(fixed) = child.size {
+                let s = std::cmp::min(fixed, remaining);
+                sizes[i] = s;
+                remaining -= s;
+            } else {
+                total_ratio += child.ratio;
+                flexible_indices.push(i);
+            }
+        }
+
+        // 2. Distribute remaining space by ratio
+        if !flexible_indices.is_empty() && total_ratio > 0 {
+            let unit = remaining as f32 / total_ratio as f32;
+            let mut distributed = 0;
+
+            for (idx, &i) in flexible_indices.iter().enumerate() {
+                let child = &self.children[i];
+                // For the last item, give the rest to avoid rounding errors
+                let s = if idx == flexible_indices.len() - 1 {
+                    remaining - distributed
+                } else {
+                    (child.ratio as f32 * unit).round() as u16
+                };
+                sizes[i] = s;
+                distributed += s;
+            }
+        }
+
+        sizes
     }
 }
 
@@ -74,35 +139,82 @@ impl Default for Layout {
 
 impl Renderable for Layout {
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
+        if !self.visible {
+            return Vec::new();
+        }
+
+        // Leaf node: Render content
         if self.children.is_empty() {
-            // Leaf node: Render content
             if let Some(r) = &self.renderable {
+                // TODO: Optimization - Pass specific constraint context based on parent split
+                // For now, we render with full context width, but we might want to clip/shape it using new context
                 return r.render(context);
             }
-            // Empty box if no content
-            return vec![Segment::new(vec![Span::raw(" ".repeat(context.width))])];
+            // Empty placeholder
+            let blank_line = " ".repeat(context.width);
+            return vec![Segment::new(vec![crate::text::Span::raw(blank_line)])];
         }
 
-        // Branch node: Render children based on direction
-        let mut result = Vec::new();
+        // Branch node: Calculate splits
+        let (width, _height) = match self.direction {
+            Direction::Horizontal => (context.width as u16, 0), // Width split
+            Direction::Vertical => (0, 100), // Height split - TODO: Detect height from context or use arbitrary
+        };
+
+        // Note: Vertical split (rows) depends on available height which RenderContext doesn't explicitly track yet
+        // in a constrained way (it mostly track width).
+        // For CLI output, vertical stacking is just rendering one after another.
+        // Horizontal split requires column logic.
+
+        let mut segments = Vec::new();
 
         if self.direction == Direction::Vertical {
-            // Split height: Simple vertical stacking
+            // Stack children vertically
             for child in &self.children {
-                let segments = child.render(context);
-                result.extend(segments);
-                result.push(Segment::empty_line());
+                let child_segments = child.render(context);
+                segments.extend(child_segments);
+                // If child doesn't fill width or needed spacing?
             }
         } else {
-            // Split width (Horizontal)
-            // Simple delegation to existing Columns-like logic would be complex here without proper 2D buffer.
-            // For MVP, we just stack vertically or render children sequentially.
-            // TODO: Proper columns implementation for Layout using 'Columns' logic.
-            for child in &self.children {
-                result.extend(child.render(context));
+            // Horizontal split (Columns)
+            // This is complex without a buffer. We need to render side-by-side.
+            // Simplified approach: Render all children with reduced width context, then zip lines.
+
+            let splits = self.calculate_splits(width);
+            let mut columns_output: Vec<Vec<Segment>> = Vec::new();
+            let mut max_lines = 0;
+
+            for (i, child) in self.children.iter().enumerate() {
+                let w = splits[i] as usize;
+                if w == 0 {
+                    columns_output.push(Vec::new());
+                    continue;
+                }
+
+                let child_ctx = RenderContext { width: w };
+                let child_segs = child.render(&child_ctx);
+                max_lines = std::cmp::max(max_lines, child_segs.len());
+                columns_output.push(child_segs);
+            }
+
+            // Zip lines
+            for line_idx in 0..max_lines {
+                let mut line_spans = Vec::new();
+                for (col_idx, _child) in self.children.iter().enumerate() {
+                    let w = splits[col_idx] as usize;
+                    let segs = &columns_output[col_idx];
+
+                    if line_idx < segs.len() {
+                        line_spans.extend(segs[line_idx].spans.clone());
+                    } else {
+                        // Padding for shorter columns
+                        line_spans.push(crate::text::Span::raw(" ".repeat(w)));
+                    }
+                }
+                segments.push(Segment::line(line_spans));
             }
         }
 
-        result
+        segments
     }
 }

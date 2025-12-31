@@ -9,6 +9,7 @@ homepage = "https://github.com/mohammad-albarham/fast-rich"
 documentation = "https://docs.rs/fast-rich"
 keywords = ["terminal", "console", "color", "formatting", "rich"]
 categories = ["command-line-interface", "development-tools"]
+exclude = ["docs/**", "logo.png", "Makefile", "scripts/**", "benchmarks/**"]
 
 [workspace]
 members = ["bindings/python"]

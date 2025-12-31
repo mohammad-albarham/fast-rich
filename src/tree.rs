@@ -294,7 +294,7 @@ mod tests {
     fn test_tree_simple() {
         let tree = Tree::new("root").guide_style(GuideStyle::Unicode);
 
-        let context = RenderContext { width: 40 };
+        let context = RenderContext { width: 40, height: None };
         let segments = tree.render(&context);
 
         assert_eq!(segments.len(), 1);
@@ -307,7 +307,7 @@ mod tests {
         tree.add(TreeNode::new("child1"));
         tree.add(TreeNode::new("child2"));
 
-        let context = RenderContext { width: 40 };
+        let context = RenderContext { width: 40, height: None };
         let segments = tree.render(&context);
 
         assert_eq!(segments.len(), 3);
@@ -321,7 +321,7 @@ mod tests {
 
         let tree = Tree::new(TreeNode::new("root").with_child(child1));
 
-        let context = RenderContext { width: 40 };
+        let context = RenderContext { width: 40, height: None };
         let segments = tree.render(&context);
 
         assert_eq!(segments.len(), 4);
@@ -338,7 +338,7 @@ mod tests {
         tree.add("child1");
         tree.add("child2");
 
-        let context = RenderContext { width: 40 };
+        let context = RenderContext { width: 40, height: None };
         let segments = tree.render(&context);
 
         // Should not contain root

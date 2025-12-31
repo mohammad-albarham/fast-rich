@@ -43,11 +43,16 @@ fn svg_escape(s: &str) -> String {
 pub struct RenderContext {
     /// Available width for rendering.
     pub width: usize,
+    /// Available height for rendering (optional).
+    pub height: Option<usize>,
 }
 
 impl Default for RenderContext {
     fn default() -> Self {
-        RenderContext { width: 80 }
+        RenderContext {
+            width: 80,
+            height: None,
+        }
     }
 }
 
@@ -308,6 +313,7 @@ impl Console {
     pub fn print_renderable(&self, renderable: &dyn Renderable) {
         let context = RenderContext {
             width: self.get_width(),
+            height: None,
         };
 
         let segments = renderable.render(&context);
@@ -553,6 +559,7 @@ impl Console {
     pub fn export_text(&self, renderable: &dyn Renderable) -> String {
         let context = RenderContext {
             width: self.get_width(),
+            height: None,
         };
         let segments = renderable.render(&context);
         self.segments_to_text(&segments)
@@ -575,6 +582,7 @@ impl Console {
     pub fn export_html(&self, renderable: &dyn Renderable) -> String {
         let context = RenderContext {
             width: self.get_width(),
+            height: None,
         };
         let segments = renderable.render(&context);
         self.segments_to_html(&segments)
@@ -618,6 +626,7 @@ impl Console {
     pub fn export_svg(&self, renderable: &dyn Renderable) -> String {
         let context = RenderContext {
             width: self.get_width(),
+            height: None,
         };
         let segments = renderable.render(&context);
         self.segments_to_svg(&segments)

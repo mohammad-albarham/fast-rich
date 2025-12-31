@@ -361,7 +361,7 @@ mod tests {
     #[test]
     fn test_markdown_basic() {
         let md = Markdown::new("# Hello\n\nWorld");
-        let context = RenderContext { width: 40 };
+        let context = RenderContext { width: 40, height: None };
         let segments = md.render(&context);
 
         assert!(!segments.is_empty());
@@ -370,7 +370,7 @@ mod tests {
     #[test]
     fn test_markdown_emphasis() {
         let md = Markdown::new("*italic* and **bold**");
-        let context = RenderContext { width: 40 };
+        let context = RenderContext { width: 40, height: None };
         let segments = md.render(&context);
 
         assert!(!segments.is_empty());
@@ -379,7 +379,7 @@ mod tests {
     #[test]
     fn test_markdown_code_block() {
         let md = Markdown::new("```rust\nlet x = 42;\n```");
-        let context = RenderContext { width: 40 };
+        let context = RenderContext { width: 40, height: None };
         let segments = md.render(&context);
 
         assert!(!segments.is_empty());

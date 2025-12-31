@@ -10,7 +10,7 @@ fn test_padding_all() {
     let text = Text::plain("Content");
     let padded = Padding::all(text, 2);
 
-    let context = RenderContext { width: 20 };
+    let context = RenderContext { width: 20, height: None };
     let segments = padded.render(&context);
 
     // Should have top padding + content + bottom padding
@@ -22,7 +22,7 @@ fn test_padding_symmetric() {
     let text = Text::plain("Test");
     let padded = Padding::symmetric(text, 1, 3); // 1 vertical, 3 horizontal
 
-    let context = RenderContext { width: 20 };
+    let context = RenderContext { width: 20, height: None };
     let segments = padded.render(&context);
 
     assert!(!segments.is_empty());

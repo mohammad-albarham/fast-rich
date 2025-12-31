@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/logo.png" width="800" alt="Fast-Rich Logo" />
+</div>
+
 # Fast-Rich
 
 <div align="center" markdown>

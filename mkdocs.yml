@@ -27,7 +27,7 @@ theme:
     code: JetBrains Mono
   icon:
     repo: fontawesome/brands/github
-    logo: material/console
+    logo: assets/logo.png
   features:
     - content.code.copy
     - content.code.annotate

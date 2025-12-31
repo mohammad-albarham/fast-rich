@@ -469,4 +469,11 @@ mod tests {
         let context = RenderContext::default();
         assert_eq!(context.width, 80);
     }
+
+    #[test]
+    fn test_force_color() {
+        let console = Console::new().force_color(true);
+        assert!(console.force_color);
+        assert!(console.color_enabled);
+    }
 }

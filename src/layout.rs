@@ -218,3 +218,71 @@ impl Renderable for Layout {
         segments
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_splits_ratios() {
+        // Equal split
+        let mut layout = Layout::new();
+        layout.split_row(vec![
+            Layout::new().with_ratio(1),
+            Layout::new().with_ratio(1),
+        ]);
+        let splits = layout.calculate_splits(100);
+        assert_eq!(splits, vec![50, 50]);
+
+        // 1:3 split
+        let mut layout = Layout::new();
+        layout.split_row(vec![
+            Layout::new().with_ratio(1),
+            Layout::new().with_ratio(3),
+        ]);
+        let splits = layout.calculate_splits(100);
+        assert_eq!(splits, vec![25, 75]);
+    }
+
+    #[test]
+    fn test_calculate_splits_fixed() {
+        let mut layout = Layout::new();
+        layout.split_row(vec![
+            Layout::new().with_size(10),
+            Layout::new().with_size(20),
+        ]);
+        let splits = layout.calculate_splits(100);
+        // If NO ratio items, implementation should just give fixed?
+        // Wait, if NO ratio items, `flexible_indices` is empty, so loop 2 doesn't run.
+        // So expected is [10, 20]. (Correct)
+        assert_eq!(splits[0], 10);
+        assert_eq!(splits[1], 20);
+    }
+
+    #[test]
+    fn test_calculate_splits_mixed() {
+        let mut layout = Layout::new();
+        layout.split_row(vec![
+            Layout::new().with_size(10), // Fixed 10
+            Layout::new().with_ratio(1), // Takes half of remaining (90/2 = 45)
+            Layout::new().with_ratio(1), // Takes other half (45)
+        ]);
+        let splits = layout.calculate_splits(100);
+        assert_eq!(splits, vec![10, 45, 45]);
+    }
+
+    #[test]
+    fn test_calculate_splits_rounding() {
+        // 100 / 3 = 33.333
+        // Should be 33, 33, 34
+        let mut layout = Layout::new();
+        layout.split_row(vec![
+            Layout::new().with_ratio(1),
+            Layout::new().with_ratio(1),
+            Layout::new().with_ratio(1),
+        ]);
+        let splits = layout.calculate_splits(100);
+        assert_eq!(splits, vec![33, 33, 34]);
+        assert_eq!(splits.iter().sum::<u16>(), 100);
+    }
+}

@@ -1,0 +1,10 @@
+rich-rust v0.2.0 Benchmark Results
+Date: 2025-12-31
+Commit: [Current]
+
+markup parsing (1kb)    time:   [21.218 µs 21.282 µs 21.363 µs]
+text render (wrap)      time:   [13.062 µs 13.106 µs 13.163 µs]
+table render (100 rows) time:   [162.57 µs 163.00 µs 163.62 µs]
+panel render            time:   [4.8157 µs 4.8330 µs 4.8548 µs]
+tree render (50 nodes)  time:   [6.6861 µs 6.7017 µs 6.7196 µs]
+markdown render         time:   [27.304 µs 27.367 µs 27.443 µs]

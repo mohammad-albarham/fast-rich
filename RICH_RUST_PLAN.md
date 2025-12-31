@@ -1,57 +1,82 @@
 # rich-rust Plan / Feature Memory
 
-> This file tracks the implementation status of all features. Updated continuously.
+> This file tracks the implementation status of the `rich-rust` crate.
+> **Focus**: Pure Rust implementation of Rich-style terminal formatting.
 
-## Legend
-- `[ ]` Not started
-- `[/]` In progress
-- `[x]` Implemented in Rust
-- `[B]` Bindings Implemented
-- `[M]` Benchmarked
-- `[D]` Documented
+## 1. Feature Coverage (Rust Core)
+
+| Feature Family | Component | Status | Tested | Benchmarked | Notes |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **Console & I/O** | `Console` | [x] | [x] | [x] | Supports stdout/stderr/buffer, auto-detects color/width. |
+| | `print` APIs | [x] | [x] | [ ] | High-level `print`, `println`. |
+| **Style & Text** | `Color`, `Style` | [x] | [x] | [x] | ANSI, RGB, Xterm colors. Styles (bold, dim, etc.). |
+| | `Text`, `Span` | [x] | [x] | [x] | Text wrapping, parsing, alignment. |
+| | `Markup` | [x] | [x] | [x] | `[bold red]...[/]` parsing. |
+| **Layout** | `Panel` | [x] | [x] | [x] | Borders, titles, padding. |
+| | `Rule` | [x] | [x] | [x] | Horizontal rules with titles. |
+| | `Columns` | [x] | [x] | [x] | Grid layout. |
+| | `Layout` | [x] | [ ] | [ ] | Splitter/Tiling concept (Basic impl). |
+| **Table** | `Table` | [x] | [x] | [x] | auto-width, borders, headers, footers. |
+| **Progress** | `Progress` | [x] | [x] | [x] | Multi-bar, customizable columns. |
+| | `Spinner` | [x] | [x] | [ ] | Loading spinners. |
+| | `Status` | [x] | [x] | [ ] | Spinner + Message. |
+| **Tree** | `Tree` | [x] | [x] | [x] | Hierarchies with guidelines. |
+| **Content** | `Markdown` | [x] | [x] | [x] | CommonMark rendering (feature gated). |
+| | `Syntax` | [x] | [x] | [ ] | Code highlighting (syntect, feature gated). |
+| **Diagnostics** | `Traceback` | [x] | [x] | [ ] | Pretty error rendering. |
+| | `Log` | [x] | [x] | [ ] | Structured logging. |
+| **Utility** | `Inspect` | [x] | [x] | [ ] | Debug inspection. |
+| | `Live` | [x] | [ ] | [ ] | Live display refresh. |
+
+## 2. Testing Coverage
+
+### Unit Tests (`src/**/*.rs`)
+- **Status**: ~96 tests giving high coverage of logic (parsing, wrapping, styles).
+- **Gaps**: `Layout` logic, complex `Live` scenarios.
+
+### Integration / Snapshot Tests (`tests/snapshots.rs`)
+- `test_style_snapshot`: Verified ANSI styling.
+- `test_table_snapshot`: Verified borders, columns, wrapping.
+- `test_panel_snapshot`: Verified styling, titles.
+- `test_tree_snapshot`: Verified hierarchy guides.
+- `test_rule_snapshot`: Verified horizontal rules.
+- `test_columns_snapshot`: Verified grid layout.
+- `test_markdown_snapshot`: Verified rendering.
+- `test_syntax_snapshot`: Verified highlighting (simple).
+
+## 3. Example Coverage
+
+| Feature | Example File | Description |
+| :--- | :--- | :--- |
+| **Styles/Text** | `examples/styles_demo.rs` | Comprehensive styles, colors, attributes. |
+| **Tables** | `examples/tables_demo.rs` | Advanced tables, styles, alignment. |
+| **Panel/Layout** | `examples/panel_layout.rs` | Panels and Columns layout. |
+| **Tree** | `examples/tree_view.rs` | Nested trees with guides. |
+| **Progress** | `examples/progress_bar.rs` | Interactive simulation. |
+| **Traceback** | `examples/traceback_demo.rs` | Error handling/traceback display. |
+| **Markdown/Syntax** | `examples/markdown_syntax.rs` | Combined feature-gated rendering. |
+| **Showcase** | `examples/showcase.rs` | Full library tour. |
+
+## 4. Benchmark Coverage
+
+**Location**: `benches/` (Using `criterion`)
+
+| Scenario | Status | Notes |
+| :--- | :---: | :--- |
+| **Text/Markup** | [x] | Parsing (21µs) and rendering (13µs). |
+| **Table** | [x] | 100 rows (~163µs). |
+| **Panel** | [x] | Styled panels (~4.8µs). |
+| **Tree** | [x] | Nested hierarchy (~6.7µs). |
+| **Markdown** | [x] | Rendering document (~27.3µs). |
+| **Syntax** | [ ] | Included in Markdown tests, specific bench pending. |
+| **Progress** | [ ] | Interactive mechanic, hard to bench reliably. |
+| **Traceback** | [ ] | Error formatting logic bench pending. |
+
+**Result Storage**: `benchmarks/results/rust/v0.3.0/results.txt`
 
 ---
 
-## Benchmark Runs
-*(Versioned performance logs)*
-
-- **v0.1.0 (Baseline)**: `benchmarks/results/python/v0.1.0/20251230_190513.json`
-- **v0.1.1 (Syntax Opt)**: `benchmarks/results/python/v0.1.0/20251230_190817.json`
-
-## Feature Matrix
-
-| Feature Family | Rust Core | Python Binding | Benchmark Scenario | Notes |
-| :--- | :---: | :---: | :---: | :--- |
-| **Console** | [x] | [x] | [x] | Core I/O |
-| **Style/Color** | [x] | [x] | [x] | RGB, ANSI, Styles |
-| **Text/Span** | [x] | [x] | [x] | Rich Text Layout |
-| **Markup** | [x] | [x] | [x] | `[bold]...[/]` |
-| **Table** | [x] | [x] | [x] | Unicode Borders |
-| **Panel** | [x] | [x] | [x] | Boxed Content |
-| **Rule** | [x] | [x] | [x] | horizontal rules |
-| **Progress** | [x] | [x] | [x] | Multi-bar + Spinner |
-| **Tree** | [x] | [x] | [x] | Hierarchies |
-| **Markdown** | [x] | [x] | [x] | `.md` Parsing |
-| **Syntax** | [x] | [x] | [x] | Code Highlighting |
-| **Traceback** | [x] | [x] | [x] | Error Formatting |
-| **Columns** | [x] | [x] | [x] | Grid Layout |
-| **Logging** | [x] | [x] | [x] | Logger Handler |
-| **Filesize** | [x] | [x] | [ ] | *Utility* |
-| **Inspect** | [x] | [x] | [x] | *Interactive Debug* |
-| **Prompt** | [x] | [x] | [ ] | *Interactive Input* |
-| **Layout** | [x] | [x] | [x] | *Splitter (Tiling)* |
-| **Live** | [x] | [x] | [ ] | *Generic Live Render* |
-| **print_json** | [x] | [x] | [ ] | *JSON pretty-printing* |
-| **export_text** | [x] | [x] | [ ] | *Plain text export* |
-| **export_html** | [x] | [x] | [ ] | *HTML export* |
-| **export_svg** | [x] | [x] | [ ] | *SVG export* |
-
-**Status**: 100% Feature Parity Achieved.
-All planned rendering, interactive, and export components are implemented.
-
----
-
-## Python Bindings Detail
+## 5. Python Bindings Detail (Restored Context)
 
 ### `rich_rust` Module
 - [x] `Console` (print, log, print_X methods)
@@ -74,7 +99,7 @@ All planned rendering, interactive, and export components are implemented.
 
 ---
 
-## Phase 32-35: `fast_rich` Drop-in Replacement
+## 6. fast_rich Drop-in Replacement (Phase 32-37)
 
 > Goal: Create `fast_rich` - a 100% API-compatible drop-in replacement for Python `rich`
 
@@ -109,38 +134,32 @@ User Code (unchanged) → fast_rich/ (Python API) → Rust Core (speed)
 | `fast_rich/prompt.py` | [x] | Prompt, Confirm |
 | `fast_rich/inspect.py` | [x] | inspect() |
 
-### Phase 34: Parity Tests & Benchmarks
-| Task | Status | Notes |
-| :--- | :---: | :--- |
-| Parity test suite | [x] | 28/28 tests pass |
-| Benchmark comparison | [x] | 12 features benchmarked |
+### Phase 34: Parity Tests (Coverage Gaps)
+| Module | Parity Test File | Status | Gap |
+| :--- | :--- | :---: | :--- |
+| `console` | `tests/test_console_parity.py` | [x] | None |
+| `table` | `tests/test_table_parity.py` | [x] | None |
+| `text/panel` | `tests/test_text_panel_parity.py` | [x] | None |
+| `markdown` | - | [ ] | **Missing** |
+| `syntax` | - | [ ] | **Missing** |
+| `tree` | - | [ ] | **Missing** |
+| `progress` | - | [ ] | **Missing** |
+| `traceback` | - | [ ] | **Missing** |
+| `json` | - | [ ] | **Missing** |
 
-**Comprehensive Benchmark Results (v0.2.0)**:
-| Benchmark | Speedup | Notes |
-| :--- | ---: | :--- |
-| Markdown (20 renders) | **115.6x** | Best performance |
-| JSON (50 prints) | **111.9x** | |
-| Table (1000 rows) | **90.8x** | Large data |
-| Columns (50 items) | **32.1x** | |
-| Rule (100 rules) | **28.0x** | |
-| Panel (50 panels) | **22.9x** | |
-| Align (100 aligns) | **18.4x** | |
-| Padding (100 ops) | **14.4x** | |
-| Progress (100 updates) | **13.6x** | |
-| Tree (10x10 nodes) | **12.9x** | |
-| Table (10 rows) | **11.8x** | |
-| Styled Text (100 lines) | **11.3x** | |
+### Phase 35: Example Coverage (Rust)
+| Feature | Example File | Status |
+| :--- | :--- | :---: |
+| Text/Color/Style | `examples/styles_demo.rs` | [x] |
+| Tables | `examples/tables_demo.rs` | [x] |
+| Panels/Layout | `examples/panel_layout.rs` | [x] |
+| Tree | `examples/tree_view.rs` | [x] |
+| Progress | `examples/progress_bar.rs` | [x] |
+| Traceback | `examples/traceback_demo.rs` | [x] |
+| Markdown/Syntax | `examples/markdown_syntax.rs` | [x] |
+| Full Showcase | `examples/showcase.rs` | [x] |
 
-### Phase 35: Documentation & Publish
-| Task | Status | Notes |
-| :--- | :---: | :--- |
-| `fast_rich/README.md` | [x] | Usage docs |
-| `FAST_RICH_PARITY.md` | [x] | Known differences |
-| Main README update | [x] | Python section added |
-| docs/benchmarks.md | [x] | Full benchmark coverage |
-| PyPI publish (`fast-rich`) | [ ] | Public release |
-
-### Phase 36: 100% API Coverage (NEW)
+### Phase 36: 100% API Coverage
 | Module | Status | API Coverage |
 | :--- | :---: | :--- |
 | align.py | [x] | Align, VerticalCenter |
@@ -163,9 +182,7 @@ User Code (unchanged) → fast_rich/ (Python API) → Rust Core (speed)
 | containers.py | [x] | Lines, Group |
 | console_options.py | [x] | ConsoleOptions |
 
-**Total: 40 Python modules for 100% Rich API coverage**
-
-### Phase 37: Final 17 Modules (NEW)
+### Phase 37: Final 17 Modules
 
 | Module | Status | API Coverage |
 | :--- | :---: | :--- |
@@ -202,13 +219,5 @@ User Code (unchanged) → fast_rich/ (Python API) → Rust Core (speed)
 | Phase 37 | 17 | 17 | 100% |
 | **Total** | **57** | **58** | **100%** |
 
-### Benchmark Summary
 
-| Feature | Speedup |
-| :--- | ---: |
-| Markup | **157.5x** |
-| Markdown | **115.6x** |
-| JSON | **111.9x** |
-| Table (1000) | **90.8x** |
-| Overall Range | **11-157x** |
 

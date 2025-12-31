@@ -16,7 +16,19 @@ impl PyLive {
         PyLive { inner: Live::new() }
     }
 
-    fn refresh(&self) -> PyResult<()> {
+    fn start(&mut self) -> PyResult<()> {
+        self.inner
+            .start()
+            .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))
+    }
+
+    fn stop(&mut self) -> PyResult<()> {
+        self.inner
+            .stop()
+            .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))
+    }
+
+    fn refresh(&mut self) -> PyResult<()> {
         self.inner
             .refresh()
             .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))

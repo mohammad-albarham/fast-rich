@@ -133,6 +133,20 @@ impl Renderable for crate::text::Text {
 /// A boxed renderable for dynamic dispatch.
 pub type BoxedRenderable = Box<dyn Renderable + Send + Sync>;
 
+impl Renderable for BoxedRenderable {
+    fn render(&self, context: &RenderContext) -> Vec<Segment> {
+        (**self).render(context)
+    }
+
+    fn min_width(&self) -> usize {
+        (**self).min_width()
+    }
+
+    fn max_width(&self) -> usize {
+        (**self).max_width()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

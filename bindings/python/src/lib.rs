@@ -11,6 +11,7 @@ mod markdown;
 mod panel;
 mod progress;
 mod prompt;
+mod align;
 mod rule;
 mod syntax;
 mod text;
@@ -47,8 +48,12 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyColumns>()?;
     m.add_class::<PyTraceback>()?;
     m.add_class::<crate::prompt::PyPrompt>()?;
+    m.add_class::<crate::prompt::PyConfirm>()?;
+    m.add_class::<crate::prompt::PyIntPrompt>()?;
+    m.add_class::<crate::prompt::PyIntPrompt>()?;
     m.add_class::<crate::layout::PyLayout>()?;
     m.add_class::<crate::live::PyLive>()?;
+    m.add_class::<crate::align::PyAlign>()?;
 
     // Functions
     m.add_function(wrap_pyfunction!(filesize::decimal, m)?)?;

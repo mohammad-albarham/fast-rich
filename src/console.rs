@@ -68,6 +68,10 @@ pub struct Console {
     emoji: bool,
     /// Soft wrap text at terminal width
     soft_wrap: bool,
+    /// Whether recording is enabled
+    record: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    /// Buffer for recorded segments
+    recording: std::sync::Arc<std::sync::Mutex<Vec<Segment>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -113,6 +117,8 @@ impl Console {
             markup: true,
             emoji: true,
             soft_wrap: true,
+            record: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            recording: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
         }
     }
 
@@ -136,6 +142,8 @@ impl Console {
             markup: true,
             emoji: true,
             soft_wrap: true,
+            record: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            recording: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
         }
     }
 
@@ -181,6 +189,25 @@ impl Console {
     pub fn soft_wrap(mut self, enabled: bool) -> Self {
         self.soft_wrap = enabled;
         self
+    }
+
+    /// Enable or disable recording of output.
+    pub fn record(self, enabled: bool) -> Self {
+        self.record.store(enabled, std::sync::atomic::Ordering::Relaxed);
+        self
+    }
+
+    /// Start recording output.
+    pub fn start_recording(&self) {
+        self.record.store(true, std::sync::atomic::Ordering::Relaxed);
+        if let Ok(mut lock) = self.recording.lock() {
+            lock.clear();
+        }
+    }
+
+    /// Stop recording output.
+    pub fn stop_recording(&self) {
+        self.record.store(false, std::sync::atomic::Ordering::Relaxed);
     }
 
     /// Get the current terminal width.
@@ -236,10 +263,22 @@ impl Console {
     /// Print an empty line.
     pub fn newline(&self) {
         let _ = self.write_raw("\n");
+        // Record newline segment if recording
+        if self.record.load(std::sync::atomic::Ordering::Relaxed) {
+             if let Ok(mut lock) = self.recording.lock() {
+                 lock.push(Segment::empty_line());
+             }
+        }
     }
 
     /// Write segments to the output.
     fn write_segments(&self, segments: &[Segment]) {
+        if self.record.load(std::sync::atomic::Ordering::Relaxed) {
+             if let Ok(mut lock) = self.recording.lock() {
+                 lock.extend_from_slice(segments);
+             }
+        }
+
         for segment in segments {
             for span in &segment.spans {
                 self.write_span(span);
@@ -372,6 +411,27 @@ impl Console {
         self.newline();
     }
 
+    /// Pretty print a debug-printable object.
+    ///
+    /// Uses syntax highlighting if the `syntax` feature is enabled.
+    pub fn print_debug<T: std::fmt::Debug>(&self, obj: &T) {
+        let content = format!("{:#?}", obj);
+        
+        #[cfg(feature = "syntax")]
+        {
+            let syntax = crate::syntax::Syntax::new(&content, "rust");
+            self.print_renderable(&syntax);
+        }
+        
+        #[cfg(not(feature = "syntax"))]
+        {
+            // fallback to plain printing
+            self.print(&content);
+        }
+        
+        self.newline();
+    }
+
     /// Export a renderable as plain text.
     ///
     /// Returns the plain text representation without any ANSI codes.
@@ -380,8 +440,12 @@ impl Console {
             width: self.get_width(),
         };
         let segments = renderable.render(&context);
+        self.segments_to_text(&segments)
+    }
+
+    fn segments_to_text(&self, segments: &[Segment]) -> String {
         let mut result = String::new();
-        for segment in &segments {
+        for segment in segments {
             result.push_str(&segment.plain_text());
             if segment.newline {
                 result.push('\n');
@@ -398,9 +462,20 @@ impl Console {
             width: self.get_width(),
         };
         let segments = renderable.render(&context);
+        self.segments_to_html(&segments)
+    }
+
+    /// Save the recorded output as HTML.
+    pub fn save_html(&self, path: &str) -> io::Result<()> {
+        let segments = self.recording.lock().unwrap();
+        let html = self.segments_to_html(&segments);
+        std::fs::write(path, html)
+    }
+
+    fn segments_to_html(&self, segments: &[Segment]) -> String {
         let mut html = String::from("<pre style=\"font-family: monospace; background: #1e1e1e; color: #d4d4d4; padding: 1em;\">\n");
 
-        for segment in &segments {
+        for segment in segments {
             for span in &segment.spans {
                 let style_css = span.style.to_css();
                 if style_css.is_empty() {
@@ -430,7 +505,17 @@ impl Console {
             width: self.get_width(),
         };
         let segments = renderable.render(&context);
+        self.segments_to_svg(&segments)
+    }
 
+    /// Save the recorded output as SVG.
+    pub fn save_svg(&self, path: &str) -> io::Result<()> {
+        let segments = self.recording.lock().unwrap();
+        let svg = self.segments_to_svg(&segments);
+        std::fs::write(path, svg)
+    }
+
+    fn segments_to_svg(&self, segments: &[Segment]) -> String {
         let char_width = 9.6; // Approximate monospace character width
         let line_height = 20.0;
         let padding = 10.0;
@@ -438,7 +523,7 @@ impl Console {
         let mut lines: Vec<String> = Vec::new();
         let mut current_line = String::new();
 
-        for segment in &segments {
+        for segment in segments {
             for span in &segment.spans {
                 current_line.push_str(&span.text);
             }

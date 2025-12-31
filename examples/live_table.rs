@@ -12,8 +12,8 @@ pub fn run(console: &Console) {
         std::env::var("CARGO_MANIFEST_DIR").is_ok() && std::env::args().any(|a| a == "--test");
     // Actually, cargo test runs this function.
 
-    let mut live = rich_rust::live::Live::new();
-    live.start().unwrap();
+    let mut live = rich_rust::live::Live::new(Table::new(), console);
+    live.start();
 
     let mut table = Table::new();
     table.add_column("ID");
@@ -26,7 +26,7 @@ pub fn run(console: &Console) {
     table.add_row_strs(&["3", "Pending", "0%"]);
 
     live.update(table.clone());
-    live.refresh().unwrap();
+    live.refresh();
 
     if !is_test {
         for i in 1..=10 {
@@ -59,11 +59,11 @@ pub fn run(console: &Console) {
             }
 
             live.update(t);
-            live.refresh().unwrap();
+            live.refresh();
         }
     }
 
-    live.stop().unwrap();
+    live.stop();
     console.print("[bold green]Live demo finished![/]");
 }
 

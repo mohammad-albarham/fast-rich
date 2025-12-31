@@ -1,6 +1,5 @@
-//! Progress bar implementation.
-
 use crate::console::RenderContext;
+use crate::progress::columns::{BarColumn, PercentageColumn, ProgressColumn, TextColumn, TimeRemainingColumn};
 use crate::renderable::{Renderable, Segment};
 use crate::style::{Color, Style};
 use crate::text::Span;
@@ -23,7 +22,7 @@ pub struct Task {
     pub start_time: Instant,
     /// Whether the task is finished
     pub finished: bool,
-    /// Style for the progress bar
+    /// Style for the progress bar (can be used by columns)
     pub style: Style,
 }
 
@@ -84,40 +83,20 @@ impl Task {
     }
 }
 
-/// Progress column type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ProgressColumn {
-    /// Task description
-    Description,
-    /// Progress bar visualization
-    Bar,
-    /// Percentage complete
-    Percentage,
-    /// Transfer speed
-    Speed,
-    /// Estimated time remaining
-    Eta,
-    /// Elapsed time
-    Elapsed,
-    /// Completed/Total count
-    Count,
-    /// Spinner
-    Spinner,
-}
-
-/// A single progress bar.
+/// A single progress bar configuration (Deprecated/Legacy support wrapper or helper).
+/// Kept for backward compat if anyone used it directly, but mainly used by BarColumn now.
 #[derive(Debug, Clone)]
 pub struct ProgressBar {
     /// Width of the bar portion
-    bar_width: usize,
+    pub bar_width: usize,
     /// Character for completed portion
-    complete_char: char,
+    pub complete_char: char,
     /// Character for remaining portion
-    remaining_char: char,
+    pub remaining_char: char,
     /// Style for completed portion
-    complete_style: Style,
+    pub complete_style: Style,
     /// Style for remaining portion
-    remaining_style: Style,
+    pub remaining_style: Style,
 }
 
 impl Default for ProgressBar {
@@ -137,53 +116,11 @@ impl ProgressBar {
             remaining_style: Style::new().foreground(Color::BrightBlack),
         }
     }
-
-    /// Set the bar width.
+    // ... setters can stay if needed, but we are moving to columns ...
+    
     pub fn width(mut self, width: usize) -> Self {
         self.bar_width = width;
         self
-    }
-
-    /// Set the complete character.
-    pub fn complete_char(mut self, c: char) -> Self {
-        self.complete_char = c;
-        self
-    }
-
-    /// Set the remaining character.
-    pub fn remaining_char(mut self, c: char) -> Self {
-        self.remaining_char = c;
-        self
-    }
-
-    /// Set the complete style.
-    pub fn complete_style(mut self, style: Style) -> Self {
-        self.complete_style = style;
-        self
-    }
-
-    /// Set the remaining style.
-    pub fn remaining_style(mut self, style: Style) -> Self {
-        self.remaining_style = style;
-        self
-    }
-
-    /// Render the progress bar for a task.
-    pub fn render_bar(&self, task: &Task) -> Vec<Span> {
-        let percentage = task.percentage();
-        let completed_width = (self.bar_width as f64 * percentage) as usize;
-        let remaining_width = self.bar_width - completed_width;
-
-        vec![
-            Span::styled(
-                self.complete_char.to_string().repeat(completed_width),
-                self.complete_style,
-            ),
-            Span::styled(
-                self.remaining_char.to_string().repeat(remaining_width),
-                self.remaining_style,
-            ),
-        ]
     }
 }
 
@@ -195,9 +132,7 @@ pub struct Progress {
     /// Next task ID
     next_id: Arc<Mutex<usize>>,
     /// Columns to display
-    columns: Vec<ProgressColumn>,
-    /// Progress bar configuration
-    bar: ProgressBar,
+    columns: Vec<Box<dyn ProgressColumn>>,
     /// Whether to show the progress
     #[allow(dead_code)]
     visible: bool,
@@ -213,32 +148,25 @@ impl Default for Progress {
 }
 
 impl Progress {
-    /// Create a new progress display.
+    /// Create a new progress display with default columns.
     pub fn new() -> Self {
         Progress {
             tasks: Arc::new(Mutex::new(Vec::new())),
             next_id: Arc::new(Mutex::new(0)),
             columns: vec![
-                ProgressColumn::Description,
-                ProgressColumn::Bar,
-                ProgressColumn::Percentage,
-                ProgressColumn::Eta,
+                Box::new(TextColumn::new("[progress.description]")),
+                Box::new(BarColumn::new(40)),
+                Box::new(PercentageColumn::new()),
+                Box::new(TimeRemainingColumn),
             ],
-            bar: ProgressBar::new(),
             visible: true,
             refresh_rate_ms: 100,
         }
     }
 
-    /// Set the columns to display.
-    pub fn columns(mut self, columns: Vec<ProgressColumn>) -> Self {
+    /// Set custom columns.
+    pub fn with_columns(mut self, columns: Vec<Box<dyn ProgressColumn>>) -> Self {
         self.columns = columns;
-        self
-    }
-
-    /// Set the progress bar configuration.
-    pub fn bar(mut self, bar: ProgressBar) -> Self {
-        self.bar = bar;
         self
     }
 
@@ -342,86 +270,10 @@ impl Progress {
 
         let _ = io::stdout().flush();
     }
-
-    fn render_column(&self, column: ProgressColumn, task: &Task, _width: usize) -> Vec<Span> {
-        match column {
-            ProgressColumn::Description => {
-                let desc = if task.description.len() > 20 {
-                    format!("{}...", &task.description[..17])
-                } else {
-                    format!("{:20}", task.description)
-                };
-                vec![Span::raw(desc)]
-            }
-            ProgressColumn::Bar => self.bar.render_bar(task),
-            ProgressColumn::Percentage => {
-                let pct = (task.percentage() * 100.0) as u8;
-                vec![Span::styled(
-                    format!("{:>3}%", pct),
-                    Style::new().foreground(Color::Green),
-                )]
-            }
-            ProgressColumn::Speed => {
-                let speed = task.speed();
-                let speed_str = if speed >= 1_000_000.0 {
-                    format!("{:.1}M/s", speed / 1_000_000.0)
-                } else if speed >= 1_000.0 {
-                    format!("{:.1}K/s", speed / 1_000.0)
-                } else {
-                    format!("{:.1}/s", speed)
-                };
-                vec![Span::raw(format!("{:>10}", speed_str))]
-            }
-            ProgressColumn::Eta => {
-                let eta_str = task
-                    .eta()
-                    .map(format_duration)
-                    .unwrap_or_else(|| "--:--".to_string());
-                vec![Span::styled(
-                    format!("ETA {:>6}", eta_str),
-                    Style::new().foreground(Color::Yellow),
-                )]
-            }
-            ProgressColumn::Elapsed => {
-                let elapsed = format_duration(task.elapsed());
-                vec![Span::raw(format!("{:>6}", elapsed))]
-            }
-            ProgressColumn::Count => {
-                let count = match task.total {
-                    Some(total) => format!("{}/{}", task.completed, total),
-                    None => format!("{}", task.completed),
-                };
-                vec![Span::raw(format!("{:>12}", count))]
-            }
-            ProgressColumn::Spinner => {
-                // Simple spinner
-                let frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-                let idx = (task.elapsed().as_millis() / 100) as usize % frames.len();
-                vec![Span::styled(
-                    frames[idx].to_string(),
-                    Style::new().foreground(Color::Cyan),
-                )]
-            }
-        }
-    }
-}
-
-fn format_duration(d: Duration) -> String {
-    let secs = d.as_secs();
-    if secs >= 3600 {
-        format!(
-            "{:02}:{:02}:{:02}",
-            secs / 3600,
-            (secs % 3600) / 60,
-            secs % 60
-        )
-    } else {
-        format!("{:02}:{:02}", secs / 60, secs % 60)
-    }
 }
 
 impl Renderable for Progress {
-    fn render(&self, context: &RenderContext) -> Vec<Segment> {
+    fn render(&self, _context: &RenderContext) -> Vec<Segment> {
         let tasks = self.tasks.lock().unwrap();
         let mut segments = Vec::new();
 
@@ -432,7 +284,7 @@ impl Renderable for Progress {
                 if i > 0 {
                     spans.push(Span::raw(" "));
                 }
-                spans.extend(self.render_column(*column, task, context.width));
+                spans.extend(column.render(task));
             }
 
             segments.push(Segment::line(spans));
@@ -482,11 +334,12 @@ mod tests {
 
     #[test]
     fn test_progress_bar_render() {
-        let bar = ProgressBar::new().width(10);
+        use crate::progress::columns::BarColumn;
+        let bar_col = BarColumn::new(10);
         let mut task = Task::new(0, "Test", Some(100));
         task.completed = 50;
 
-        let spans = bar.render_bar(&task);
+        let spans = bar_col.render(&task);
         assert_eq!(spans.len(), 2);
     }
 }

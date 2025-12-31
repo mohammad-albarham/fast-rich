@@ -1,112 +1,184 @@
-use crate::console::Console;
+use crate::console::{Console, RenderContext};
 use crate::renderable::Renderable;
-use crossterm::{cursor, execute};
-use std::io::{self, Write};
-use std::sync::{Arc, Mutex};
 
-/// A live display context for animating content in the terminal.
-pub struct Live {
-    #[allow(dead_code)]
-    console: Console,
-    renderable: Arc<Mutex<Option<Box<dyn Renderable + Send + Sync>>>>,
-    last_height: usize,
-    cursor_hidden: bool,
+/// Live display context manager.
+///
+/// Manages a live-updating display in the terminal.
+pub struct Live<'a> {
+    console: &'a Console,
+    renderable: Box<dyn Renderable>,
+    refresh_rate: u64, // Refresh rate in Hz (not currently used for auto-refresh thread in this version)
+    transient: bool,
+    height: usize,
+    started: bool,
 }
 
-impl Default for Live {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Live {
+impl<'a> Live<'a> {
     /// Create a new Live display.
-    pub fn new() -> Self {
-        Self {
-            console: Console::new(),
-            renderable: Arc::new(Mutex::new(None)),
-            last_height: 0,
-            cursor_hidden: false,
+    pub fn new(renderable: impl Renderable + 'static, console: &'a Console) -> Self {
+        Live {
+            console,
+            renderable: Box::new(renderable),
+            refresh_rate: 4,
+            transient: false,
+            height: 0,
+            started: false,
         }
     }
 
-    /// Set the object to display.
-    pub fn update<R: Renderable + Send + Sync + 'static>(&mut self, renderable: R) {
-        let mut lock = self.renderable.lock().unwrap();
-        *lock = Some(Box::new(renderable));
+    /// Set whether the display should be cleared on exit.
+    pub fn transient(mut self, transient: bool) -> Self {
+        self.transient = transient;
+        self
     }
 
-    /// Start the live display (hides cursor).
-    pub fn start(&mut self) -> io::Result<()> {
-        if !self.cursor_hidden {
-            execute!(io::stdout(), cursor::Hide)?;
-            self.cursor_hidden = true;
-        }
-        Ok(())
+    /// Set the refresh rate (currently unused in manual refresh mode).
+    pub fn refresh_rate(mut self, rate: u64) -> Self {
+        self.refresh_rate = rate;
+        self
     }
 
-    /// Stop the live display (shows cursor).
-    pub fn stop(&mut self) -> io::Result<()> {
-        if self.cursor_hidden {
-            execute!(io::stdout(), cursor::Show)?;
-            self.cursor_hidden = false;
+    /// Start the live display.
+    pub fn start(&mut self) {
+        if self.started {
+            return;
         }
-        // Move to the bottom of the last render to avoid overwriting it
-        // actually, usually we want to preserve the last frame.
-        // so we just print a newline.
-        println!();
-        Ok(())
+        self.console.show_cursor(false);
+        self.started = true;
+        self.refresh();
     }
 
-    /// Refresh the display by clearing previous height and re-rendering.
-    pub fn refresh(&mut self) -> io::Result<()> {
-        let lock = self.renderable.lock().unwrap();
-
-        // 1. Clear previous output if we rendered before
-        if self.last_height > 0 {
-            // Move up `last_height` times
-            execute!(io::stdout(), cursor::MoveUp(self.last_height as u16))?;
-            // Clear from cursor down (optional, or just overwrite)
-            // execute!(io::stdout(), terminal::Clear(terminal::ClearType::FromCursorDown))?;
-            // Overwriting is safer than clearing which might flicker more
+    /// Stop the live display.
+    pub fn stop(&mut self) {
+        if !self.started {
+            return;
+        }
+        
+        // Clean up
+        if self.height > 0 {
+            self.console.move_cursor_up(self.height as u16);
+            // We clear lines downwards to ensure clean exit
+             for _ in 0..self.height {
+                self.console.clear_line();
+                self.console.move_cursor_down(1);
+            }
+             self.console.move_cursor_up(self.height as u16);
         }
 
-        // 2. Render new content
-        if let Some(renderable) = &*lock {
-            // We can capture the output first to count lines
-            // BUT Console prints directly usually.
-            // We need to capture from Console helper.
-
-            // Create a temporary capture console to measure height
-            let capture = Console::capture();
-            capture.print_renderable(renderable.as_ref());
-            let output = capture.get_captured_output();
-
-            // 3. Print the output to real stdout
-            // We use print! instead of console.print to control raw bytes if needed,
-            // but console.print is fine if we are sure it doesn't add extra newlines we don't know about.
-            // console.print adds a newline at the end usually? No, `print_renderable` does not necessarily.
-            // Let's use `print!("{}", output)`
-            print!("{}", output);
-            io::stdout().flush()?;
-
-            // 4. Update height
-            // Count newlines. Note that text wrapping might add lines not explicit.
-            // Since we captured via Console (which handles wrapping), the newlines in `output` are real.
-            let height = output.matches('\n').count();
-
-            // If the output doesn't end with newline, `matches` might be off by one visually if cursor wraps?
-            // Usually print_renderable ensures lines.
-            self.last_height = height;
+        if !self.transient {
+           // If not transient, we want to leave the last frame visible
+           // So we reprint it one last time, but this time we don't track height
+           // to "lock" it in place (as standard output)
+           self.console.print_renderable(self.renderable.as_ref());
+           self.console.newline(); // Ensure final newline
         }
 
-        Ok(())
+        self.console.show_cursor(true);
+        self.started = false;
+        self.height = 0;
+    }
+
+    /// Update the renderable and refresh the display.
+    pub fn update(&mut self, renderable: impl Renderable + 'static) {
+        self.renderable = Box::new(renderable);
+        self.refresh();
+    }
+
+    /// Refresh the display with the current renderable.
+    pub fn refresh(&mut self) {
+        if !self.started {
+            return;
+        }
+
+        // 1. Move cursor up to overwrite previous output
+        if self.height > 0 {
+            self.console.move_cursor_up(self.height as u16);
+        }
+
+        // 2. Render content
+        let width = self.console.get_width();
+        let context = RenderContext {
+            width,
+            height: None,
+        };
+        
+        let segments = self.renderable.render(&context);
+        
+        // 3. Calculate new height
+        // We need to know how many lines this render took.
+        // Similar to console.print, but we track lines.
+        let mut lines = 0;
+        for segment in &segments {
+            // Write to console
+            // We can't use console.print because that might add a newline we don't control
+            // cleanly or we want to count lines.
+            // Actually console.print adds a newline at the end if we use println.
+            // Let's use internal write helpers or just count newlines in segments.
+            if segment.newline {
+                lines += 1;
+            }
+        }
+        
+        // If the last segment didn't have a newline, it's still occupying a line?
+        // Usually renderables ensure newlines or we treat them as flow.
+        // For now let's assume one newline per line.
+        
+        // Wait, Console::print_renderable just writes segments. It behaves linearly.
+        // We want to verify if the output ended with a newline or not.
+        // Simplest strategy:
+        // We write the segments.
+        // Then we ensure we end with a newline so the cursor is on the next line?
+        // Or we keep the cursor at the end of the last line?
+        
+        // rich.live typically clears the area and rewrites.
+        // To avoid flicker:
+        // Move up N lines.
+        // Clear line? Or just overwrite? Overwriting is better (less flicker).
+        // If new content is shorter than old content, we must clear the remainder.
+        
+        // Strategy:
+        // 1. Buffer the output (optional, but good for flicker).
+        // 2. Write output.
+        // 3. Count lines written.
+        // 4. If new_lines < old_lines, clear remaining old lines.
+        
+        // Let's rely on Console to write but we need to buffer to count lines?
+        // Or we can just count segments newlines?
+        
+        // Let's buffer it for now to be safe and to support "clearing".
+        // Actually, Console has a capture mode but we are using the live console.
+        // Let's just write and track.
+        
+        // NOTE: This simple implementation assumes the renderable *is* the lines.
+        self.console.write_segments(&segments);
+        
+        // If the segments didn't end with a newline, we add one to separate from potential next output?
+        // Rich usually ensures block display.
+        if !segments.is_empty() && !segments.last().unwrap().newline {
+           self.console.newline();
+           lines += 1;
+        }
+
+        let new_height = lines;
+        
+        // If we shrank, clear the lines below (that were part of old height)
+        if self.height > new_height {
+            let diff = self.height - new_height;
+            // Cursor is currently at end of new content.
+            for _ in 0..diff {
+                self.console.clear_line(); // Clear this line
+                self.console.newline();    // Move down
+            }
+            // Move back up
+            self.console.move_cursor_up(diff as u16);
+        }
+
+        self.height = new_height;
     }
 }
 
-impl Drop for Live {
+impl<'a> Drop for Live<'a> {
     fn drop(&mut self) {
-        // Ensure cursor is visible when dropped
-        let _ = self.stop();
+        self.stop();
     }
 }

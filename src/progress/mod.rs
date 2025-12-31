@@ -7,11 +7,13 @@
 //! - `track()` helper for iterating with progress
 
 mod bar;
+mod columns;
 mod spinner;
 mod status;
 mod track;
 
-pub use bar::{Progress, ProgressBar, ProgressColumn, Task};
+pub use bar::{Progress, ProgressBar, Task};
+pub use columns::*;
 pub use spinner::{Spinner, SpinnerStyle};
 pub use status::{with_status, Status};
 pub use track::track;

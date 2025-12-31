@@ -2,7 +2,7 @@ use rich_rust::prelude::*;
 
 fn main() {
     let console = Console::new().force_color(true);
-    
+
     console.rule("[bold cyan]FASTRICH RUST SHOWCASE[/]");
     console.newline();
 
@@ -31,57 +31,57 @@ fn main() {
     table.add_column("Username");
     table.add_column("Role");
     table.add_column("Status");
-    
+
     table.add_row(vec![
-        Text::plain("1"), 
-        Text::plain("alice"), 
-        Text::plain("Admin"), 
-        rich_rust::markup::parse("[green]Active[/]")
+        Text::plain("1"),
+        Text::plain("alice"),
+        Text::plain("Admin"),
+        rich_rust::markup::parse("[green]Active[/]"),
     ]);
     table.add_row(vec![
-        Text::plain("2"), 
-        Text::plain("bob"), 
-        Text::plain("Developer"), 
-        rich_rust::markup::parse("[yellow]Away[/]")
+        Text::plain("2"),
+        Text::plain("bob"),
+        Text::plain("Developer"),
+        rich_rust::markup::parse("[yellow]Away[/]"),
     ]);
     table.add_row(vec![
-        Text::plain("3"), 
-        Text::plain("charlie"), 
-        Text::plain("User"), 
-        rich_rust::markup::parse("[red]Offline[/]")
+        Text::plain("3"),
+        Text::plain("charlie"),
+        Text::plain("User"),
+        rich_rust::markup::parse("[red]Offline[/]"),
     ]);
-    
+
     console.print_renderable(&table);
     console.newline();
 
     // 4. Tree
     console.print("[bold yellow]4. Tree[/]");
     let mut tree = Tree::new(rich_rust::markup::parse("[bold]Root[/]"));
-    
+
     let mut src = TreeNode::new(rich_rust::markup::parse("[blue]src/[/]"));
     src.add("main.rs");
     src.add("lib.rs");
-    
+
     let mut tests = TreeNode::new(rich_rust::markup::parse("[blue]tests/[/]"));
     tests.add("test_core.rs");
-    
+
     tree.add(src);
     tree.add(tests);
     tree.add("Cargo.toml");
-    
+
     console.print_renderable(&tree);
     console.newline();
-    
+
     // 5. Progress (Snapshot)
     console.print("[bold yellow]5. Progress (Snapshot)[/]");
     let progress = Progress::new();
     let id1 = progress.add_task("Downloading...", Some(100)); // 100 total
-    let id2 = progress.add_task("Processing...", Some(200));  // 200 total
-    
+    let id2 = progress.add_task("Processing...", Some(200)); // 200 total
+
     // Simulate some progress
     progress.advance(id1, 45); // 45%
     progress.advance(id2, 120); // 60%
-    
+
     // Render single frame without animation loop
     let rendered_bars = progress.render_to_string();
     console.print(rendered_bars.trim_end()); // print rendered bars
@@ -89,11 +89,12 @@ fn main() {
 
     // 6. Traceback
     console.print("[bold yellow]6. Traceback (Simulated)[/]");
-    let tb = rich_rust::traceback::Traceback::from_error("Simulated connection error")
-        .with_config(rich_rust::traceback::TracebackConfig {
+    let tb = rich_rust::traceback::Traceback::from_error("Simulated connection error").with_config(
+        rich_rust::traceback::TracebackConfig {
             show_source: false, // No real source to show here
             ..Default::default()
-        });
+        },
+    );
     console.print_renderable(&tb);
     console.newline();
 
@@ -101,10 +102,12 @@ fn main() {
     #[cfg(feature = "markdown")]
     {
         console.print("[bold yellow]7. Markdown Rendering[/]");
-        let md = rich_rust::markdown::Markdown::new("# Heading 1\n## Heading 2\n- List item 1\n- List item 2\n\n`code block`");
+        let md = rich_rust::markdown::Markdown::new(
+            "# Heading 1\n## Heading 2\n- List item 1\n- List item 2\n\n`code block`",
+        );
         console.print_renderable(&md);
     }
-    
+
     // 8. Syntax (If feature enabled)
     #[cfg(feature = "syntax")]
     {

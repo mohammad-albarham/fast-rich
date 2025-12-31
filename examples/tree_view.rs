@@ -2,31 +2,33 @@ use rich_rust::prelude::*;
 
 fn main() {
     let console = Console::new().force_color(true);
-    
+
     console.rule("[bold yellow]Tree View Demo[/]");
     console.newline();
 
     // 1. File System Tree
     console.print("[bold]1. File System Hierarchy[/]");
-    
-    let mut root = Tree::new(TreeNode::new(rich_rust::markup::parse("[bold blue]project_root/[/]")));
-    
+
+    let mut root = Tree::new(TreeNode::new(rich_rust::markup::parse(
+        "[bold blue]project_root/[/]",
+    )));
+
     let mut src = TreeNode::new(rich_rust::markup::parse("[blue]src/[/]"));
     let mut core = TreeNode::new(rich_rust::markup::parse("[bold]core/[/]"));
     core.add("lib.rs");
     core.add("main.rs");
     src.add(core);
     src.add("utils.rs");
-    
+
     let mut assets = TreeNode::new(rich_rust::markup::parse("[yellow]assets/[/]"));
     assets.add("logo.png");
     assets.add("styles.css");
-    
+
     root.add(src);
     root.add(assets);
     root.add("README.md");
     root.add("Cargo.toml");
-    
+
     console.print_renderable(&root);
     console.newline();
 
@@ -49,6 +51,6 @@ fn main() {
         console.print_renderable(&t);
         console.newline();
     }
-    
+
     console.rule("[bold yellow]End Tree Demo[/]");
 }

@@ -2,7 +2,7 @@ use rich_rust::prelude::*;
 
 fn main() {
     let console = Console::new().force_color(true);
-    
+
     console.rule("[bold cyan]Table Features Demo[/]");
     console.newline();
 
@@ -12,11 +12,11 @@ fn main() {
     table.add_column("Episode");
     table.add_column("Title");
     table.add_column("Director");
-    
+
     table.add_row_strs(&["IV", "A New Hope", "George Lucas"]);
     table.add_row_strs(&["V", "The Empire Strikes Back", "Irvin Kershner"]);
     table.add_row_strs(&["VI", "Return of the Jedi", "Richard Marquand"]);
-    
+
     console.print_renderable(&table);
     console.newline();
 
@@ -24,26 +24,38 @@ fn main() {
     console.print("[bold]2. Column Alignment & Width[/]");
     let mut table2 = Table::new().title("Server Status");
     table2
-        .add_column(Column::new("Region").align(ColumnAlign::Left).width(rich_rust::table::ColumnWidth::Fixed(10)))
-        .add_column(Column::new("Status").align(ColumnAlign::Center).width(rich_rust::table::ColumnWidth::Fixed(10)))
-        .add_column(Column::new("Uptime").align(ColumnAlign::Right).width(rich_rust::table::ColumnWidth::Fixed(10)));
-        
+        .add_column(
+            Column::new("Region")
+                .align(ColumnAlign::Left)
+                .width(rich_rust::table::ColumnWidth::Fixed(10)),
+        )
+        .add_column(
+            Column::new("Status")
+                .align(ColumnAlign::Center)
+                .width(rich_rust::table::ColumnWidth::Fixed(10)),
+        )
+        .add_column(
+            Column::new("Uptime")
+                .align(ColumnAlign::Right)
+                .width(rich_rust::table::ColumnWidth::Fixed(10)),
+        );
+
     table2.add_row(vec![
-        rich_rust::text::Text::plain("US-East"), 
-        rich_rust::markup::parse("[green]Online[/]"), 
-        rich_rust::text::Text::plain("99.9%")
+        rich_rust::text::Text::plain("US-East"),
+        rich_rust::markup::parse("[green]Online[/]"),
+        rich_rust::text::Text::plain("99.9%"),
     ]);
     table2.add_row(vec![
-        rich_rust::text::Text::plain("EU-West"), 
-        rich_rust::markup::parse("[yellow]Degraded[/]"), 
-        rich_rust::text::Text::plain("95.0%")
+        rich_rust::text::Text::plain("EU-West"),
+        rich_rust::markup::parse("[yellow]Degraded[/]"),
+        rich_rust::text::Text::plain("95.0%"),
     ]);
     table2.add_row(vec![
-        rich_rust::text::Text::plain("AP-South"), 
-        rich_rust::markup::parse("[red]Offline[/]"), 
-        rich_rust::text::Text::plain("0.0%")
+        rich_rust::text::Text::plain("AP-South"),
+        rich_rust::markup::parse("[red]Offline[/]"),
+        rich_rust::text::Text::plain("0.0%"),
     ]);
-    
+
     console.print_renderable(&table2);
     console.newline();
 
@@ -73,22 +85,22 @@ fn main() {
     let mut table3 = Table::new().title("Log Entries");
     table3.add_column("Level");
     table3.add_column("Message");
-    
+
     // Row style applied to whole row content
     table3.add_row_strs(&["INFO", "System started"]);
-    
+
     // Manual markup in cells
     table3.add_row(vec![
         rich_rust::markup::parse("[yellow]WARN[/]"),
         rich_rust::markup::parse("Memory usage high"),
     ]);
-    
+
     table3.add_row(vec![
         rich_rust::markup::parse("[red bold]ERROR[/]"),
         rich_rust::markup::parse("[red]Disk full[/]"),
     ]);
 
     console.print_renderable(&table3);
-    
+
     console.rule("[bold cyan]End Table Demo[/]");
 }

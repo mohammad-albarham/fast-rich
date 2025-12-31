@@ -22,9 +22,7 @@ impl PyConsole {
         if let Some(force) = force_terminal {
             console = console.force_color(force);
         }
-        PyConsole {
-            inner: console,
-        }
+        PyConsole { inner: console }
     }
 
     /// Print text with optional markup style.

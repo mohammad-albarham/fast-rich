@@ -2,7 +2,7 @@ use rich_rust::prelude::*;
 
 fn main() {
     let console = Console::new().force_color(true);
-    
+
     console.rule("[bold blue]Markdown & Syntax Demo[/]");
     console.newline();
 
@@ -30,12 +30,12 @@ fn main() {
 }
 ```
         "#;
-        
+
         let md = rich_rust::markdown::Markdown::new(md_content);
         console.print_renderable(&md);
         console.newline();
     }
-    
+
     #[cfg(not(feature = "markdown"))]
     console.print("[yellow]Markdown feature not enabled. Run with --features markdown[/]");
 
@@ -43,7 +43,7 @@ fn main() {
     #[cfg(feature = "syntax")]
     {
         console.print("[bold]2. Syntax Highlighting[/]");
-        
+
         let code = r#"
 [
     {
@@ -54,7 +54,7 @@ fn main() {
     }
 ]
         "#;
-        
+
         let syntax = rich_rust::syntax::Syntax::new(code, "json");
         // Syntax implements Renderable, so we can print it directly
         console.print_renderable(&syntax);
@@ -62,6 +62,6 @@ fn main() {
 
     #[cfg(not(feature = "syntax"))]
     console.print("[yellow]Syntax feature not enabled. Run with --features syntax[/]");
-    
+
     console.rule("[bold blue]End Markdown Demo[/]");
 }

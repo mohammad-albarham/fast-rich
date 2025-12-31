@@ -1,9 +1,9 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rich_rust::console::RenderContext;
 use rich_rust::markup;
+use rich_rust::panel::Panel;
 use rich_rust::prelude::*;
 use rich_rust::table::Table;
-use rich_rust::panel::Panel;
 use rich_rust::tree::{Tree, TreeNode};
 
 fn bench_markup_parsing(c: &mut Criterion) {
@@ -30,9 +30,9 @@ fn bench_table_rendering_100(c: &mut Criterion) {
     table.add_column("Col 3");
     for i in 0..100 {
         table.add_row(vec![
-            format!("Row {} Col 1 Data", i), 
+            format!("Row {} Col 1 Data", i),
             format!("Row {} Col 2 Data", i),
-            format!("Row {} Col 3 Data", i)
+            format!("Row {} Col 3 Data", i),
         ]);
     }
     let context = RenderContext { width: 100 };
@@ -46,7 +46,7 @@ fn bench_panel_rendering(c: &mut Criterion) {
     let content = "Panel content ".repeat(20);
     let panel = Panel::new(content).title("Benchmark Panel");
     let context = RenderContext { width: 80 };
-    
+
     c.bench_function("panel render", |b| {
         b.iter(|| panel.render(black_box(&context)))
     });
@@ -68,7 +68,6 @@ fn bench_tree_rendering(c: &mut Criterion) {
     });
 }
 
-
 #[cfg(feature = "markdown")]
 fn bench_markdown_rendering(c: &mut Criterion) {
     use rich_rust::markdown::Markdown;
@@ -83,11 +82,12 @@ fn bench_markdown_rendering(c: &mut Criterion) {
 def foo():
     return True
 ```
-    "#.repeat(10);
-    
+    "#
+    .repeat(10);
+
     let md = Markdown::new(&md_content);
     let context = RenderContext { width: 80 };
-    
+
     c.bench_function("markdown render", |b| {
         b.iter(|| md.render(black_box(&context)))
     });

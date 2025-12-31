@@ -1,4 +1,6 @@
 <div align="center">
+  <img src="docs/assets/logo.png" width="800" alt="Fast-Rich Logo" />
+
   <h1>Fast-Rich</h1>
 
   [![Crates.io](https://img.shields.io/crates/v/fast-rich.svg)](https://crates.io/crates/fast-rich)

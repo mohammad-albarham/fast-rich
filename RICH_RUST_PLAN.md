@@ -5,28 +5,28 @@
 
 ## 1. Feature Coverage (Rust Core)
 
-| Feature Family | Component | Status | Tested | Benchmarked | Notes |
-| :--- | :--- | :---: | :---: | :---: | :--- |
-| **Console & I/O** | `Console` | [x] | [x] | [x] | Supports stdout/stderr/buffer, auto-detects color/width. |
-| | `print` APIs | [x] | [x] | [ ] | High-level `print`, `println`. |
-| **Style & Text** | `Color`, `Style` | [x] | [x] | [x] | ANSI, RGB, Xterm colors. Styles (bold, dim, etc.). |
-| | `Text`, `Span` | [x] | [x] | [x] | Text wrapping, parsing, alignment. |
-| | `Markup` | [x] | [x] | [x] | `[bold red]...[/]` parsing. |
-| **Layout** | `Panel` | [x] | [x] | [x] | Borders, titles, padding. |
-| | `Rule` | [x] | [x] | [x] | Horizontal rules with titles. |
-| | `Columns` | [x] | [x] | [x] | Grid layout. |
-| | `Layout` | [x] | [x] | [ ] | Splitter/Tiling concept (Enhanced). |
-| **Table** | `Table` | [x] | [x] | [x] | auto-width, borders, headers, footers. |
-| **Progress** | `Progress` | [x] | [x] | [x] | Multi-bar, customizable columns. |
-| | `Spinner` | [x] | [x] | [ ] | Loading spinners. |
-| | `Status` | [x] | [x] | [ ] | Spinner + Message. |
-| **Tree** | `Tree` | [x] | [x] | [x] | Hierarchies with guidelines. |
-| **Content** | `Markdown` | [x] | [x] | [x] | CommonMark rendering (feature gated). |
-| | `Syntax` | [x] | [x] | [x] | Code highlighting (syntect, feature gated). |
-| **Diagnostics** | `Traceback` | [x] | [x] | [ ] | Pretty error rendering. |
-| | `Log` | [x] | [x] | [ ] | Structured logging. |
-| **Utility** | `Inspect` | [x] | [x] | [ ] | Debug inspection. |
-| | `Live` | [x] | [x] | [ ] | Live display refresh (Cursor control). |
+| Feature Family | Component | Status | Tested | Benchmarked | Documented | Notes |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| **Console & I/O** | `Console` | [x] | [x] | [x] | [x] | Supports stdout/stderr/buffer, auto-detects color/width. |
+| | `print` APIs | [x] | [x] | [ ] | [x] | High-level `print`, `println`. |
+| **Style & Text** | `Color`, `Style` | [x] | [x] | [x] | [x] | ANSI, RGB, Xterm colors. Styles (bold, dim, etc.). |
+| | `Text`, `Span` | [x] | [x] | [x] | [x] | Text wrapping, parsing, alignment. |
+| | `Markup` | [x] | [x] | [x] | [x] | `[bold red]...[/]` parsing. |
+| **Layout** | `Panel` | [x] | [x] | [x] | [x] | Borders, titles, padding. |
+| | `Rule` | [x] | [x] | [x] | [x] | Horizontal rules with titles. |
+| | `Columns` | [x] | [x] | [x] | [x] | Grid layout. |
+| | `Layout` | [x] | [x] | [ ] | [x] | Splitter/Tiling concept (Enhanced). |
+| **Table** | `Table` | [x] | [x] | [x] | [x] | auto-width, borders, headers, footers. |
+| **Progress** | `Progress` | [x] | [x] | [x] | [x] | Multi-bar, customizable columns. |
+| | `Spinner` | [x] | [x] | [ ] | [x] | Loading spinners. |
+| | `Status` | [x] | [x] | [ ] | [x] | Spinner + Message. |
+| **Tree** | `Tree` | [x] | [x] | [x] | [x] | Hierarchies with guidelines. |
+| **Content** | `Markdown` | [x] | [x] | [x] | [x] | CommonMark rendering (feature gated). |
+| | `Syntax` | [x] | [x] | [x] | [x] | Code highlighting (syntect, feature gated). |
+| **Diagnostics** | `Traceback` | [x] | [x] | [ ] | [x] | Pretty error rendering. |
+| | `Log` | [x] | [x] | [ ] | [x] | Structured logging. |
+| **Utility** | `Inspect` | [x] | [x] | [ ] | [x] | Debug inspection. |
+| | `Live` | [x] | [x] | [ ] | [x] | Live display refresh (Cursor control). |
 
 ## 2. Testing Coverage
 

@@ -113,12 +113,31 @@ impl PyConsole {
     }
 
     /// Export HTML representation of a renderable.
-    fn export_html(&self, text: &PyText) -> String {
+    fn export_renderable_html(&self, text: &PyText) -> String {
         self.inner.export_html(&text.inner)
     }
 
     /// Export SVG representation of a renderable.
-    fn export_svg(&self, text: &PyText) -> String {
+    fn export_renderable_svg(&self, text: &PyText) -> String {
         self.inner.export_svg(&text.inner)
+    }
+
+    /// Enable recording.
+    #[setter]
+    fn set_record(&self, enabled: bool) {
+        self.inner.start_recording(); // Actually overrides any enabled state
+        if !enabled {
+            self.inner.stop_recording();
+        }
+    }
+
+    /// Save recorded output as HTML.
+    fn save_html(&self, path: &str) -> PyResult<()> {
+        self.inner.save_html(path).map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))
+    }
+
+    /// Save recorded output as SVG.
+    fn save_svg(&self, path: &str) -> PyResult<()> {
+        self.inner.save_svg(path).map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))
     }
 }

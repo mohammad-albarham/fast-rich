@@ -351,6 +351,12 @@ impl Table {
         self
     }
 
+    /// Set the table title.
+    pub fn set_title(mut self, title: &str) -> Self {
+        self.title = Some(title.to_string());
+        self
+    }
+
     /// Set whether to show the header.
     pub fn show_header(mut self, show: bool) -> Self {
         self.show_header = show;

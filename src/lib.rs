@@ -39,6 +39,16 @@ pub mod markup;
 pub mod renderable;
 pub mod style;
 pub mod text;
+pub mod align;
+pub mod padding;
+pub mod bar;
+pub mod theme;
+pub mod highlighter;
+pub mod group;
+pub mod measure;
+pub mod pager;
+pub mod screen;
+pub mod nested_progress;
 
 // Renderables
 pub mod columns;

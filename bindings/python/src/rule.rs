@@ -1,6 +1,6 @@
 use crate::style::PyStyle;
-use pyo3::prelude::*;
 use fast_rich::rule::Rule;
+use pyo3::prelude::*;
 
 #[pyclass(name = "Rule")]
 pub struct PyRule {

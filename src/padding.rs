@@ -92,7 +92,10 @@ impl Renderable for Padding {
         let child_width = context
             .width
             .saturating_sub(self.spec.left + self.spec.right);
-        let child_context = RenderContext { width: child_width, height: None };
+        let child_context = RenderContext {
+            width: child_width,
+            height: None,
+        };
 
         // Render child
         let child_segments = self.child.render(&child_context);

@@ -1,5 +1,5 @@
-use pyo3::prelude::*;
 use fast_rich::syntax::{Syntax, Theme};
+use pyo3::prelude::*;
 
 #[pyclass(name = "Syntax")]
 pub struct PySyntax {

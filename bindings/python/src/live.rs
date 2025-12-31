@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 
 #[pyclass(name = "Live")]
 pub struct PyLive {
-    // inner: Live<'static>, 
+    // inner: Live<'static>,
 }
 
 #[pymethods]

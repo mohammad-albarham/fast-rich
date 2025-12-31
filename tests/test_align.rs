@@ -10,7 +10,10 @@ fn test_align_center() {
     let text = Text::plain("Hello");
     let aligned = Align::center(text);
 
-    let context = RenderContext { width: 20, height: None };
+    let context = RenderContext {
+        width: 20,
+        height: None,
+    };
     let segments = aligned.render(&context);
 
     assert!(!segments.is_empty());
@@ -21,7 +24,10 @@ fn test_align_left() {
     let text = Text::plain("Test");
     let aligned = Align::left(text);
 
-    let context = RenderContext { width: 20, height: None };
+    let context = RenderContext {
+        width: 20,
+        height: None,
+    };
     let segments = aligned.render(&context);
 
     assert!(!segments.is_empty());
@@ -32,7 +38,10 @@ fn test_align_right() {
     let text = Text::plain("Right");
     let aligned = Align::right(text);
 
-    let context = RenderContext { width: 20, height: None };
+    let context = RenderContext {
+        width: 20,
+        height: None,
+    };
     let segments = aligned.render(&context);
 
     assert!(!segments.is_empty());
@@ -45,7 +54,10 @@ fn test_vertical_alignment() {
         .vertical(VerticalAlignment::Middle)
         .height(5);
 
-    let context = RenderContext { width: 20, height: None };
+    let context = RenderContext {
+        width: 20,
+        height: None,
+    };
     let segments = aligned.render(&context);
 
     // Should have more segments due to vertical padding

@@ -1,5 +1,5 @@
 use crate::progress::Task;
-// use crate::progress::bar::ProgressBar; 
+// use crate::progress::bar::ProgressBar;
 use crate::progress::spinner::{Spinner, SpinnerStyle};
 use crate::style::{Color, Style};
 use crate::text::Span;
@@ -38,12 +38,12 @@ impl TextColumn {
 impl ProgressColumn for TextColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
         // Simple interpolation for now task.description
-         let text = if self.text == "[progress.description]" {
-             &task.description
-         } else {
-             &self.text
-         };
-         
+        let text = if self.text == "[progress.description]" {
+            &task.description
+        } else {
+            &self.text
+        };
+
         vec![Span::styled(text.clone(), self.style)]
     }
 }
@@ -73,11 +73,11 @@ impl ProgressColumn for BarColumn {
         let total = task.total.unwrap_or(100) as f64;
         let completed = task.completed as f64;
         let percentage = (completed / total).clamp(0.0, 1.0);
-        
+
         let width = self.bar_width;
         let filled_width = (width as f64 * percentage).round() as usize;
         let empty_width = width.saturating_sub(filled_width);
-        
+
         let style = if task.finished {
             self.finished_style.unwrap_or(self.complete_style)
         } else {
@@ -86,10 +86,13 @@ impl ProgressColumn for BarColumn {
 
         let mut spans = Vec::new();
         if filled_width > 0 {
-             spans.push(Span::styled("━".repeat(filled_width), style));
+            spans.push(Span::styled("━".repeat(filled_width), style));
         }
         if empty_width > 0 {
-             spans.push(Span::styled("━".repeat(empty_width), Style::new().foreground(Color::Ansi256(237)))); // Grey
+            spans.push(Span::styled(
+                "━".repeat(empty_width),
+                Style::new().foreground(Color::Ansi256(237)),
+            )); // Grey
         }
         spans
     }
@@ -144,19 +147,22 @@ impl ProgressColumn for SpinnerColumn {
         // This keeps it stateless with respect to the column, but animated by the task's lifetime.
         // For a global spinner independent of task start, we might need a shared start time.
         // But usually spinners in task rows indicate THAT task's activity.
-        
+
         // However, generic Spinner uses its own start_time.
         // We should probably rely on `SpinnerStyle` and manual calculation using task.elapsed()
         // to avoid storing state that drifts.
-        
+
         // Let's copy logic from Spinner::current_frame but use task.elapsed()
         let style = self.spinner.get_style();
         let interval = style.interval_ms();
         let frames = style.frames();
         let elapsed_ms = task.elapsed().as_millis() as u64;
         let idx = ((elapsed_ms / interval) as usize) % frames.len();
-        
-        vec![Span::styled(frames[idx].to_string(), Style::new().foreground(Color::Green))]
+
+        vec![Span::styled(
+            frames[idx].to_string(),
+            Style::new().foreground(Color::Green),
+        )]
     }
 }
 
@@ -167,12 +173,12 @@ pub struct TransferSpeedColumn;
 impl ProgressColumn for TransferSpeedColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
         let speed = task.speed();
-         let speed_str = if speed >= 1_000_000.0 {
+        let speed_str = if speed >= 1_000_000.0 {
             format!("{:.1} MB/s", speed / 1_000_000.0)
         } else if speed >= 1_000.0 {
             format!("{:.1} KB/s", speed / 1_000.0)
         } else {
-             format!("{:.0} B/s", speed)
+            format!("{:.0} B/s", speed)
         };
         vec![Span::styled(speed_str, Style::new().foreground(Color::Red))]
     }
@@ -185,17 +191,22 @@ pub struct TimeRemainingColumn;
 impl ProgressColumn for TimeRemainingColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
         let eta = match task.eta() {
-             Some(d) => format_duration(d),
-             None => "-:--:--".to_string(),
+            Some(d) => format_duration(d),
+            None => "-:--:--".to_string(),
         };
-        vec![Span::styled(eta, Style::new().foreground(Color::Cyan))] 
+        vec![Span::styled(eta, Style::new().foreground(Color::Cyan))]
     }
 }
 
 fn format_duration(d: Duration) -> String {
     let secs = d.as_secs();
     if secs >= 3600 {
-        format!("{:02}:{:02}:{:02}", secs / 3600, (secs % 3600) / 60, secs % 60)
+        format!(
+            "{:02}:{:02}:{:02}",
+            secs / 3600,
+            (secs % 3600) / 60,
+            secs % 60
+        )
     } else {
         format!("{:02}:{:02}", secs / 60, secs % 60)
     }
@@ -203,7 +214,7 @@ fn format_duration(d: Duration) -> String {
 
 #[derive(Debug)]
 pub struct MofNColumn {
-    separator: String
+    separator: String,
 }
 
 impl Default for MofNColumn {
@@ -214,7 +225,9 @@ impl Default for MofNColumn {
 
 impl MofNColumn {
     pub fn new() -> Self {
-        Self { separator: "/".to_string() }
+        Self {
+            separator: "/".to_string(),
+        }
     }
 }
 
@@ -222,7 +235,10 @@ impl ProgressColumn for MofNColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
         let completed = task.completed;
         let total = task.total.unwrap_or(0);
-        vec![Span::styled(format!("{}{}{}", completed, self.separator, total), Style::new().foreground(Color::Green))]
+        vec![Span::styled(
+            format!("{}{}{}", completed, self.separator, total),
+            Style::new().foreground(Color::Green),
+        )]
     }
 }
 
@@ -232,6 +248,9 @@ pub struct ElapsedColumn;
 impl ProgressColumn for ElapsedColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
         let elapsed = task.elapsed();
-        vec![Span::styled(format_duration(elapsed), Style::new().foreground(Color::Cyan))]
+        vec![Span::styled(
+            format_duration(elapsed),
+            Style::new().foreground(Color::Cyan),
+        )]
     }
 }

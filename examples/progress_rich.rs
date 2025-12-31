@@ -1,7 +1,7 @@
 use fast_rich::console::Console;
 use fast_rich::progress::{
-    Progress, SpinnerColumn, BarColumn, TextColumn, 
-    PercentageColumn, TimeRemainingColumn, TransferSpeedColumn, MofNColumn
+    BarColumn, MofNColumn, PercentageColumn, Progress, SpinnerColumn, TextColumn,
+    TimeRemainingColumn, TransferSpeedColumn,
 };
 use std::thread;
 use std::time::Duration;
@@ -26,7 +26,7 @@ fn main() {
 
     let mut completed1 = 0;
     let mut completed2 = 0;
-    
+
     // Simulation loop
     let steps = 100;
     for _ in 0..steps {
@@ -34,23 +34,25 @@ fn main() {
             completed1 += 1;
             progress.update(task1, completed1);
         }
-        
+
         if completed2 < 200 {
             completed2 += 3;
-            if completed2 > 200 { completed2 = 200; }
+            if completed2 > 200 {
+                completed2 = 200;
+            }
             progress.update(task2, completed2);
         }
-        
+
         // Spinners update automatically based on elapsed time if we call print()
         progress.print();
         thread::sleep(Duration::from_millis(50));
     }
-    
+
     progress.finish(task1);
     progress.finish(task2);
     progress.finish(task3);
-    
+
     progress.print(); // Final print
-    
+
     println!("\nDone");
 }

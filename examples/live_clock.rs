@@ -6,7 +6,7 @@ use crossterm::event::{self, Event, KeyCode};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let console = Console::new();
-    
+
     console.print_raw("\nSimple Live Display Demo\n");
     console.print_raw("Press 'q' or Ctrl+C to exit.\n\n");
 
@@ -25,20 +25,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-        
+
         // Create a panel with the time
         let content = Panel::new(
-            Text::plain(format!("Update sequence: {}", i))
-                .alignment(fast_rich::Alignment::Center)
+            Text::plain(format!("Update sequence: {}", i)).alignment(fast_rich::Alignment::Center),
         )
         .title("Live Display")
         .style(fast_rich::Style::new().foreground(fast_rich::Color::Cyan));
 
         live.update(content);
     }
-    
+
     live.stop();
     console.println("[bold green]Done![/]");
-    
+
     Ok(())
 }

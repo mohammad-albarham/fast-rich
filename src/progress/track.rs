@@ -1,7 +1,7 @@
 //! Track iterator with progress display.
 
-use super::Progress;
 use super::columns::{BarColumn, MofNColumn, PercentageColumn, TextColumn};
+use super::Progress;
 
 /// An iterator wrapper that displays progress.
 pub struct TrackedIterator<I>

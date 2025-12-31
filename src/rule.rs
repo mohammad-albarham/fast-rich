@@ -153,7 +153,10 @@ mod tests {
     #[test]
     fn test_rule_simple() {
         let rule = Rule::line();
-        let context = RenderContext { width: 10, height: None };
+        let context = RenderContext {
+            width: 10,
+            height: None,
+        };
         let segments = rule.render(&context);
         assert_eq!(segments.len(), 1);
         assert_eq!(segments[0].plain_text(), "──────────");
@@ -162,7 +165,10 @@ mod tests {
     #[test]
     fn test_rule_with_title() {
         let rule = Rule::new("Title");
-        let context = RenderContext { width: 20, height: None };
+        let context = RenderContext {
+            width: 20,
+            height: None,
+        };
         let segments = rule.render(&context);
         let text = segments[0].plain_text();
         assert!(text.contains("Title"));
@@ -173,7 +179,10 @@ mod tests {
     #[test]
     fn test_rule_custom_char() {
         let rule = Rule::line().character('=');
-        let context = RenderContext { width: 5, height: None };
+        let context = RenderContext {
+            width: 5,
+            height: None,
+        };
         let segments = rule.render(&context);
         assert_eq!(segments[0].plain_text(), "=====");
     }

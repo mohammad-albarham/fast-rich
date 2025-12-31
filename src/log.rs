@@ -86,7 +86,7 @@ impl LogMessage {
         self.level = level;
         self
     }
-    
+
     /// Set whether to show the timestamp.
     pub fn show_time(mut self, show: bool) -> Self {
         self.show_time = show;
@@ -98,8 +98,8 @@ impl LogMessage {
         use std::time::UNIX_EPOCH;
 
         let duration = self.time.duration_since(UNIX_EPOCH).unwrap_or_default();
-        let secs = duration.as_secs(); 
-        
+        let secs = duration.as_secs();
+
         let hours = (secs / 3600) % 24;
         let minutes = (secs / 60) % 60;
         let seconds = secs % 60;
@@ -147,7 +147,7 @@ impl Renderable for LogMessage {
 
         // Location
         if let Some(location) = self.format_location() {
-             spans.push(Span::raw(" "));
+            spans.push(Span::raw(" "));
             spans.push(Span::styled(
                 location,
                 Style::new().foreground(Color::Cyan).dim(),
@@ -278,13 +278,13 @@ mod log_integration {
 
         /// Initialize the logger.
         pub fn init(self) -> Result<(), SetLoggerError> {
-             // Initialize global console if not already
+            // Initialize global console if not already
             CONSOLE.get_or_init(Console::new);
-            
+
             let logger = Box::new(RichLogger {
                 config: self.config,
             });
-            
+
             // We need to leak the logger to satisfy 'static requirement of set_logger
             let static_logger = Box::leak(logger);
 
@@ -316,7 +316,7 @@ mod log_integration {
             let mut log_msg = LogMessage::new(&format!("{}", record.args()))
                 .level(level)
                 .show_time(self.config.enable_time);
-            
+
             if self.config.enable_path {
                 if let Some(file) = record.file_static() {
                     if let Some(line) = record.line() {
@@ -325,23 +325,23 @@ mod log_integration {
                 }
             }
 
-            // Note: Timestamp is handled by LogMessage itself based on creation time, 
+            // Note: Timestamp is handled by LogMessage itself based on creation time,
             // but we could suppress it in render if we passed config down.
-            // For now, let's just use what LogMessage does, but maybe we should refactor LogMessage 
+            // For now, let's just use what LogMessage does, but maybe we should refactor LogMessage
             // to just hold data and let the renderer decide?
-            // Or simpler: We can't easily change LogMessage::render without changing trait signature 
+            // Or simpler: We can't easily change LogMessage::render without changing trait signature
             // or adding fields.
-            // Let's assume LogMessage::render always renders time if it has it, 
-            // but we want to control it. 
-            // Hack fix: If enable_time is false, we could modify how we construct LogMessage or 
+            // Let's assume LogMessage::render always renders time if it has it,
+            // but we want to control it.
+            // Hack fix: If enable_time is false, we could modify how we construct LogMessage or
             // implementation of Renderable for LogMessage needs to know about config.
-            // Since LogMessage is a public struct separate from RichLogger, 
+            // Since LogMessage is a public struct separate from RichLogger,
             // we should probably just make LogMessage configurable or specific to this usage.
-            // 
-            // For this iteration, let's keep LogMessage implementation simple and maybe update it 
+            //
+            // For this iteration, let's keep LogMessage implementation simple and maybe update it
             // to have public fields we can manipulate or rendering options.
             // But LogMessage implements Renderable directly.
-            
+
             console.print_renderable(&log_msg);
         }
 
@@ -368,7 +368,10 @@ mod tests {
     #[test]
     fn test_log_message_render() {
         let msg = LogMessage::new("Hello").level(LogLevel::Info);
-        let context = RenderContext { width: 80, height: None };
+        let context = RenderContext {
+            width: 80,
+            height: None,
+        };
         let segments = msg.render(&context);
 
         assert_eq!(segments.len(), 1);

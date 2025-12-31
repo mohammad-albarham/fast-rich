@@ -1,7 +1,6 @@
 use fast_rich::console::Console;
 use fast_rich::markdown::Markdown;
 
-
 fn main() {
     let console = Console::new();
 
@@ -57,9 +56,9 @@ Markdown rendering is *essential* for a modern CLI experience.
 "#;
 
     console.println_raw("\n");
-    
+
     let md = Markdown::new(md_source);
     console.print_renderable(&md);
-    
+
     console.println_raw("\n");
 }

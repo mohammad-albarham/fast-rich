@@ -100,7 +100,7 @@ impl Markdown {
         let mut code_block_lang = String::new();
         let mut list_depth = 0;
         let mut ordered_list_num: Option<u64> = None;
-        
+
         let mut in_table = false;
         let mut in_table_head = false;
         let mut current_table_headers: Vec<String> = Vec::new();
@@ -124,7 +124,7 @@ impl Markdown {
                         elements.push(MarkdownElement::StartHeading(level_idx));
                     }
                     Tag::Paragraph => {
-                         if !in_table {
+                        if !in_table {
                             elements.push(MarkdownElement::StartParagraph);
                         }
                     }
@@ -190,7 +190,9 @@ impl Markdown {
                             elements.push(MarkdownElement::EndParagraph);
                         }
                     }
-                    TagEnd::Emphasis | TagEnd::Strong => { style_stack.pop(); }
+                    TagEnd::Emphasis | TagEnd::Strong => {
+                        style_stack.pop();
+                    }
                     TagEnd::CodeBlock => {
                         in_code_block = false;
                         elements.push(MarkdownElement::CodeBlock {
@@ -241,7 +243,9 @@ impl Markdown {
                     } else if in_table {
                         current_cell_text.push_str(&text);
                     } else {
-                        let style = style_stack.iter().fold(Style::new(), |acc, s| acc.combine(s));
+                        let style = style_stack
+                            .iter()
+                            .fold(Style::new(), |acc, s| acc.combine(s));
                         elements.push(MarkdownElement::Text(text.to_string(), style));
                     }
                 }
@@ -254,22 +258,22 @@ impl Markdown {
                         elements.push(MarkdownElement::InlineCode(code.to_string()));
                     }
                 }
-                 Event::SoftBreak => {
-                     if in_table {
+                Event::SoftBreak => {
+                    if in_table {
                         current_cell_text.push(' ');
                     } else {
                         elements.push(MarkdownElement::SoftBreak);
                     }
                 }
                 Event::HardBreak => {
-                     if in_table {
+                    if in_table {
                         current_cell_text.push('\n');
                     } else {
                         elements.push(MarkdownElement::HardBreak);
                     }
                 }
                 Event::Rule => {
-                     elements.push(MarkdownElement::HorizontalRule);
+                    elements.push(MarkdownElement::HorizontalRule);
                 }
                 _ => {}
             }
@@ -287,16 +291,26 @@ enum MarkdownElement {
     EndParagraph,
     Text(String, Style),
     InlineCode(String),
-    CodeBlock { content: String, language: String },
+    CodeBlock {
+        content: String,
+        language: String,
+    },
     StartLink(String),
     EndLink,
-    ListItem { depth: usize, prefix: String, is_ordered: bool },
+    ListItem {
+        depth: usize,
+        prefix: String,
+        is_ordered: bool,
+    },
     StartBlockQuote,
     EndBlockQuote,
     SoftBreak,
     HardBreak,
     HorizontalRule,
-    Table { headers: Vec<String>, rows: Vec<Vec<String>> },
+    Table {
+        headers: Vec<String>,
+        rows: Vec<Vec<String>>,
+    },
 }
 
 impl Renderable for Markdown {
@@ -312,7 +326,7 @@ impl Renderable for Markdown {
             match element {
                 MarkdownElement::StartHeading(level) => {
                     if !current_line.is_empty() {
-                         self.flush_line(&mut segments, &mut current_line, blockquote_depth);
+                        self.flush_line(&mut segments, &mut current_line, blockquote_depth);
                     }
                     _in_heading = true;
                     heading_level = level;
@@ -321,26 +335,36 @@ impl Renderable for Markdown {
                 }
                 MarkdownElement::EndHeading => {
                     if !current_line.is_empty() {
-                         self.flush_line(&mut segments, &mut current_line, blockquote_depth);
+                        self.flush_line(&mut segments, &mut current_line, blockquote_depth);
                     }
                     // H1 and H2 get underlines
-                    let underline_char = if heading_level == 0 { Some("═") } else if heading_level == 1 { Some("─") } else { None };
-                    
+                    let underline_char = if heading_level == 0 {
+                        Some("═")
+                    } else if heading_level == 1 {
+                        Some("─")
+                    } else {
+                        None
+                    };
+
                     if let Some(char) = underline_char {
-                         let width = if heading_level == 0 { context.width.min(60) } else { context.width.min(40) };
-                         let style = self.config.heading_styles[heading_level];
-                         let mut underline = Vec::new();
-                         underline.push(Span::styled(char.repeat(width), style));
-                         self.flush_line(&mut segments, &mut underline, blockquote_depth);
+                        let width = if heading_level == 0 {
+                            context.width.min(60)
+                        } else {
+                            context.width.min(40)
+                        };
+                        let style = self.config.heading_styles[heading_level];
+                        let mut underline = Vec::new();
+                        underline.push(Span::styled(char.repeat(width), style));
+                        self.flush_line(&mut segments, &mut underline, blockquote_depth);
                     }
-                    
+
                     _in_heading = false;
                     self.add_blank_line(&mut segments, blockquote_depth);
                 }
                 MarkdownElement::StartParagraph => {}
                 MarkdownElement::EndParagraph => {
-                     if !current_line.is_empty() {
-                         self.flush_line(&mut segments, &mut current_line, blockquote_depth);
+                    if !current_line.is_empty() {
+                        self.flush_line(&mut segments, &mut current_line, blockquote_depth);
                     }
                     self.add_blank_line(&mut segments, blockquote_depth);
                 }
@@ -350,21 +374,23 @@ impl Renderable for Markdown {
                 MarkdownElement::InlineCode(code) => {
                     current_line.push(Span::styled(
                         format!(" {} ", code),
-                        self.config.inline_code_style.background(Color::rgb(60, 60, 60)),
+                        self.config
+                            .inline_code_style
+                            .background(Color::rgb(60, 60, 60)),
                     ));
                 }
                 MarkdownElement::CodeBlock { content, language } => {
                     if !current_line.is_empty() {
-                         self.flush_line(&mut segments, &mut current_line, blockquote_depth);
+                        self.flush_line(&mut segments, &mut current_line, blockquote_depth);
                     }
 
                     let syntax = Syntax::new(&content, &language)
                         .theme(self.config.syntax_theme)
                         .panel(self.config.code_block_panel)
                         .line_numbers(true);
-                    
+
                     let syntax_segments = syntax.render(context);
-                    
+
                     if blockquote_depth > 0 {
                         for segment in syntax_segments {
                             let mut new_spans = vec![self.get_quote_marker(blockquote_depth)];
@@ -372,32 +398,40 @@ impl Renderable for Markdown {
                             segments.push(Segment::line(new_spans));
                         }
                     } else {
-                         segments.extend(syntax_segments);
+                        segments.extend(syntax_segments);
                     }
-                    
+
                     self.add_blank_line(&mut segments, blockquote_depth);
                 }
                 MarkdownElement::StartLink(_url) => {}
                 MarkdownElement::EndLink => {}
-                MarkdownElement::ListItem { depth, prefix, is_ordered } => {
-                     if !current_line.is_empty() {
-                         self.flush_line(&mut segments, &mut current_line, blockquote_depth);
+                MarkdownElement::ListItem {
+                    depth,
+                    prefix,
+                    is_ordered,
+                } => {
+                    if !current_line.is_empty() {
+                        self.flush_line(&mut segments, &mut current_line, blockquote_depth);
                     }
                     let indent = "  ".repeat(depth.saturating_sub(1));
-                    let style = if is_ordered { self.config.list_number_style } else { self.config.list_bullet_style };
-                    
+                    let style = if is_ordered {
+                        self.config.list_number_style
+                    } else {
+                        self.config.list_bullet_style
+                    };
+
                     current_line.push(Span::raw(indent));
                     current_line.push(Span::styled(prefix, style));
                 }
                 MarkdownElement::StartBlockQuote => {
-                     if !current_line.is_empty() {
-                         self.flush_line(&mut segments, &mut current_line, blockquote_depth);
+                    if !current_line.is_empty() {
+                        self.flush_line(&mut segments, &mut current_line, blockquote_depth);
                     }
                     blockquote_depth += 1;
                 }
                 MarkdownElement::EndBlockQuote => {
-                     if !current_line.is_empty() {
-                         self.flush_line(&mut segments, &mut current_line, blockquote_depth);
+                    if !current_line.is_empty() {
+                        self.flush_line(&mut segments, &mut current_line, blockquote_depth);
                     }
                     blockquote_depth -= 1;
                     self.add_blank_line(&mut segments, blockquote_depth);
@@ -406,17 +440,17 @@ impl Renderable for Markdown {
                     current_line.push(Span::raw(" "));
                 }
                 MarkdownElement::HardBreak => {
-                     if !current_line.is_empty() {
-                         self.flush_line(&mut segments, &mut current_line, blockquote_depth);
+                    if !current_line.is_empty() {
+                        self.flush_line(&mut segments, &mut current_line, blockquote_depth);
                     }
                 }
                 MarkdownElement::HorizontalRule => {
-                     if !current_line.is_empty() {
-                         self.flush_line(&mut segments, &mut current_line, blockquote_depth);
+                    if !current_line.is_empty() {
+                        self.flush_line(&mut segments, &mut current_line, blockquote_depth);
                     }
                     let rule = Rule::line().style(Style::new().foreground(Color::Yellow));
                     let rule_segments = rule.render(context);
-                     if blockquote_depth > 0 {
+                    if blockquote_depth > 0 {
                         for segment in rule_segments {
                             let mut new_spans = vec![self.get_quote_marker(blockquote_depth)];
                             new_spans.extend(segment.spans);
@@ -429,28 +463,28 @@ impl Renderable for Markdown {
                 }
                 MarkdownElement::Table { headers, rows } => {
                     if !current_line.is_empty() {
-                         self.flush_line(&mut segments, &mut current_line, blockquote_depth);
+                        self.flush_line(&mut segments, &mut current_line, blockquote_depth);
                     }
-                    
+
                     let mut table = Table::new();
                     for header in headers {
                         table.add_column(
                             crate::table::Column::new(&header)
-                                .header_style(Style::new().bold().foreground(Color::Cyan))
+                                .header_style(Style::new().bold().foreground(Color::Cyan)),
                         );
                     }
-                    
+
                     for row in rows {
-                         let cells: Vec<Text> = row.into_iter().map(Text::plain).collect();
-                         table.add_row(cells);
+                        let cells: Vec<Text> = row.into_iter().map(Text::plain).collect();
+                        table.add_row(cells);
                     }
-                    
+
                     table = table.border_style(BorderStyle::Rounded);
-                        
+
                     let table_segments = table.render(context);
-                    
+
                     if blockquote_depth > 0 {
-                         for segment in table_segments {
+                        for segment in table_segments {
                             let mut new_spans = vec![self.get_quote_marker(blockquote_depth)];
                             new_spans.extend(segment.spans);
                             segments.push(Segment::line(new_spans));
@@ -464,7 +498,7 @@ impl Renderable for Markdown {
         }
 
         if !current_line.is_empty() {
-             self.flush_line(&mut segments, &mut current_line, blockquote_depth);
+            self.flush_line(&mut segments, &mut current_line, blockquote_depth);
         }
 
         segments
@@ -472,7 +506,12 @@ impl Renderable for Markdown {
 }
 
 impl Markdown {
-    fn flush_line(&self, segments: &mut Vec<Segment>, current_line: &mut Vec<Span>, quote_depth: usize) {
+    fn flush_line(
+        &self,
+        segments: &mut Vec<Segment>,
+        current_line: &mut Vec<Span>,
+        quote_depth: usize,
+    ) {
         let mut spans = Vec::new();
         if quote_depth > 0 {
             spans.push(self.get_quote_marker(quote_depth));
@@ -481,15 +520,15 @@ impl Markdown {
         spans.append(current_line);
         segments.push(Segment::line(spans));
     }
-    
+
     fn add_blank_line(&self, segments: &mut Vec<Segment>, quote_depth: usize) {
-         let mut spans = Vec::new();
-         if quote_depth > 0 {
-             spans.push(self.get_quote_marker(quote_depth));
-         }
-         segments.push(Segment::line(spans));
+        let mut spans = Vec::new();
+        if quote_depth > 0 {
+            spans.push(self.get_quote_marker(quote_depth));
+        }
+        segments.push(Segment::line(spans));
     }
-    
+
     fn get_quote_marker(&self, _depth: usize) -> Span {
         Span::styled("▎", self.config.quote_style)
     }
@@ -502,7 +541,10 @@ mod tests {
     #[test]
     fn test_markdown_basic() {
         let md = Markdown::new("# Hello\n\nWorld");
-        let context = RenderContext { width: 40, height: None };
+        let context = RenderContext {
+            width: 40,
+            height: None,
+        };
         let segments = md.render(&context);
         assert!(!segments.is_empty());
     }
@@ -510,15 +552,21 @@ mod tests {
     #[test]
     fn test_markdown_table() {
         let md = Markdown::new("| Col1 | Col2 |\n|---|---|\n| Val1 | Val2 |");
-        let context = RenderContext { width: 40, height: None };
+        let context = RenderContext {
+            width: 40,
+            height: None,
+        };
         let segments = md.render(&context);
         assert!(!segments.is_empty());
     }
-    
+
     #[test]
     fn test_markdown_code_block() {
         let md = Markdown::new("```rust\nfn main() {}\n```");
-         let context = RenderContext { width: 40, height: None };
+        let context = RenderContext {
+            width: 40,
+            height: None,
+        };
         let segments = md.render(&context);
         assert!(!segments.is_empty());
     }

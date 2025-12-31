@@ -36,8 +36,8 @@
 
 // Core modules
 pub mod align;
-pub mod box_drawing;
 pub mod bar;
+pub mod box_drawing;
 pub mod console;
 pub mod emoji;
 pub mod group;
@@ -159,7 +159,10 @@ mod tests {
 
         // Table should have columns and rows
         assert!(!table
-            .render(&console::RenderContext { width: 40, height: None })
+            .render(&console::RenderContext {
+                width: 40,
+                height: None
+            })
             .is_empty());
     }
 }

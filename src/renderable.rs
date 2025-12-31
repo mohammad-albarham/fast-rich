@@ -166,7 +166,10 @@ mod tests {
     #[test]
     fn test_string_renderable() {
         let s = "Hello, World!".to_string();
-        let context = RenderContext { width: 80, height: None };
+        let context = RenderContext {
+            width: 80,
+            height: None,
+        };
         let segments = s.render(&context);
         assert_eq!(segments.len(), 1);
         assert_eq!(segments[0].plain_text(), "Hello, World!");

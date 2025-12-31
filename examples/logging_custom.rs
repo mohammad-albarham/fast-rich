@@ -1,5 +1,5 @@
-use log::{info, warn};
 use fast_rich::log::RichLogger;
+use log::{info, warn};
 
 fn main() {
     // Initialize the logger with custom settings (no time, no path)

@@ -34,14 +34,11 @@ jobs:
             mkdocs-material-
 
       - name: Install dependencies
-        working-directory: bindings/python
         run: pip install mkdocs-material
 
       - name: Build documentation
-        working-directory: bindings/python
         run: mkdocs build
 
       - name: Deploy documentation
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        working-directory: bindings/python
         run: mkdocs gh-deploy --force

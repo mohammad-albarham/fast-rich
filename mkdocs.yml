@@ -1,7 +1,7 @@
-site_name: rich-rust
-site_url: https://github.com/mohammad-albarham/rich-rust
-repo_url: https://github.com/mohammad-albarham/rich-rust
-repo_name: rich-rust
+site_name: Fast-Rich
+site_url: https://mohammad-albarham.github.io/fast-rich
+repo_url: https://github.com/mohammad-albarham/fast-rich
+repo_name: fast-rich
 theme:
   name: material
   palette:

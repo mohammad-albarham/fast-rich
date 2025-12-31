@@ -166,6 +166,7 @@ User Code (unchanged) → fast_rich/ (Python API) → Rust Core (speed)
 | **Logging** | `examples/logging_demo.rs` | [x] | [x] | Verified output. |
 | **Layout Engine** | `examples/layout_demo.rs` | [x] | [x] | Verified output. |
 | **Live Display** | `examples/live_table.rs` | [x] | [x] | Verified output (interactive). |
+| **Inspect** | `examples/inspect_demo.rs` | [x] | [x] | Verified output. |
 
 ### Phase 36: 100% API Coverage
 | Module | Status | API Coverage |

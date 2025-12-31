@@ -2,7 +2,7 @@ use rich_rust::prelude::*;
 
 fn main() {
     let console = Console::new().force_color(true);
-    
+
     console.rule("[bold magenta]Text & Styles Demo[/]");
     console.newline();
 
@@ -36,13 +36,16 @@ fn main() {
         let r = 255;
         let g = i * 25;
         let b = 0;
-        console.print(&format!("  [color({},{},{})]RGB Gradient Step {}[/]", r, g, b, i));
+        console.print(&format!(
+            "  [color({},{},{})]RGB Gradient Step {}[/]",
+            r, g, b, i
+        ));
     }
     console.newline();
-    
+
     // Backgrounds
     console.print("  [bold]Backgrounds:[/]");
     console.print("  [white on red] CRITICAL [/] [black on yellow] WARNING [/] [white on green] SUCCESS [/] [white on blue] INFO [/]");
-    
+
     console.rule("[bold magenta]End Text Demo[/]");
 }

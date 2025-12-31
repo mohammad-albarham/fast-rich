@@ -16,7 +16,8 @@ When asking to write code or implement features, strictly follow this workflow:
     *   **Lint**: Run `cargo clippy` and `cargo fmt --all`.
     *   **Strict Check**: You MUST run `cargo fmt --all -- --check` to verify CI compliance.
     *   **Commit**: **IMMEDIATELY** add and commit verification passes.
-        *   Command: `git add <files> && git commit -m "feat: <concise description>"`
+        *   **Recommended**: Use `./scripts/auto_commit.sh "<message>"` to run fmt, clippy, test, and commit in one go.
+        *   Manual: `git add <files> && git commit -m "feat: <concise description>"`
         *   *Never accumulate multiple features in one uncommitted state.*
 
 3.  **Refactor & Polish**:

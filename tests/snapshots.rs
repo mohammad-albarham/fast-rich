@@ -1,6 +1,6 @@
 use rich_rust::console::Console;
-use rich_rust::table::Table;
 use rich_rust::panel::Panel;
+use rich_rust::table::Table;
 use rich_rust::tree::Tree;
 use rich_rust::Color;
 
@@ -12,7 +12,9 @@ fn render_snapshot<T: rich_rust::renderable::Renderable>(item: &T) -> String {
 
 #[test]
 fn test_style_snapshot() {
-    let output = render_snapshot(&rich_rust::markup::parse("[bold red]Hello[/] [blue]World[/]!"));
+    let output = render_snapshot(&rich_rust::markup::parse(
+        "[bold red]Hello[/] [blue]World[/]!",
+    ));
     assert!(output.contains("Hello"));
     assert!(output.contains("World"));
 }
@@ -21,15 +23,18 @@ fn test_style_snapshot() {
 fn test_table_snapshot() {
     let mut table = Table::new();
     table.add_column("Col 1").add_column("Col 2");
-    table.add_row(vec![rich_rust::text::Text::from("Val 1"), rich_rust::text::Text::from("Val 2")]);
-    
+    table.add_row(vec![
+        rich_rust::text::Text::from("Val 1"),
+        rich_rust::text::Text::from("Val 2"),
+    ]);
+
     let output = render_snapshot(&table);
-    
+
     assert!(output.contains("Col 1"));
     assert!(output.contains("Col 2"));
     assert!(output.contains("Val 1"));
     assert!(output.contains("Val 2"));
-    assert!(output.contains("╭")); 
+    assert!(output.contains("╭"));
     assert!(output.contains("╮"));
 }
 
@@ -38,11 +43,11 @@ fn test_panel_snapshot() {
     let panel = Panel::new("Panel Content")
         .title("My Title")
         .style(rich_rust::style::Style::new().foreground(Color::Blue));
-        
+
     let output = render_snapshot(&panel);
     assert!(output.contains("My Title"));
     assert!(output.contains("Panel Content"));
-    assert!(output.contains("╭")); 
+    assert!(output.contains("╭"));
 }
 
 #[test]
@@ -51,13 +56,13 @@ fn test_tree_snapshot() {
     tree.add(rich_rust::text::Text::from("Child 1"));
     let child2 = tree.add(rich_rust::text::Text::from("Child 2"));
     child2.add(rich_rust::text::Text::from("Grandchild"));
-    
+
     let output = render_snapshot(&tree);
     assert!(output.contains("Root"));
     assert!(output.contains("Child 1"));
     assert!(output.contains("Child 2"));
     assert!(output.contains("Grandchild"));
-    assert!(output.contains("├──")); 
+    assert!(output.contains("├──"));
 }
 
 #[cfg(feature = "markdown")]
@@ -66,7 +71,7 @@ fn test_markdown_snapshot() {
     let md = rich_rust::markdown::Markdown::new("# Header\n* List item");
     let output = render_snapshot(&md);
     assert!(output.contains("Header"));
-    assert!(output.contains("• List item")); 
+    assert!(output.contains("• List item"));
 }
 
 #[cfg(feature = "syntax")]
@@ -102,4 +107,3 @@ fn test_columns_snapshot() {
     assert!(output.contains("Item 2"));
     assert!(output.contains("Item 3"));
 }
-

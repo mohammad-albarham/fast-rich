@@ -83,7 +83,10 @@ struct BufferWriter {
 
 impl Write for BufferWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let mut lock = self.buffer.lock().map_err(|e| io::Error::other(e.to_string()))?;
+        let mut lock = self
+            .buffer
+            .lock()
+            .map_err(|e| io::Error::other(e.to_string()))?;
         lock.extend_from_slice(buf);
         Ok(buf.len())
     }
@@ -122,12 +125,12 @@ impl Console {
     }
 
     /// Create a new Console that captures output to memory.
-    /// 
+    ///
     /// Useful for testing output verification.
     pub fn capture() -> Self {
         Console {
             output: ConsoleOutput::Buffer(std::sync::Arc::new(std::sync::Mutex::new(Vec::new()))),
-            width: Some(80), // Default width for tests
+            width: Some(80),   // Default width for tests
             force_color: true, // Force color for tests
             color_enabled: true,
             markup: true,
@@ -306,7 +309,9 @@ impl Console {
         match &self.output {
             ConsoleOutput::Stdout => Box::new(io::stdout()),
             ConsoleOutput::Stderr => Box::new(io::stderr()),
-            ConsoleOutput::Buffer(buf) => Box::new(BufferWriter { buffer: buf.clone() }),
+            ConsoleOutput::Buffer(buf) => Box::new(BufferWriter {
+                buffer: buf.clone(),
+            }),
         }
     }
 

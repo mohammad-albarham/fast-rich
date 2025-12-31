@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Syntax` highlighting via `syntect`.
   - `Traceback` beautiful error reporting.
   - `Logging` handler.
-- **Python Bindings**: Full ABI3-compatible Python extension module (`rich_rust`) exposing all core components.
+- **Python Bindings**: Full ABI3-compatible Python extension module (`fast_rich`) exposing all core components.
 - **Benchmarks**: Comprehensive suite proving 2x-24x performance improvements over Python `rich`.
   - Logging: 24x faster.
   - Columns: 23x faster.

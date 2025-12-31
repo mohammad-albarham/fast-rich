@@ -5,7 +5,7 @@ description: Workflow for implementing the logging handler feature
 
 # Feature: Logging Handler
 
-This workflow outlines the steps to implement a robust logging handler (`RichHandler`) for the `log` crate in `rich-rust`.
+This workflow outlines the steps to implement a robust logging handler (`RichHandler`) for the `log` crate in `fast-rich`.
 
 ## Prerequisites
 

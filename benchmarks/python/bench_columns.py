@@ -1,5 +1,5 @@
 import time
-import rich_rust
+import fast_rich
 from rich.console import Console as RichConsole
 from rich.columns import Columns as RichColumns
 from rich.text import Text as RichText
@@ -14,20 +14,20 @@ def bench_python_columns():
         console.print(RichColumns(items))
 
 def bench_rust_columns():
-    console = rich_rust.Console() 
+    console = fast_rich.Console() 
     # Need to verify if we can construct PyText efficiently in loop or reuse?
     # bindings take Vec<PyText>. 
-    style = rich_rust.Style(bold=True, color="blue")
+    style = fast_rich.Style(bold=True, color="blue")
     # Pre-create items to measure render time mostly? 
     # But Rich bench creates them. Let's create them.
     # We need PyText. from_plain or new.
-    # rich_rust.Text("Item i", style)
+    # fast_rich.Text("Item i", style)
     
     # Actually, let's pre-create the list to benchmark *rendering* primarily, 
     # similar to others if possible, or include construction if we want full picture.
     # Rich bench includes construction.
     
-    items = [rich_rust.Text(f"Item {i}", style) for i in range(ITEMS)]
+    items = [fast_rich.Text(f"Item {i}", style) for i in range(ITEMS)]
     
     for _ in range(ITERATIONS):
         # We need to pass fresh items or clone? 
@@ -35,7 +35,7 @@ def bench_rust_columns():
         # If we pass `items` list, PyO3 converts it. 
         # But PyText is opaque wrapper. 
         # Hopefully cloning is cheap or handled by PyO3.
-        console.print_columns(rich_rust.Columns(items))
+        console.print_columns(fast_rich.Columns(items))
 
 if __name__ == "__main__":
     start = time.time()

@@ -1,5 +1,5 @@
 import time
-import rich_rust
+import fast_rich
 from rich.text import Text as RichText
 from rich.console import Console as RichConsole
 
@@ -15,9 +15,9 @@ def bench_python_text():
 def bench_rust_text():
     # Rust bindings Console prints to stdout, so we might want to capture/suppress for pure render bench?
     # For now, let's just construct.
-    console_rust = rich_rust.Console()
+    console_rust = fast_rich.Console()
     for _ in range(ITERATIONS):
-        t = rich_rust.Text.from_markup(MARKUP_STR)
+        t = fast_rich.Text.from_markup(MARKUP_STR)
         console_rust.print_text(t)
 
 if __name__ == "__main__":

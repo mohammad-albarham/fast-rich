@@ -1,5 +1,5 @@
 import time
-import rich_rust
+import fast_rich
 from rich.progress import Progress as RichProgress
 import threading
 
@@ -15,10 +15,10 @@ def bench_python_progress():
             # time.sleep(0.001)
 
 def bench_rust_progress():
-    progress = rich_rust.Progress()
-    # Note: rich_rust bindings currently require manual management or separate thread for repaint?
+    progress = fast_rich.Progress()
+    # Note: fast_rich bindings currently require manual management or separate thread for repaint?
     # The pure rust implementation handles repainting in background thread if configured?
-    # rich_rust::Progress default might not start a thread automatically unless `start()` is called?
+    # fast_rich::Progress default might not start a thread automatically unless `start()` is called?
     # Let's verify rust implementation.
     
     # Simple benchmark of valid API calls

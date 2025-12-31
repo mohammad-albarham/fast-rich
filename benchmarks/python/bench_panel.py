@@ -1,5 +1,5 @@
 import time
-import rich_rust
+import fast_rich
 from rich.panel import Panel as RichPanel
 from rich.console import Console as RichConsole
 from rich.text import Text as RichText
@@ -15,11 +15,11 @@ def bench_python_panel():
         console.print(p)
 
 def bench_rust_panel():
-    console = rich_rust.Console()
+    console = fast_rich.Console()
     for _ in range(ITERATIONS):
         # We need to construct Text first for our binding
-        t = rich_rust.Text(TEXT_CONTENT) 
-        p = rich_rust.Panel(t, title=TITLE)
+        t = fast_rich.Text(TEXT_CONTENT) 
+        p = fast_rich.Panel(t, title=TITLE)
         console.print_panel(p)
 
 if __name__ == "__main__":

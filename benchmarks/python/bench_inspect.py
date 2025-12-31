@@ -1,4 +1,4 @@
-from rich_rust import inspect, Console
+from fast_rich import inspect, Console
 import time
 from rich import inspect as rich_inspect
 from rich.console import Console as RichConsole

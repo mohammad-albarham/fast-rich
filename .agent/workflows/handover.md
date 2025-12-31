@@ -1,4 +1,4 @@
-# rich-rust Handover Document
+# fast-rich Handover Document
 
 > **Last Updated:** 2025-12-31  
 > **Purpose:** Enable any developer or LLM agent to resume work without chat history
@@ -7,7 +7,7 @@
 
 ## Project Overview
 
-**rich-rust** is a Rust port of Python's `rich` terminal formatting library.
+**fast-rich** is a Rust port of Python's `rich` terminal formatting library.
 
 ### Goals
 - Match Python `rich` behavior at the ANSI/byte level where feasible
@@ -134,7 +134,7 @@ console.println_raw(&format!("{:?}", data));
 
 ### P1: Implement ColorSystem for Byte Parity (Future Task)
 - **Goal:** Achieve perfect byte-parity with Python Rich's default 16-color output.
-- **Current State:** `rich-rust` relies on `crossterm` defaults, often emitting 256-color codes (`\x1b[38;5;1m`) where Python emits standard ANSI (`\x1b[31m`).
+- **Current State:** `fast-rich` relies on `crossterm` defaults, often emitting 256-color codes (`\x1b[38;5;1m`) where Python emits standard ANSI (`\x1b[31m`).
 - **Plan:**
   1. Define `ColorSystem` enum: `NoColor`, `Standard` (8/16), `EightBit` (256), `TrueColor` (16M), `Windows`.
   2. Add `color_system` field to `Console` struct (default: `Auto`).

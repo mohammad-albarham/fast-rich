@@ -1,5 +1,5 @@
 import time
-import rich_rust
+import fast_rich
 from rich.console import Console as RichConsole
 from rich.traceback import Traceback as RichTraceback
 import sys
@@ -19,18 +19,18 @@ def bench_python_traceback():
             console.print(tb)
 
 def bench_rust_traceback():
-    console = rich_rust.Console() 
+    console = fast_rich.Console() 
     # Current rust binding only takes a message string, verifying "visual" parity mostly
     # But to be fair, we should include "extraction" overhead if possible, 
     # or just measure the visual rendering part.
     # Rich's Traceback.from_exception does a lot of heavy lifting (parsing StackSummary).
-    # rich-rust binding is lighter.
+    # fast-rich binding is lighter.
     
     error_message = "ZeroDivisionError: division by zero"
     
     for _ in range(ITERATIONS):
         # We simulate the "result" of an exception info
-        tb = rich_rust.Traceback(error_message, show_locals=False)
+        tb = fast_rich.Traceback(error_message, show_locals=False)
         console.print_traceback(tb)
 
 if __name__ == "__main__":

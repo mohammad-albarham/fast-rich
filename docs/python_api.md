@@ -1,6 +1,6 @@
 # Python API
 
-The `rich_rust` python package provides Drop-in-ish replacements for some Rich components, optimized for speed.
+The `fast_rich` python package provides Drop-in-ish replacements for some Rich components, optimized for speed.
 
 ## Installation
 
@@ -15,7 +15,7 @@ pip install fast-rich
 The entry point for printing.
 
 ```python
-from rich_rust import Console
+from fast_rich import Console
 
 console = Console()
 console.print("Hello [bold]World[/]")
@@ -26,7 +26,7 @@ console.print("Hello [bold]World[/]")
 A high-performance table builder.
 
 ```python
-from rich_rust import Console, Table
+from fast_rich import Console, Table
 
 table = Table()
 table.add_column("ID")
@@ -44,7 +44,7 @@ console.print_table(table)
 A multi-threaded progress bar system.
 
 ```python
-from rich_rust import Progress
+from fast_rich import Progress
 import time
 
 progress = Progress()

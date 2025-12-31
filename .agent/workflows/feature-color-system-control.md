@@ -6,10 +6,10 @@
 > **Last Updated:** 2025-12-31
 
 ## 1. Overview
-Implement strict control over the color system to match Python `rich`'s behavior. This ensures that `rich-rust` produces identical ANSI sequences for 16-color, 256-color, and TrueColor environments.
+Implement strict control over the color system to match Python `rich`'s behavior. This ensures that `fast-rich` produces identical ANSI sequences for 16-color, 256-color, and TrueColor environments.
 
 **Motivation:**
-Currently, `rich-rust` often defaults to `crossterm`'s behavior, which may emit 256-color codes (`\x1b[38;5;...`) even when standard ANSI codes (`\x1b[31...`) would be more appropriate or required for strict byte-level parity with Python `rich` in standard mode.
+Currently, `fast-rich` often defaults to `crossterm`'s behavior, which may emit 256-color codes (`\x1b[38;5;...`) even when standard ANSI codes (`\x1b[31...`) would be more appropriate or required for strict byte-level parity with Python `rich` in standard mode.
 
 ## 2. Role in Hierarchy
 - **Type:** Fundamental

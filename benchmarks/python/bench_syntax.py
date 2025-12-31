@@ -1,5 +1,5 @@
 import time
-import rich_rust
+import fast_rich
 from rich.syntax import Syntax as RichSyntax
 from rich.console import Console as RichConsole
 
@@ -22,9 +22,9 @@ def bench_python_syntax():
         console.print(syn)
 
 def bench_rust_syntax():
-    console = rich_rust.Console()
+    console = fast_rich.Console()
     for _ in range(ITERATIONS):
-        syn = rich_rust.Syntax(CODE, "rust", theme="monokai", line_numbers=True)
+        syn = fast_rich.Syntax(CODE, "rust", theme="monokai", line_numbers=True)
         console.print_syntax(syn)
 
 if __name__ == "__main__":

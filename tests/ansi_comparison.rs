@@ -54,7 +54,7 @@ fn test_padding() -> String {
 }
 
 fn test_theme() -> String {
-    // Rich-rust doesn't have markup tags like [success], so we'll test raw theme colors
+    // Fast-rich doesn't have markup tags like [success], so we'll test raw theme colors
     let theme = fast_rich::theme::Theme::default_theme();
     let mut segments = Vec::new();
     segments.push(Text::plain("Success").style(theme.get_style("success")));

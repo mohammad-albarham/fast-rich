@@ -23,7 +23,7 @@ fast-rich = { version = "0.2.0", features = ["full"] }
 The entry point for most operations is the `Console` struct.
 
 ```rust
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 fn main() {
     let console = Console::new();

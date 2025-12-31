@@ -1,5 +1,5 @@
 import time
-import rich_rust
+import fast_rich
 from rich.console import Console as RichConsole
 from rich.rule import Rule as RichRule
 from rich.style import Style as RichStyle
@@ -17,15 +17,15 @@ def bench_python_rule():
         console.print(RichRule(title="Styled", style="bold red"))
 
 def bench_rust_rule():
-    console = rich_rust.Console()
-    style = rich_rust.Style(bold=True, color="red")
+    console = fast_rich.Console()
+    style = fast_rich.Style(bold=True, color="red")
     for _ in range(ITERATIONS):
         # Untitled rule (assuming Rule.line() or empty constructor binding?)
         # Checking bindings... PyRule::new(title, style)
         # If title is None, it should be a line.
-        console.print_rule(rich_rust.Rule()) 
-        console.print_rule(rich_rust.Rule("Title"))
-        console.print_rule(rich_rust.Rule("Styled", style))
+        console.print_rule(fast_rich.Rule()) 
+        console.print_rule(fast_rich.Rule("Title"))
+        console.print_rule(fast_rich.Rule("Styled", style))
 
 if __name__ == "__main__":
     start = time.time()

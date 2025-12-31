@@ -10,19 +10,19 @@ cargo doc --open
 
 ## Main Modules
 
-*   [`console`](https://docs.rs/fast-rich/latest/rich_rust/console/index.html)
-*   [`table`](https://docs.rs/fast-rich/latest/rich_rust/table/index.html)
-*   [`progress`](https://docs.rs/fast-rich/latest/rich_rust/progress/index.html)
-*   [`style`](https://docs.rs/fast-rich/latest/rich_rust/style/index.html)
-*   [`live`](https://docs.rs/fast-rich/latest/rich_rust/live/index.html)
-*   [`syntax`](https://docs.rs/fast-rich/latest/rich_rust/syntax/index.html)
-*   [`log`](https://docs.rs/fast-rich/latest/rich_rust/log/index.html)
-*   [`layout`](https://docs.rs/fast-rich/latest/rich_rust/layout/index.html)
+*   [`console`](https://docs.rs/fast-rich/latest/fast_rich/console/index.html)
+*   [`table`](https://docs.rs/fast-rich/latest/fast_rich/table/index.html)
+*   [`progress`](https://docs.rs/fast-rich/latest/fast_rich/progress/index.html)
+*   [`style`](https://docs.rs/fast-rich/latest/fast_rich/style/index.html)
+*   [`live`](https://docs.rs/fast-rich/latest/fast_rich/live/index.html)
+*   [`syntax`](https://docs.rs/fast-rich/latest/fast_rich/syntax/index.html)
+*   [`log`](https://docs.rs/fast-rich/latest/fast_rich/log/index.html)
+*   [`layout`](https://docs.rs/fast-rich/latest/fast_rich/layout/index.html)
 
 ## Example
 
 ```rust
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 let mut table = Table::new();
 table.add_column("Col 1");

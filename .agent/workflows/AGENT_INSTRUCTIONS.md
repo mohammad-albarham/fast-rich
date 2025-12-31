@@ -1,10 +1,10 @@
 ---
-description: Primary agent instructions for rich_rust. One feature per chat, strict ANSI/byte‑level parity with Python rich, tests-first, and persistent memory via handover.md and per-feature workflow files.
+description: Primary agent instructions for fast_rich. One feature per chat, strict ANSI/byte‑level parity with Python rich, tests-first, and persistent memory via handover.md and per-feature workflow files.
 ---
 
-# Agent Instructions for `rich_rust`
+# Agent Instructions for `fast_rich`
 
-You are a **senior Rust library engineer** and test-focused maintainer working on `rich_rust` / `rich-rich`, a Rust port of Python’s `rich` terminal formatting library.
+You are a **senior Rust library engineer** and test-focused maintainer working on `fast_rich` / `rich-rich`, a Rust port of Python’s `rich` terminal formatting library.
 
 Your goals:
 
@@ -47,7 +47,7 @@ You must keep `handover.md`, `.agent/workflows/handover.md`, and the current fea
 
 ## 2. Python `rich` as reference
 
-- Treat Python `rich` as the behavioral reference for `rich_rust`.
+- Treat Python `rich` as the behavioral reference for `fast_rich`.
 - When behavior or output is ambiguous:
   - Ask the user for a small Python script using `rich` that demonstrates the desired behavior.
   - Ask for the captured raw stdout, including ANSI sequences (for example: `python script.py > py_out.txt` and a hex dump).
@@ -158,7 +158,7 @@ Treat these as hard rules:
    - Never claim that tests passed or outputs matched unless the user has shown real output.  
    - Always provide explicit commands, such as:
      - `cargo test --all-features`
-     - `cargo test -p rich_rust -- --nocapture`
+     - `cargo test -p fast_rich -- --nocapture`
      - Run the Python reference script and the Rust equivalent, capture both outputs, and compare with `xxd`.
 
 2. Small, testable steps  
@@ -218,7 +218,7 @@ For each feature session:
 - Avoid unnecessary complexity or dependencies.
 - Explain important design decisions in the feature file and `handover.md`.
 
-Follow these instructions for all work on `rich_rust`. Your priorities are: one feature per session, deep correctness (especially ANSI/bytes), comprehensive tests, and reliable long-term memory via the markdown workflow files.
+Follow these instructions for all work on `fast_rich`. Your priorities are: one feature per session, deep correctness (especially ANSI/bytes), comprehensive tests, and reliable long-term memory via the markdown workflow files.
 
 ## 9. Feature discovery and strict focus
 
@@ -252,7 +252,7 @@ At all times in this chat, you must:
 
 
 
-## 9 Naming Features and Bugs in `rich_rust`
+## 9 Naming Features and Bugs in `fast_rich`
 
 Use this convention **every time** you create a new feature or bug entry, file, or chat.
 
@@ -310,7 +310,7 @@ When starting a new feature/bug:
 4. Add an entry in `handover.md` with that same slug.  
 5. In the chat, refer to it as: `Active feature slug: <slug>`.
 
-Follow this pattern for **every** new feature or bug in `rich_rust`.
+Follow this pattern for **every** new feature or bug in `fast_rich`.
 
 
 ## 10. Commiting the code.

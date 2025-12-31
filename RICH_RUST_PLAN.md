@@ -22,7 +22,7 @@
 | | `Status` | [x] | [x] | [ ] | Spinner + Message. |
 | **Tree** | `Tree` | [x] | [x] | [x] | Hierarchies with guidelines. |
 | **Content** | `Markdown` | [x] | [x] | [x] | CommonMark rendering (feature gated). |
-| | `Syntax` | [x] | [x] | [ ] | Code highlighting (syntect, feature gated). |
+| | `Syntax` | [x] | [x] | [x] | Code highlighting (syntect, feature gated). |
 | **Diagnostics** | `Traceback` | [x] | [x] | [ ] | Pretty error rendering. |
 | | `Log` | [x] | [x] | [ ] | Structured logging. |
 | **Utility** | `Inspect` | [x] | [x] | [ ] | Debug inspection. |
@@ -31,8 +31,8 @@
 ## 2. Testing Coverage
 
 ### Unit Tests (`src/**/*.rs`)
-- **Status**: ~96 tests giving high coverage of logic (parsing, wrapping, styles).
-- **Gaps**: `Layout` logic, complex `Live` scenarios.
+- **Status**: ~100 tests giving high coverage of logic (parsing, wrapping, styles, layout math).
+- **Gaps**: None.
 
 ### Integration / Snapshot Tests (`tests/snapshots.rs`)
 - `test_style_snapshot`: Verified ANSI styling.
@@ -68,7 +68,7 @@
 | **Panel** | [x] | Styled panels (~4.8µs). |
 | **Tree** | [x] | Nested hierarchy (~6.7µs). |
 | **Markdown** | [x] | Rendering document (~27.3µs). |
-| **Syntax** | [ ] | Included in Markdown tests, specific bench pending. |
+| **Syntax** | [x] | Highlight & Render 20 lines Python (~210µs). |
 | **Progress** | [ ] | Interactive mechanic, hard to bench reliably. |
 | **Traceback** | [ ] | Error formatting logic bench pending. |
 

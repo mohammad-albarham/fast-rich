@@ -78,6 +78,8 @@ pub mod syntax;
 
 // Re-exports for convenience
 pub use console::Console;
+pub use layout::Layout;
+pub use live::Live;
 pub use panel::{BorderStyle, Panel};
 pub use renderable::Renderable;
 pub use rule::Rule;

@@ -1,6 +1,7 @@
 //! Track iterator with progress display.
 
-use super::{Progress, ProgressColumn};
+use super::Progress;
+use super::columns::{BarColumn, MofNColumn, PercentageColumn, TextColumn};
 
 /// An iterator wrapper that displays progress.
 pub struct TrackedIterator<I>
@@ -22,11 +23,11 @@ where
     I: Iterator,
 {
     fn new(inner: I, description: &str, total: Option<u64>) -> Self {
-        let progress = Progress::new().columns(vec![
-            ProgressColumn::Description,
-            ProgressColumn::Bar,
-            ProgressColumn::Percentage,
-            ProgressColumn::Count,
+        let progress = Progress::new().with_columns(vec![
+            Box::new(TextColumn::new("[progress.description]")),
+            Box::new(BarColumn::new(40)),
+            Box::new(PercentageColumn::new()),
+            Box::new(MofNColumn::new()),
         ]);
 
         let task_id = progress.add_task(description, total);

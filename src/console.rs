@@ -356,7 +356,7 @@ impl Console {
     }
 
     /// Write segments to the output.
-    fn write_segments(&self, segments: &[Segment]) {
+    pub(crate) fn write_segments(&self, segments: &[Segment]) {
         if self.record.load(std::sync::atomic::Ordering::Relaxed) {
             if let Ok(mut lock) = self.recording.lock() {
                 lock.extend_from_slice(segments);
@@ -509,6 +509,42 @@ impl Console {
             writer,
             crossterm::terminal::Clear(crossterm::terminal::ClearType::All),
             crossterm::cursor::MoveTo(0, 0)
+        );
+    }
+
+    /// Show or hide the cursor.
+    pub fn show_cursor(&self, show: bool) {
+        let mut writer = self.get_writer();
+        if show {
+            let _ = execute!(writer, crossterm::cursor::Show);
+        } else {
+            let _ = execute!(writer, crossterm::cursor::Hide);
+        }
+    }
+
+    /// Move the cursor up by `n` lines.
+    pub fn move_cursor_up(&self, n: u16) {
+        if n > 0 {
+            let mut writer = self.get_writer();
+            let _ = execute!(writer, crossterm::cursor::MoveUp(n));
+        }
+    }
+
+    /// Move the cursor down by `n` lines.
+    pub fn move_cursor_down(&self, n: u16) {
+        if n > 0 {
+            let mut writer = self.get_writer();
+            let _ = execute!(writer, crossterm::cursor::MoveDown(n));
+        }
+    }
+
+    /// Clear the current line.
+    pub fn clear_line(&self) {
+        let mut writer = self.get_writer();
+        let _ = execute!(
+            writer,
+            crossterm::terminal::Clear(crossterm::terminal::ClearType::CurrentLine),
+            crossterm::cursor::MoveToColumn(0)
         );
     }
 

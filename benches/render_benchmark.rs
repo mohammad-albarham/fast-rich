@@ -112,6 +112,31 @@ def factorial(n):
     });
 }
 
+fn bench_progress_operation(c: &mut Criterion) {
+    use rich_rust::progress::Progress;
+
+    c.bench_function("progress add_task + update", |b| {
+        b.iter(|| {
+            let progress = Progress::new();
+            let task_id = progress.add_task("Downloading", Some(100));
+            for i in 0..100 {
+                progress.update(task_id, i + 1);
+            }
+        })
+    });
+}
+
+fn bench_traceback_render(c: &mut Criterion) {
+    use rich_rust::traceback::Traceback;
+
+    let tb = Traceback::from_error("File not found: /path/to/missing/file.txt");
+    let context = RenderContext { width: 80 };
+
+    c.bench_function("traceback render", |b| {
+        b.iter(|| tb.render(black_box(&context)))
+    });
+}
+
 // Group definitions
 #[cfg(all(feature = "markdown", feature = "syntax"))]
 criterion_group!(
@@ -122,7 +147,9 @@ criterion_group!(
     bench_panel_rendering,
     bench_tree_rendering,
     bench_markdown_rendering,
-    bench_syntax_rendering
+    bench_syntax_rendering,
+    bench_progress_operation,
+    bench_traceback_render
 );
 
 #[cfg(all(feature = "markdown", not(feature = "syntax")))]
@@ -133,7 +160,9 @@ criterion_group!(
     bench_table_rendering_100,
     bench_panel_rendering,
     bench_tree_rendering,
-    bench_markdown_rendering
+    bench_markdown_rendering,
+    bench_progress_operation,
+    bench_traceback_render
 );
 
 #[cfg(all(not(feature = "markdown"), feature = "syntax"))]
@@ -144,7 +173,9 @@ criterion_group!(
     bench_table_rendering_100,
     bench_panel_rendering,
     bench_tree_rendering,
-    bench_syntax_rendering
+    bench_syntax_rendering,
+    bench_progress_operation,
+    bench_traceback_render
 );
 
 #[cfg(all(not(feature = "markdown"), not(feature = "syntax")))]
@@ -154,7 +185,9 @@ criterion_group!(
     bench_text_rendering,
     bench_table_rendering_100,
     bench_panel_rendering,
-    bench_tree_rendering
+    bench_tree_rendering,
+    bench_progress_operation,
+    bench_traceback_render
 );
 
 criterion_main!(benches);

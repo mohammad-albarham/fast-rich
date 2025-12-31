@@ -15,6 +15,8 @@ pub struct Span {
     pub text: Cow<'static, str>,
     /// The style applied to this span
     pub style: Style,
+    /// Optional hyperlink URL (OSC 8 terminal links)
+    pub link: Option<String>,
 }
 
 impl Span {
@@ -23,6 +25,7 @@ impl Span {
         Span {
             text: text.into(),
             style: Style::new(),
+            link: None,
         }
     }
 
@@ -31,6 +34,16 @@ impl Span {
         Span {
             text: text.into(),
             style,
+            link: None,
+        }
+    }
+
+    /// Create a new span with a style and hyperlink.
+    pub fn linked<S: Into<Cow<'static, str>>>(text: S, style: Style, url: String) -> Self {
+        Span {
+            text: text.into(),
+            style,
+            link: Some(url),
         }
     }
 

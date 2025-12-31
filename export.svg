@@ -1,14 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5338 200">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5588 200">
   <rect width="100%" height="100%" fill="#1e1e1e"/>
   <text font-family="monospace" font-size="14" fill="#d4d4d4">
-    <tspan x="10" y="30.0">──────────────────────────────────────────────────────────────────────────────────────── [bold red]Export Demo[/] ────────────────────────────────────────────────────────────────────────────────────────</tspan>
-    <tspan x="10" y="50.0">This output is being recorded!                                                                                                                                                                            </tspan>
+    <tspan x="10" y="30.0">────────────────────────────────────────────────────────────────────────────────────────────── Export Demo ───────────────────────────────────────────────────────────────────────────────────────────────</tspan>
+    <tspan x="10" y="50.0">This output is being recorded!</tspan>
     <tspan x="10" y="70.0">╭──────────┬─────────────╮</tspan>
     <tspan x="10" y="90.0">│ Language │ Features    │</tspan>
     <tspan x="10" y="110.0">├──────────┼─────────────┤</tspan>
     <tspan x="10" y="130.0">│ Rust     │ Fast &amp; Safe │</tspan>
     <tspan x="10" y="150.0">│ Python   │ Easy &amp; Rich │</tspan>
     <tspan x="10" y="170.0">╰──────────┴─────────────╯</tspan>
-    <tspan x="10" y="190.0">Check export.htmland export.svg!                                                                                                                                                                          </tspan>
+    <tspan x="10" y="190.0">Check export.html and export.svg files!</tspan>
   </text>
 </svg>

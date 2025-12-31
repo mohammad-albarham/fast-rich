@@ -1,5 +1,6 @@
 use rich_rust::prelude::*;
 
+#[allow(dead_code)] // Fields are accessed via Debug trait
 #[derive(Debug)]
 struct User {
     id: usize,
@@ -27,7 +28,7 @@ fn main() {
 
     console.print("[bold]Standard Debug:[/]");
     console.println(&format!("{:?}", user));
-    
+
     console.newline();
     console.print("[bold]Pretty Debug (pprint):[/]");
     console.print_debug(&user);

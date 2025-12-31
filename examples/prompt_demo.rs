@@ -1,5 +1,5 @@
 use rich_rust::prelude::*;
-use rich_rust::prompt::{Prompt, Confirm, IntPrompt};
+use rich_rust::prompt::{Confirm, IntPrompt, Prompt};
 
 fn main() {
     let console = Console::new();
@@ -18,21 +18,21 @@ fn main() {
 
     // 3. Choices
     let size: String = Prompt::new("Choose a size")
-        .choices(&["small".to_string(), "medium".to_string(), "large".to_string()])
+        .choices(&[
+            "small".to_string(),
+            "medium".to_string(),
+            "large".to_string(),
+        ])
         .default("medium".to_string())
         .ask();
     console.print(&format!("Size: [bold magenta]{}[/]", size));
 
     // 4. Secret (Password)
     console.print("Enter password (will be hidden, or just read line for now):");
-    let _secret: String = Prompt::new("Password")
-        .secret()
-        .ask();
-    
+    let _secret: String = Prompt::new("Password").secret().ask();
+
     // 5. IntPrompt
-    let age = IntPrompt::new("Enter your age")
-        .default(18)
-        .ask();
+    let age = IntPrompt::new("Enter your age").default(18).ask();
     console.print(&format!("Age: [bold yellow]{}[/]", age));
 
     // 6. Confirm

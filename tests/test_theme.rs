@@ -1,7 +1,7 @@
 //! Integration tests for theme system
 
-use rich_rust::theme::Theme;
 use rich_rust::style::Color;
+use rich_rust::theme::Theme;
 
 #[test]
 fn test_default_theme() {
@@ -40,7 +40,7 @@ fn test_get_style() {
 fn test_custom_colors() {
     let mut theme = Theme::new();
     theme.add_color("custom", Color::Magenta);
-    
+
     let style = theme.get_style("custom");
     assert_eq!(style.foreground, Some(Color::Magenta));
 }
@@ -56,7 +56,7 @@ fn test_unknown_style() {
 fn test_theme_clone() {
     let theme1 = Theme::monokai();
     let theme2 = theme1.clone();
-    
+
     assert_eq!(theme1.primary, theme2.primary);
     assert_eq!(theme1.success, theme2.success);
 }

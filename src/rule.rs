@@ -104,16 +104,19 @@ impl Renderable for Rule {
                 vec![Segment::new(vec![Span::styled(line, self.style)])]
             }
             Some(title) => {
-                let title_with_spacing = format!(" {} ", title);
+                // Parse markup in the title
+                let title_text = crate::markup::parse(title);
+                let title_spans = title_text.spans;
+
+                // Calculate width of parsed title
+                let title_content: String = title_spans.iter().map(|s| s.text.as_ref()).collect();
+                let title_with_spacing = format!(" {} ", title_content);
                 let title_width =
                     unicode_width::UnicodeWidthStr::width(title_with_spacing.as_str());
 
                 if title_width >= width {
-                    // Title is too long, just show title
-                    return vec![Segment::new(vec![Span::styled(
-                        title.clone(),
-                        self.title_style,
-                    )])];
+                    // Title is too long, just show title with markup
+                    return vec![Segment::new(title_spans)];
                 }
 
                 let remaining = width - title_width;
@@ -130,11 +133,14 @@ impl Renderable for Rule {
                 let left_line = self.character.to_string().repeat(left_len);
                 let right_line = self.character.to_string().repeat(right_len);
 
-                vec![Segment::new(vec![
-                    Span::styled(left_line, self.style),
-                    Span::styled(title_with_spacing, self.title_style),
-                    Span::styled(right_line, self.style),
-                ])]
+                let mut spans = Vec::new();
+                spans.push(Span::styled(left_line, self.style));
+                spans.push(Span::raw(" "));
+                spans.extend(title_spans);
+                spans.push(Span::raw(" "));
+                spans.push(Span::styled(right_line, self.style));
+
+                vec![Segment::new(spans)]
             }
         }
     }

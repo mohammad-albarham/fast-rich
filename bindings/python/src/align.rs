@@ -1,9 +1,9 @@
+use crate::panel::PyPanel;
+use crate::table::PyTable;
+use crate::text::PyText;
 use pyo3::prelude::*;
 use rich_rust::align::{Align, VerticalAlignment};
 use rich_rust::text::Alignment;
-use crate::text::PyText;
-use crate::panel::PyPanel;
-use crate::table::PyTable;
 
 #[pyclass(name = "Align")]
 pub struct PyAlign {
@@ -22,17 +22,20 @@ impl PyAlign {
         pad: bool,
     ) -> PyResult<Self> {
         let _ = pad; // Suppress unused variable warning
-        let child: Box<dyn rich_rust::renderable::Renderable + Send + Sync> = if let Ok(text) = renderable.extract::<String>() {
-             Box::new(rich_rust::text::Text::plain(text))
-        } else if let Ok(py_text) = renderable.downcast::<PyText>() {
-             Box::new(py_text.borrow().inner.clone())
-        } else if let Ok(py_panel) = renderable.downcast::<PyPanel>() {
-             Box::new(py_panel.borrow().inner.clone())
-        } else if let Ok(py_table) = renderable.downcast::<PyTable>() {
-             Box::new(py_table.borrow().inner.clone())
-        } else {
-             return Err(pyo3::exceptions::PyTypeError::new_err("Unsupported renderable type for Align"));
-        };
+        let child: Box<dyn rich_rust::renderable::Renderable + Send + Sync> =
+            if let Ok(text) = renderable.extract::<String>() {
+                Box::new(rich_rust::text::Text::plain(text))
+            } else if let Ok(py_text) = renderable.downcast::<PyText>() {
+                Box::new(py_text.borrow().inner.clone())
+            } else if let Ok(py_panel) = renderable.downcast::<PyPanel>() {
+                Box::new(py_panel.borrow().inner.clone())
+            } else if let Ok(py_table) = renderable.downcast::<PyTable>() {
+                Box::new(py_table.borrow().inner.clone())
+            } else {
+                return Err(pyo3::exceptions::PyTypeError::new_err(
+                    "Unsupported renderable type for Align",
+                ));
+            };
 
         let alignment = match align.to_lowercase().as_str() {
             "left" => Alignment::Left,
@@ -42,10 +45,10 @@ impl PyAlign {
         };
 
         let vert_align = match vertical.unwrap_or("top").to_lowercase().as_str() {
-             "top" => VerticalAlignment::Top,
-             "middle" => VerticalAlignment::Middle,
-             "bottom" => VerticalAlignment::Bottom,
-             _ => VerticalAlignment::Top,
+            "top" => VerticalAlignment::Top,
+            "middle" => VerticalAlignment::Middle,
+            "bottom" => VerticalAlignment::Bottom,
+            _ => VerticalAlignment::Top,
         };
 
         // Create the Align wrapper
@@ -54,9 +57,9 @@ impl PyAlign {
             Alignment::Center => Align::center(child),
             Alignment::Right => Align::right(child),
         };
-        
+
         align_wrapper = align_wrapper.vertical(vert_align);
-        
+
         if let Some(h) = height {
             align_wrapper = align_wrapper.height(h);
         }
@@ -67,6 +70,8 @@ impl PyAlign {
         // Assuming default true is fine or add .pad() method if critical.
         // For MVP bindings, ignoring pad=False if not easily supported, but Python default is True.
 
-        Ok(PyAlign { inner: align_wrapper })
+        Ok(PyAlign {
+            inner: align_wrapper,
+        })
     }
 }

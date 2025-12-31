@@ -76,7 +76,58 @@
 
 ---
 
-## 5. Python Bindings Detail (Restored Context)
+## 5. Deep Testing Protocol
+
+**Purpose**: Byte-level verification of ANSI output and cross-platform compatibility.
+
+### 5.1 ANSI Escape Code Verification
+
+| Code Type | Format | Verification Method | Status |
+| :--- | :--- | :--- | :---: |
+| **Bold** | `\x1b[1m` | `cat -v` raw output | [x] |
+| **Italic** | `\x1b[3m` | `cat -v` raw output | [x] |
+| **Underline** | `\x1b[4m` | `cat -v` raw output | [x] |
+| **Strikethrough** | `\x1b[9m` | `cat -v` raw output | [x] |
+| **Dim** | `\x1b[2m` | `cat -v` raw output | [x] |
+| **256-color FG** | `\x1b[38;5;{n}m` | `grep "38;5"` | [x] |
+| **256-color BG** | `\x1b[48;5;{n}m` | `grep "48;5"` | [x] |
+| **Truecolor (24-bit)** | `\x1b[38;2;R;G;Bm` | `grep "38;2"` | [x] |
+| **Reset** | `\x1b[0m` | Every span ends with reset | [x] |
+
+### 5.2 Cross-Platform Testing
+
+| Platform | Terminal | CI Tested | Notes |
+| :--- | :--- | :---: | :--- |
+| **macOS** | Terminal.app, iTerm2 | [x] | Primary dev environment |
+| **Linux** | GNOME Terminal, Konsole | [x] | GitHub Actions (ubuntu-latest) |
+| **Windows** | Windows Terminal, cmd.exe | [x] | GitHub Actions (windows-latest) |
+| **WSL** | Various | [ ] | Optional verification |
+
+### 5.3 Unicode Box Drawing
+
+| Border Style | Characters | Status |
+| :--- | :--- | :---: |
+| **Rounded** | `╭╮╰╯─│` | [x] |
+| **Heavy** | `┏┓┗┛━┃` | [x] |
+| **Double** | `╔╗╚╝═║` | [x] |
+| **ASCII** | `+-\|` | [x] |
+
+### 5.4 Deep Testing Commands
+
+```bash
+# Verify ANSI codes in output
+cargo run --example styles_demo 2>/dev/null | cat -v | head -30
+
+# Check truecolor RGB
+cargo run --example styles_demo 2>/dev/null | cat -v | grep "38;2"
+
+# Verify box drawing
+cargo run --example table 2>/dev/null | cat -v | grep -E "╭|┏|╔"
+```
+
+---
+
+## 6. Python Bindings Detail (Restored Context)
 
 ### `rich_rust` Module
 - [x] `Console` (print, log, print_X methods)

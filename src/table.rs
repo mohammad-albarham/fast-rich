@@ -576,6 +576,41 @@ impl Renderable for Table {
         let widths = self.calculate_widths(context.width);
         let mut segments = Vec::new();
 
+        // Calculate total table width for title centering
+        let content_width: usize = widths.iter().map(|w| w + self.padding * 2).sum();
+        let border_overhead = if self.show_border {
+            widths.len() + 1
+        } else {
+            widths.len() - 1
+        };
+        let table_width = content_width + border_overhead;
+
+        // Title
+        if let Some(title) = &self.title {
+            let title_width = UnicodeWidthStr::width(title.as_str());
+            if title_width <= table_width {
+                let padding = table_width - title_width;
+                let left_pad = padding / 2;
+                let right_pad = padding - left_pad;
+
+                let mut spans = Vec::new();
+                if left_pad > 0 {
+                    spans.push(Span::raw(" ".repeat(left_pad)));
+                }
+                spans.push(Span::styled(title.clone(), Style::new().bold()));
+                if right_pad > 0 {
+                    spans.push(Span::raw(" ".repeat(right_pad)));
+                }
+                segments.push(Segment::line(spans));
+            } else {
+                // Truncate or just print? Just print for now.
+                segments.push(Segment::line(vec![Span::styled(
+                    title.clone(),
+                    Style::new().bold(),
+                )]));
+            }
+        }
+
         // Top border
         if self.show_border {
             segments.push(self.render_horizontal_line(

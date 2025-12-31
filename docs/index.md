@@ -15,37 +15,27 @@ It provides beautiful terminal formatting for Rust applications, and also offers
 *   **Syntax Highlighting**: Highlight code snippets.
 *   **Traceback**: Pretty print panic tracebacks.
 
-## Quick Start (Rust)
+## Quick Start
 
-Add to `Cargo.toml`:
+### Rust
+
+Get started with the [Rust Library](rust_getting_started.md).
 
 ```toml
 [dependencies]
-rich-rust = "0.1.0"
+rich-rust = "0.2.0"
 ```
 
-Use in `main.rs`:
+### Python
 
-```rust
-use rich_rust::prelude::*;
-
-fn main() {
-    let console = Console::new();
-    console.print("[bold red]Hello[/] [blue]World[/]!");
-}
-```
-
-## Quick Start (Python)
-
-See [Python API](python_api.md) for details.
+See the [Python Bindings Installation](python_install.md) guide.
 
 ```python
 import rich_rust
-
 console = rich_rust.Console()
-console.print("[bold red]Hello[/] [blue]World[/]!")
-# Speed up your table rendering:
-table = rich_rust.Table()
-# ... add 100k rows
-console.print_table(table)
+console.print("Fast!")
 ```
+
+## Comparisons
+
+Check out the [Benchmarks](benchmarks.md) to see how `rich-rust` compares to the original Python implementation.

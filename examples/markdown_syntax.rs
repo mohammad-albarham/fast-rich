@@ -1,8 +1,6 @@
 use rich_rust::prelude::*;
 
-fn main() {
-    let console = Console::new().force_color(true);
-
+fn run(console: &Console) {
     console.rule("[bold blue]Markdown & Syntax Demo[/]");
     console.newline();
 
@@ -64,4 +62,42 @@ fn main() {
     console.print("[yellow]Syntax feature not enabled. Run with --features syntax[/]");
 
     console.rule("[bold blue]End Markdown Demo[/]");
+}
+
+fn main() {
+    let console = Console::new().force_color(true);
+    run(&console);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_markdown_syntax_output() {
+        let console = Console::capture();
+        run(&console);
+        let output = console.get_captured_output();
+        eprintln!(
+            "CAPTURED (Markdown={}):\n{}",
+            cfg!(feature = "markdown"),
+            output
+        );
+
+        assert!(output.contains("Markdown & Syntax Demo"));
+
+        if cfg!(feature = "markdown") {
+            assert!(output.contains("Fast Rich Markdown"));
+            assert!(output.contains("Features"));
+        } else {
+            assert!(output.contains("Run"));
+            assert!(output.contains("features"));
+        }
+
+        if cfg!(feature = "syntax") {
+            assert!(output.contains("Syntax Highlighting"));
+        }
+
+        assert!(output.contains("End Markdown Demo"));
+    }
 }

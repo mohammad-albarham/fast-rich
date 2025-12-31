@@ -148,16 +148,22 @@ User Code (unchanged) → fast_rich/ (Python API) → Rust Core (speed)
 | `json` | - | [ ] | **Missing** |
 
 ### Phase 35: Example Coverage (Rust)
-| Feature | Example File | Status |
-| :--- | :--- | :---: |
-| Text/Color/Style | `examples/styles_demo.rs` | [x] |
-| Tables | `examples/tables_demo.rs` | [x] |
-| Panels/Layout | `examples/panel_layout.rs` | [x] |
-| Tree | `examples/tree_view.rs` | [x] |
-| Progress | `examples/progress_bar.rs` | [x] |
-| Traceback | `examples/traceback_demo.rs` | [x] |
-| Markdown/Syntax | `examples/markdown_syntax.rs` | [x] |
-| Full Showcase | `examples/showcase.rs` | [x] |
+
+> **Policy**: Every example must be runnable AND strictly tested (via embedded `#[test]` with output capture).
+
+| Feature Group | Example File | Status | Tested? | Notes |
+| :--- | :--- | :---: | :---: | :--- |
+| **Basics** | `examples/hello.rs` | [x] | [x] | Verified output. |
+| | `examples/console_print.rs` | [x] | [x] | Verified output. |
+| **Text/Styles** | `examples/styles_demo.rs` | [x] | [x] | Verified output. |
+| **Tables** | `examples/tables_demo.rs` | [x] | [x] | Verified output. |
+| **Panel/Layout** | `examples/panel_layout.rs` | [x] | [x] | Verified output. |
+| **Tree** | `examples/tree_view.rs` | [x] | [x] | Verified output. |
+| **Progress** | `examples/progress_bar.rs` | [x] | [x] | Verified output. |
+| **Traceback** | `examples/traceback_demo.rs` | [x] | [x] | Verified output. |
+| **Markdown/Syntax** | `examples/markdown_syntax.rs` | [x] | [x] | Verified output. |
+| **Showcase** | `examples/showcase.rs` | [x] | [x] | Verified output. |
+| **Logging** | `examples/logging_demo.rs` | [x] | [x] | Verified output. |
 
 ### Phase 36: 100% API Coverage
 | Module | Status | API Coverage |

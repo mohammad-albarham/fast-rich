@@ -2,9 +2,7 @@ use rich_rust::prelude::*;
 use std::thread;
 use std::time::Duration;
 
-fn main() {
-    let console = Console::new().force_color(true);
-
+fn run(console: &Console, delay: Duration) {
     console.rule("[bold green]Progress Bar Demo[/]");
     console.newline();
 
@@ -42,10 +40,13 @@ fn main() {
         }
 
         // Render current frame
+        // In simulation, we print manual updates
+        // Note: Progress::print() normally overwrites or prints.
+        // For testing/example simplicity we just print.
         progress.print();
 
         // Wait
-        thread::sleep(Duration::from_millis(100));
+        thread::sleep(delay);
     }
 
     progress.finish(download_id);
@@ -58,4 +59,27 @@ fn main() {
     console.print("[bold green]Done![/]");
 
     console.rule("[bold green]End Progress Demo[/]");
+}
+
+fn main() {
+    let console = Console::new().force_color(true);
+    run(&console, Duration::from_millis(100));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_progress_bar_output() {
+        let console = Console::capture();
+        // Run with minimal delay for speed
+        run(&console, Duration::from_micros(1));
+        let output = console.get_captured_output();
+
+        assert!(output.contains("Progress Bar Demo"));
+        assert!(output.contains("Simulating"));
+        assert!(output.contains("Done!"));
+        assert!(output.contains("End Progress Demo"));
+    }
 }

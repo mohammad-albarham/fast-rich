@@ -1,8 +1,6 @@
 use rich_rust::prelude::*;
 
-fn main() {
-    let console = Console::new().force_color(true);
-
+fn run(console: &Console) {
     console.rule("[bold magenta]Text & Styles Demo[/]");
     console.newline();
 
@@ -48,4 +46,28 @@ fn main() {
     console.print("  [white on red] CRITICAL [/] [black on yellow] WARNING [/] [white on green] SUCCESS [/] [white on blue] INFO [/]");
 
     console.rule("[bold magenta]End Text Demo[/]");
+}
+
+fn main() {
+    let console = Console::new().force_color(true);
+    run(&console);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_styles_demo_output() {
+        let console = Console::capture();
+        run(&console);
+        let output = console.get_captured_output();
+
+        assert!(output.contains("Text & Styles Demo"));
+        assert!(output.contains("Standard"));
+        assert!(output.contains("Colors"));
+        assert!(output.contains("Attributes"));
+        assert!(output.contains("RGB Gradient Step 9"));
+        assert!(output.contains("End Text Demo"));
+    }
 }

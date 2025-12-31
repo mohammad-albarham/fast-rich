@@ -1,8 +1,6 @@
 use rich_rust::prelude::*;
 
-fn main() {
-    let console = Console::new().force_color(true);
-
+fn run(console: &Console) {
     console.rule("[bold cyan]Table Features Demo[/]");
     console.newline();
 
@@ -103,4 +101,32 @@ fn main() {
     console.print_renderable(&table3);
 
     console.rule("[bold cyan]End Table Demo[/]");
+}
+
+fn main() {
+    let console = Console::new().force_color(true);
+    run(&console);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tables_demo_output() {
+        let console = Console::capture();
+        run(&console);
+        let output = console.get_captured_output();
+        eprintln!("CAPTURED:\n{}", output);
+
+        assert!(output.contains("Table Features Demo"));
+        assert!(output.contains("Star Wars"));
+        assert!(output.contains("Movies"));
+        assert!(output.contains("George Lucas"));
+        assert!(output.contains("Server Status"));
+        assert!(output.contains("Online"));
+        assert!(output.contains("Rounded"));
+        assert!(output.contains("System started"));
+        assert!(output.contains("End Table Demo"));
+    }
 }

@@ -1,6 +1,6 @@
-# rich-rust Plan / Feature Memory
+# fast-rich Plan / Feature Memory
 
-> This file tracks the implementation status of the `rich-rust` crate.
+> This file tracks the implementation status of the `fast-rich` crate.
 > **Focus**: Pure Rust implementation of Rich-style terminal formatting.
 
 ## 1. Feature Coverage (Rust Core)

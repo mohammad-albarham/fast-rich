@@ -1,6 +1,6 @@
 use crate::text::PyText;
 use pyo3::prelude::*;
-use rich_rust::columns::{ColumnMode, Columns};
+use fast_rich::columns::{ColumnMode, Columns};
 
 #[pyclass(name = "Columns")]
 pub struct PyColumns {
@@ -20,7 +20,7 @@ impl PyColumns {
     ) -> Self {
         // items: Vec<PyRef<PyText>> to avoid trait bound issues with bare generic PyClass in Vec
 
-        let texts: Vec<rich_rust::text::Text> = items.iter().map(|pt| pt.inner.clone()).collect();
+        let texts: Vec<fast_rich::text::Text> = items.iter().map(|pt| pt.inner.clone()).collect();
         let mut cols = Columns::new(texts);
 
         if let Some(pad) = padding {

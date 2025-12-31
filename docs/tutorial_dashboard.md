@@ -1,6 +1,6 @@
 # Tutorial: Building a Live Dashboard
 
-This tutorial demonstrates how to build a dynamic, full-screen terminal dashboard using `rich-rust`. We will combine **Layouts**, **Panels**, **Tables**, and **Live Display** to create a monitoring tool interface.
+This tutorial demonstrates how to build a dynamic, full-screen terminal dashboard using `fast-rich`. We will combine **Layouts**, **Panels**, **Tables**, and **Live Display** to create a monitoring tool interface.
 
 ## 1. The Goal
 
@@ -77,7 +77,7 @@ fn get_body_table(tick: u64) -> Panel {
     
     // Simulate changing data
     let cpu_load = (tick * 7) % 100;
-    table.add_row_strs(&["1023", "rich-rust-demo", &format!("{}", cpu_load), "1.2"]);
+    table.add_row_strs(&["1023", "fast-rich-demo", &format!("{}", cpu_load), "1.2"]);
     table.add_row_strs(&["4096", "cargo", "0.0", "0.5"]);
     table.add_row_strs(&["8888", "postgres", "3.4", "12.0"]);
     

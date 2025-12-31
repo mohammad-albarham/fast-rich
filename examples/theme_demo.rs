@@ -1,5 +1,5 @@
-use rich_rust::prelude::*;
-use rich_rust::theme::Theme;
+use fast_rich::prelude::*;
+use fast_rich::theme::Theme;
 
 fn main() {
     let console = Console::new().width(70);

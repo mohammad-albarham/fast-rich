@@ -288,10 +288,26 @@ dependencies = [
 
 [[package]]
 name = "fast-rich"
+version = "0.2.0"
+dependencies = [
+ "criterion",
+ "crossterm",
+ "insta",
+ "log",
+ "pulldown-cmark",
+ "regex",
+ "syntect",
+ "terminal_size",
+ "unicode-segmentation",
+ "unicode-width",
+]
+
+[[package]]
+name = "fast-rich-python"
 version = "0.3.1"
 dependencies = [
+ "fast-rich",
  "pyo3",
- "rich-rust",
 ]
 
 [[package]]
@@ -818,22 +834,6 @@ name = "regex-syntax"
 version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
-
-[[package]]
-name = "rich-rust"
-version = "0.2.0"
-dependencies = [
- "criterion",
- "crossterm",
- "insta",
- "log",
- "pulldown-cmark",
- "regex",
- "syntect",
- "terminal_size",
- "unicode-segmentation",
- "unicode-width",
-]
 
 [[package]]
 name = "rustix"

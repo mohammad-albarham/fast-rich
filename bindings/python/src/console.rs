@@ -4,9 +4,9 @@ use crate::table::PyTable;
 use crate::text::PyText;
 use crate::tree::PyTree;
 use pyo3::prelude::*;
-use rich_rust::style::Style;
-use rich_rust::text::Text;
-use rich_rust::Console;
+use fast_rich::style::Style;
+use fast_rich::text::Text;
+use fast_rich::Console;
 
 #[pyclass(name = "Console")]
 pub struct PyConsole {
@@ -83,22 +83,22 @@ impl PyConsole {
 
     // Logging methods
     fn log(&self, message: &str) {
-        use rich_rust::log::ConsoleLog; // Trait
+        use fast_rich::log::ConsoleLog; // Trait
         self.inner.log(message);
     }
 
     fn debug(&self, message: &str) {
-        use rich_rust::log::ConsoleLog;
+        use fast_rich::log::ConsoleLog;
         self.inner.debug(message);
     }
 
     fn warn(&self, message: &str) {
-        use rich_rust::log::ConsoleLog;
+        use fast_rich::log::ConsoleLog;
         self.inner.warn(message);
     }
 
     fn error(&self, message: &str) {
-        use rich_rust::log::ConsoleLog;
+        use fast_rich::log::ConsoleLog;
         self.inner.error(message);
     }
 

@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-// use rich_rust::live::Live; // Cannot use easily because of lifetime/'a issue in binding
+// use fast_rich::live::Live; // Cannot use easily because of lifetime/'a issue in binding
 
 #[pyclass(name = "Live")]
 pub struct PyLive {

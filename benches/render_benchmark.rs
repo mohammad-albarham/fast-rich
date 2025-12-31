@@ -1,10 +1,10 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use rich_rust::console::RenderContext;
-use rich_rust::markup;
-use rich_rust::panel::Panel;
-use rich_rust::prelude::*;
-use rich_rust::table::Table;
-use rich_rust::tree::Tree;
+use fast_rich::console::RenderContext;
+use fast_rich::markup;
+use fast_rich::panel::Panel;
+use fast_rich::prelude::*;
+use fast_rich::table::Table;
+use fast_rich::tree::Tree;
 
 fn bench_markup_parsing(c: &mut Criterion) {
     let markup = "[bold red]Hello[/] [blue]World[/]! ".repeat(50);
@@ -54,11 +54,11 @@ fn bench_panel_rendering(c: &mut Criterion) {
 
 fn bench_tree_rendering(c: &mut Criterion) {
     // Create a moderately deep tree
-    let mut tree = Tree::new(rich_rust::text::Text::from("Root"));
+    let mut tree = Tree::new(fast_rich::text::Text::from("Root"));
     for i in 0..10 {
-        let child = tree.add(rich_rust::text::Text::from(format!("Child {}", i)));
+        let child = tree.add(fast_rich::text::Text::from(format!("Child {}", i)));
         for j in 0..5 {
-            child.add(rich_rust::text::Text::from(format!("Grandchild {}", j)));
+            child.add(fast_rich::text::Text::from(format!("Grandchild {}", j)));
         }
     }
     let context = RenderContext { width: 80, height: None };
@@ -70,7 +70,7 @@ fn bench_tree_rendering(c: &mut Criterion) {
 
 #[cfg(feature = "markdown")]
 fn bench_markdown_rendering(c: &mut Criterion) {
-    use rich_rust::markdown::Markdown;
+    use fast_rich::markdown::Markdown;
     let md_content = r#"
 # Heading
 ## Subheading
@@ -95,7 +95,7 @@ def foo():
 
 #[cfg(feature = "syntax")]
 fn bench_syntax_rendering(c: &mut Criterion) {
-    use rich_rust::syntax::Syntax;
+    use fast_rich::syntax::Syntax;
     let code = r#"
 def factorial(n):
     if n == 0:
@@ -113,7 +113,7 @@ def factorial(n):
 }
 
 fn bench_progress_operation(c: &mut Criterion) {
-    use rich_rust::progress::Progress;
+    use fast_rich::progress::Progress;
 
     c.bench_function("progress add_task + update", |b| {
         b.iter(|| {
@@ -127,7 +127,7 @@ fn bench_progress_operation(c: &mut Criterion) {
 }
 
 fn bench_traceback_render(c: &mut Criterion) {
-    use rich_rust::traceback::Traceback;
+    use fast_rich::traceback::Traceback;
 
     let tb = Traceback::from_error("File not found: /path/to/missing/file.txt");
     let context = RenderContext { width: 80, height: None };

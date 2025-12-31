@@ -1,5 +1,5 @@
-use rich_rust::console::Console;
-use rich_rust::progress::{
+use fast_rich::console::Console;
+use fast_rich::progress::{
     Progress, SpinnerColumn, BarColumn, TextColumn, 
     PercentageColumn, TimeRemainingColumn, TransferSpeedColumn, MofNColumn
 };

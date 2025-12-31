@@ -1,6 +1,6 @@
 //! Markup example demonstrating the BBCode-style markup parser.
 
-use rich_rust::Console;
+use fast_rich::Console;
 
 fn main() {
     let console = Console::new();

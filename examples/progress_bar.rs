@@ -1,4 +1,4 @@
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 use std::thread;
 use std::time::Duration;
 

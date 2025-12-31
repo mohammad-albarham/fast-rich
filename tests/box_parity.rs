@@ -1,8 +1,8 @@
-use rich_rust::box_drawing;
-use rich_rust::console::RenderContext;
-use rich_rust::panel::{BorderStyle, Panel};
-use rich_rust::table::Table;
-use rich_rust::renderable::Renderable;
+use fast_rich::box_drawing;
+use fast_rich::console::RenderContext;
+use fast_rich::panel::{BorderStyle, Panel};
+use fast_rich::table::Table;
+use fast_rich::renderable::Renderable;
 
 fn render<T: Renderable>(item: &T) -> String {
     let context = RenderContext { width: 40, height: None };

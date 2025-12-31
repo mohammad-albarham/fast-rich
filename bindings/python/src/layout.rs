@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use rich_rust::layout::Layout;
+use fast_rich::layout::Layout;
 
 #[pyclass(name = "Layout")]
 pub struct PyLayout {

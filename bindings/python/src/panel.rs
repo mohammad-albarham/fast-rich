@@ -1,7 +1,7 @@
 use crate::style::PyStyle;
 use crate::text::PyText;
 use pyo3::prelude::*;
-use rich_rust::panel::Panel;
+use fast_rich::panel::Panel;
 
 #[pyclass(name = "Panel")]
 pub struct PyPanel {

@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use rich_rust::Table;
+use fast_rich::Table;
 
 #[pyclass(name = "Table")]
 pub struct PyTable {

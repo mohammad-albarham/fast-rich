@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
-use rich_rust::style::Color;
-use rich_rust::style::Style;
+use fast_rich::style::Color;
+use fast_rich::style::Style;
 
 #[pyclass(name = "Style")]
 #[derive(Clone)]

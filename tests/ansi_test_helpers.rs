@@ -5,8 +5,8 @@
 
 #![allow(dead_code)]
 
-use rich_rust::console::Console;
-use rich_rust::renderable::Renderable;
+use fast_rich::console::Console;
+use fast_rich::renderable::Renderable;
 
 /// Capture ANSI output from a renderable.
 pub fn capture_ansi<R: Renderable>(renderable: &R, width: usize) -> String {

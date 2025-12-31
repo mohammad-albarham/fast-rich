@@ -1,4 +1,4 @@
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 fn main() -> std::io::Result<()> {
     let console = Console::new().record(true);

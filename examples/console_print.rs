@@ -1,4 +1,4 @@
-use rich_rust::console::Console;
+use fast_rich::console::Console;
 
 fn run(console: &Console) {
     console.rule("[bold magenta]Console API Demo[/]");
@@ -8,7 +8,7 @@ fn run(console: &Console) {
     console.println("This is a [italic]println[/] which adds a newline.");
 
     console.rule("Padding");
-    console.print_renderable(&rich_rust::text::Text::from("Explicit Renderable"));
+    console.print_renderable(&fast_rich::text::Text::from("Explicit Renderable"));
     console.newline();
 
     // Demonstrate some emoji if enabled

@@ -1,4 +1,4 @@
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 fn run(console: &Console) {
     console.rule("[bold cyan]Logging & Inspect Demo[/]");

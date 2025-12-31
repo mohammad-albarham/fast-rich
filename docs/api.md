@@ -10,10 +10,14 @@ cargo doc --open
 
 ## Main Modules
 
-*   [`console`](https://docs.rs/rich-rust/latest/rich_rust/console/index.html)
-*   [`table`](https://docs.rs/rich-rust/latest/rich_rust/table/index.html)
-*   [`progress`](https://docs.rs/rich-rust/latest/rich_rust/progress/index.html)
-*   [`style`](https://docs.rs/rich-rust/latest/rich_rust/style/index.html)
+*   [`console`](https://docs.rs/fast-rich/latest/rich_rust/console/index.html)
+*   [`table`](https://docs.rs/fast-rich/latest/rich_rust/table/index.html)
+*   [`progress`](https://docs.rs/fast-rich/latest/rich_rust/progress/index.html)
+*   [`style`](https://docs.rs/fast-rich/latest/rich_rust/style/index.html)
+*   [`live`](https://docs.rs/fast-rich/latest/rich_rust/live/index.html)
+*   [`syntax`](https://docs.rs/fast-rich/latest/rich_rust/syntax/index.html)
+*   [`log`](https://docs.rs/fast-rich/latest/rich_rust/log/index.html)
+*   [`layout`](https://docs.rs/fast-rich/latest/rich_rust/layout/index.html)
 
 ## Example
 

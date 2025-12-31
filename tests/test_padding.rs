@@ -1,9 +1,9 @@
 //! Integration tests for padding wrapper
 
-use rich_rust::console::RenderContext;
-use rich_rust::padding::{Padding, PaddingSpec};
-use rich_rust::renderable::Renderable;
-use rich_rust::text::Text;
+use fast_rich::console::RenderContext;
+use fast_rich::padding::{Padding, PaddingSpec};
+use fast_rich::renderable::Renderable;
+use fast_rich::text::Text;
 
 #[test]
 fn test_padding_all() {

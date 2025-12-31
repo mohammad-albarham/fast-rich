@@ -1,6 +1,6 @@
-# rich-rust
+# fast-rich
 
-**rich-rust** is a high-performance Rust port of the famous [Rich](https://github.com/Textualize/rich) Python library.
+**fast-rich** is a high-performance Rust port of the famous [Rich](https://github.com/Textualize/rich) Python library.
 
 It provides beautiful terminal formatting for Rust applications, and also offers Python bindings that aim to be significantly faster than the pure Python implementation for heavy rendering tasks.
 
@@ -23,7 +23,7 @@ Get started with the [Rust Library](rust_getting_started.md).
 
 ```toml
 [dependencies]
-rich-rust = "0.2.0"
+fast-rich = "0.2.0"
 ```
 
 ### Python
@@ -38,4 +38,4 @@ console.print("Fast!")
 
 ## Comparisons
 
-Check out the [Benchmarks](benchmarks.md) to see how `rich-rust` compares to the original Python implementation.
+Check out the [Benchmarks](benchmarks.md) to see how `fast-rich` compares to the original Python implementation.

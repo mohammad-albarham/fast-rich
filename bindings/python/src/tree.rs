@@ -1,6 +1,6 @@
 use crate::style::PyStyle;
 use pyo3::prelude::*;
-use rich_rust::tree::{GuideStyle, Tree};
+use fast_rich::tree::{GuideStyle, Tree};
 
 #[pyclass(name = "Tree")]
 pub struct PyTree {

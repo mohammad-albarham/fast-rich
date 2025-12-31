@@ -1,7 +1,7 @@
 use crate::style::PyStyle;
 use pyo3::prelude::*;
-use rich_rust::style::Style;
-use rich_rust::text::{Span, Text};
+use fast_rich::style::Style;
+use fast_rich::text::{Span, Text};
 
 #[pyclass(name = "Span")]
 #[derive(Clone)]
@@ -45,7 +45,7 @@ impl PyText {
     #[staticmethod]
     fn from_markup(markup: &str) -> Self {
         PyText {
-            inner: rich_rust::markup::parse(markup),
+            inner: fast_rich::markup::parse(markup),
         }
     }
 
@@ -61,7 +61,7 @@ impl PyText {
 
     fn set_style(&mut self, _start: usize, _end: usize, _style: PyStyle) {
         // Simple approximation: apply style to spans that overlap?
-        // rich-rust native Text doesn't support range-based styling post-construction easily yet without split_at
+        // fast-rich native Text doesn't support range-based styling post-construction easily yet without split_at
         // For now, this might be a no-op or limited implementation.
         // TODO: Implement proper span splitting for arbitrary range styling in core lib first?
     }

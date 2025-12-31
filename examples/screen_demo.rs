@@ -1,4 +1,4 @@
-use rich_rust::screen::{with_alternate_screen, AlternateScreen};
+use fast_rich::screen::{with_alternate_screen, AlternateScreen};
 use std::io::{self, Write};
 use std::thread;
 use std::time::Duration;

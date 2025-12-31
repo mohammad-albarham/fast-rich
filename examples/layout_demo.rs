@@ -1,7 +1,7 @@
-use rich_rust::console::Console;
-use rich_rust::layout::Layout;
-use rich_rust::panel::Panel;
-use rich_rust::text::Text;
+use fast_rich::console::Console;
+use fast_rich::layout::Layout;
+use fast_rich::panel::Panel;
+use fast_rich::text::Text;
 
 fn main() {
     let console = Console::new();

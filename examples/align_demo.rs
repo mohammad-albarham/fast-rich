@@ -1,5 +1,5 @@
-use rich_rust::align::{Align, VerticalAlignment};
-use rich_rust::prelude::*;
+use fast_rich::align::{Align, VerticalAlignment};
+use fast_rich::prelude::*;
 
 fn main() {
     let console = Console::new().width(60);

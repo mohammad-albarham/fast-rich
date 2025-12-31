@@ -1,4 +1,4 @@
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 fn run(console: &Console) {
     console.rule("[bold blue]Markdown & Syntax Demo[/]");
@@ -29,7 +29,7 @@ fn main() {
 ```
         "#;
 
-        let md = rich_rust::markdown::Markdown::new(md_content);
+        let md = fast_rich::markdown::Markdown::new(md_content);
         console.print_renderable(&md);
         console.newline();
     }
@@ -53,7 +53,7 @@ fn main() {
 ]
         "#;
 
-        let syntax = rich_rust::syntax::Syntax::new(code, "json");
+        let syntax = fast_rich::syntax::Syntax::new(code, "json");
         // Syntax implements Renderable, so we can print it directly
         console.print_renderable(&syntax);
     }

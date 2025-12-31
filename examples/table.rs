@@ -1,6 +1,6 @@
 //! Table example demonstrating the Table component.
 
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 fn main() {
     let console = Console::new();

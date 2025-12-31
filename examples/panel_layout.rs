@@ -1,5 +1,5 @@
-use rich_rust::layout::Layout;
-use rich_rust::prelude::*;
+use fast_rich::layout::Layout;
+use fast_rich::prelude::*;
 
 fn run(console: &Console) {
     console.rule("[bold green]Panels & Layout Demo[/]");
@@ -10,7 +10,7 @@ fn run(console: &Console) {
 
     let p1 = Panel::new("Simple Panel").title("Title");
 
-    let p2 = Panel::new(rich_rust::markup::parse(
+    let p2 = Panel::new(fast_rich::markup::parse(
         "Panel with [blue]styled[/] content and [bold]subtitle[/]",
     ))
     .title("Styled")

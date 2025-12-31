@@ -5,7 +5,7 @@ The `rich_rust` python package provides Drop-in-ish replacements for some Rich c
 ## Installation
 
 ```bash
-pip install rich-rust
+pip install fast-rich
 ```
 
 ## Components
@@ -57,7 +57,7 @@ for i in range(100):
 
 ## Performance
 
-`rich-rust` is designed to handle massive amounts of data. Use it when:
+`fast-rich` is designed to handle massive amounts of data. Use it when:
 
 *   You have > 10,000 rows in a table.
 *   You are constrained by Python's render overhead.

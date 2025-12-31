@@ -1,6 +1,6 @@
 //! Integration tests for prompt system  
 
-use rich_rust::prompt::Prompt;
+use fast_rich::prompt::Prompt;
 
 #[test]
 fn test_prompt_creation() {

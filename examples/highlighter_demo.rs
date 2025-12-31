@@ -1,5 +1,5 @@
-use rich_rust::highlighter::{highlight_text, RegexHighlighter};
-use rich_rust::prelude::*;
+use fast_rich::highlighter::{highlight_text, RegexHighlighter};
+use fast_rich::prelude::*;
 
 fn main() {
     let console = Console::new().width(70);

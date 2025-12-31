@@ -1,6 +1,6 @@
 # Python Bindings Installation
 
-The `rich-rust` Python bindings provide a high-performance alternative to the standard Rich library for specific rendering tasks.
+The `fast-rich` Python bindings provide a high-performance alternative to the standard Rich library for specific rendering tasks.
 
 ## Status
 
@@ -17,8 +17,8 @@ To build and install the bindings, you need Rust and `maturin` installed.
 
 2. **Clone and Build**:
    ```bash
-   git clone https://github.com/mohammad-albarham/rich-rust
-   cd rich-rust/bindings/python
+   git clone https://github.com/mohammad-albarham/fast-rich
+   cd fast-rich/bindings/python
    maturin develop --release
    ```
 

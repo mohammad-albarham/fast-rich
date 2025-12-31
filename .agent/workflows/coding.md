@@ -29,4 +29,5 @@ When asking to write code or implement features, strictly follow this workflow:
     *   Run full suite: `cargo test --workspace`.
     *   Check examples: Run a relevant example from `examples/`.
 
-**Rule of Thumb**: If you have written >50 lines of code without a commit, you are doing it wrong.
+**Rule of Thumb**: Commit **immediately** after completing a logical, verifiable step (e.g., a passing test, a single function, or a refactor). Prioritize **frequency and stability** over "feature completeness" in a single commit.
+

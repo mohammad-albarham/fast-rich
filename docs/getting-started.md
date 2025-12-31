@@ -10,7 +10,7 @@ Add `fast-rich` to your `Cargo.toml`:
 
     ```toml
     [dependencies]
-    fast-rich = "0.3.0"
+    fast-rich = "0.3.1"
     ```
 
 === "Full Features"
@@ -135,7 +135,7 @@ fn main() {
     let mut table = Table::new();
     table.add_column("Name");
     table.add_column("Value");
-    table.add_row_strs(&["Version", "0.3.0"]);
+    table.add_row_strs(&["Version", "0.3.1"]);
     table.add_row_strs(&["Author", "Mohammad"]);
     
     // Print the table

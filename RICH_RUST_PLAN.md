@@ -15,7 +15,7 @@
 | **Layout** | `Panel` | [x] | [x] | [x] | Borders, titles, padding. |
 | | `Rule` | [x] | [x] | [x] | Horizontal rules with titles. |
 | | `Columns` | [x] | [x] | [x] | Grid layout. |
-| | `Layout` | [x] | [ ] | [ ] | Splitter/Tiling concept (Basic impl). |
+| | `Layout` | [x] | [x] | [ ] | Splitter/Tiling concept (Enhanced). |
 | **Table** | `Table` | [x] | [x] | [x] | auto-width, borders, headers, footers. |
 | **Progress** | `Progress` | [x] | [x] | [x] | Multi-bar, customizable columns. |
 | | `Spinner` | [x] | [x] | [ ] | Loading spinners. |
@@ -26,7 +26,7 @@
 | **Diagnostics** | `Traceback` | [x] | [x] | [ ] | Pretty error rendering. |
 | | `Log` | [x] | [x] | [ ] | Structured logging. |
 | **Utility** | `Inspect` | [x] | [x] | [ ] | Debug inspection. |
-| | `Live` | [x] | [ ] | [ ] | Live display refresh. |
+| | `Live` | [x] | [x] | [ ] | Live display refresh (Cursor control). |
 
 ## 2. Testing Coverage
 
@@ -164,6 +164,8 @@ User Code (unchanged) → fast_rich/ (Python API) → Rust Core (speed)
 | **Markdown/Syntax** | `examples/markdown_syntax.rs` | [x] | [x] | Verified output. |
 | **Showcase** | `examples/showcase.rs` | [x] | [x] | Verified output. |
 | **Logging** | `examples/logging_demo.rs` | [x] | [x] | Verified output. |
+| **Layout Engine** | `examples/layout_demo.rs` | [x] | [x] | Verified output. |
+| **Live Display** | `examples/live_table.rs` | [x] | [x] | Verified output (interactive). |
 
 ### Phase 36: 100% API Coverage
 | Module | Status | API Coverage |

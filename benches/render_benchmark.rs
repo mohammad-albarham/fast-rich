@@ -4,7 +4,7 @@ use rich_rust::markup;
 use rich_rust::panel::Panel;
 use rich_rust::prelude::*;
 use rich_rust::table::Table;
-use rich_rust::tree::{Tree, TreeNode};
+use rich_rust::tree::Tree;
 
 fn bench_markup_parsing(c: &mut Criterion) {
     let markup = "[bold red]Hello[/] [blue]World[/]! ".repeat(50);
@@ -56,7 +56,7 @@ fn bench_tree_rendering(c: &mut Criterion) {
     // Create a moderately deep tree
     let mut tree = Tree::new(rich_rust::text::Text::from("Root"));
     for i in 0..10 {
-        let mut child = tree.add(rich_rust::text::Text::from(format!("Child {}", i)));
+        let child = tree.add(rich_rust::text::Text::from(format!("Child {}", i)));
         for j in 0..5 {
             child.add(rich_rust::text::Text::from(format!("Grandchild {}", j)));
         }
@@ -93,8 +93,39 @@ def foo():
     });
 }
 
+#[cfg(feature = "syntax")]
+fn bench_syntax_rendering(c: &mut Criterion) {
+    use rich_rust::syntax::Syntax;
+    let code = r#"
+def factorial(n):
+    if n == 0:
+        return 1
+    return n * factorial(n - 1)
+"#
+    .repeat(20);
+
+    let syntax = Syntax::new(&code, "python");
+    let context = RenderContext { width: 80 };
+
+    c.bench_function("syntax highlight (python)", |b| {
+        b.iter(|| syntax.render(black_box(&context)))
+    });
+}
+
 // Group definitions
-#[cfg(feature = "markdown")]
+#[cfg(all(feature = "markdown", feature = "syntax"))]
+criterion_group!(
+    benches,
+    bench_markup_parsing,
+    bench_text_rendering,
+    bench_table_rendering_100,
+    bench_panel_rendering,
+    bench_tree_rendering,
+    bench_markdown_rendering,
+    bench_syntax_rendering
+);
+
+#[cfg(all(feature = "markdown", not(feature = "syntax")))]
 criterion_group!(
     benches,
     bench_markup_parsing,
@@ -105,7 +136,18 @@ criterion_group!(
     bench_markdown_rendering
 );
 
-#[cfg(not(feature = "markdown"))]
+#[cfg(all(not(feature = "markdown"), feature = "syntax"))]
+criterion_group!(
+    benches,
+    bench_markup_parsing,
+    bench_text_rendering,
+    bench_table_rendering_100,
+    bench_panel_rendering,
+    bench_tree_rendering,
+    bench_syntax_rendering
+);
+
+#[cfg(all(not(feature = "markdown"), not(feature = "syntax")))]
 criterion_group!(
     benches,
     bench_markup_parsing,

@@ -29,11 +29,15 @@ nav:
   - Rust Library:
     - Getting Started: rust_getting_started.md
     - Examples: rust_examples.md
+    - Tutorial: Dashboard: tutorial_dashboard.md
     - Benchmarks: benchmarks.md
     - API Reference: api.md
   - Python Bindings:
     - Installation: python_install.md
     - API Reference: python_api.md
+  - Project Info:
+    - Contributing: CONTRIBUTING.md
+    - Changelog: CHANGELOG.md
 
 markdown_extensions:
   - pymdownx.highlight:

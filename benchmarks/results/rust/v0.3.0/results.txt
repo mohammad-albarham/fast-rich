@@ -1,4 +1,4 @@
-rich-rust v0.2.0 Benchmark Results
+fast-rich v0.2.0 Benchmark Results
 Date: 2025-12-31
 Commit: [Current]
 

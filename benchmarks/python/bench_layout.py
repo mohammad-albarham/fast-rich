@@ -1,4 +1,4 @@
-from rich_rust import Layout, Console
+from fast_rich import Layout, Console
 import time
 from rich.layout import Layout as RichLayout
 from rich.console import Console as RichConsole

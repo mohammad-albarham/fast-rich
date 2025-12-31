@@ -129,7 +129,7 @@ cargo run --example table 2>/dev/null | cat -v | grep -E "╭|┏|╔"
 
 ## 6. Python Bindings Detail (Restored Context)
 
-### `rich_rust` Module
+### `fast_rich` Module
 - [x] `Console` (print, log, print_X methods)
 - [x] `Style`
 - [x] `Table`

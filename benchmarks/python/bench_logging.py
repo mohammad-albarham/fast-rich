@@ -1,5 +1,5 @@
 import time
-import rich_rust
+import fast_rich
 from rich.console import Console as RichConsole
 
 ITERATIONS = 10000
@@ -10,7 +10,7 @@ def bench_python_logging():
         console.log(f"Log message {i}")
 
 def bench_rust_logging():
-    console = rich_rust.Console()
+    console = fast_rich.Console()
     # Assuming rust bindings direct log to stdout?
     # We might want to suppress output for benchmarks to measure overhead only.
     # But `Console` currently defaults to stdout.

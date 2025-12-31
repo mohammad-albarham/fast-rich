@@ -49,7 +49,7 @@ fast-rich = { version = "0.2.0", features = ["syntax", "markdown", "logging"] }
 ## Quick Start
 
 ```rust
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 fn main() {
     let console = Console::new();

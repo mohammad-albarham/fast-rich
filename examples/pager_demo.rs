@@ -10,7 +10,7 @@ fn main() {
 
     // Generate large content
     let mut content = String::new();
-    content.push_str("Rich-Rust Interactive Pager\n");
+    content.push_str("Fast-Rich Interactive Pager\n");
     content.push_str("===========================\n\n");
 
     for i in 1..=200 {

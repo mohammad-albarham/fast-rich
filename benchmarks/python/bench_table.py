@@ -1,6 +1,6 @@
 import time
 import sys
-import rich_rust
+import fast_rich
 from rich.console import Console as RichConsole
 from rich.table import Table as RichTable
 from rich.style import Style as RichStyle
@@ -22,11 +22,11 @@ def bench_python_rich():
     console.print(table)
 
 def bench_rust_rich():
-    console = rich_rust.Console() 
+    console = fast_rich.Console() 
     # Current bindings don't support custom writers comfortably yet, 
     # but let's assume we want to measure object construction + rendering mostly.
     
-    table = rich_rust.Table()
+    table = fast_rich.Table()
     
     for i in range(COLS):
         table.add_column(f"Col {i}")

@@ -17,24 +17,24 @@ We want to create a UI with:
 First, we define the static structure using `Layout`.
 
 ```rust
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
-fn create_layout() -> rich_rust::layout::Layout {
+fn create_layout() -> fast_rich::layout::Layout {
     // Root layout (vertical stack)
-    let mut layout = rich_rust::layout::Layout::new().with_name("root");
+    let mut layout = fast_rich::layout::Layout::new().with_name("root");
     
     // Split into Header (size 3), Main (auto), Footer (size 1)
     layout.split_column(vec![
-        rich_rust::layout::Layout::new().with_name("header").with_size(3),
-        rich_rust::layout::Layout::new().with_name("main").with_ratio(1),
-        rich_rust::layout::Layout::new().with_name("footer").with_size(1),
+        fast_rich::layout::Layout::new().with_name("header").with_size(3),
+        fast_rich::layout::Layout::new().with_name("main").with_ratio(1),
+        fast_rich::layout::Layout::new().with_name("footer").with_size(1),
     ]);
 
     // Split "main" into Sidebar (ratio 1) and Body (ratio 3)
     // Note: We access children by index. 0=header, 1=main, 2=footer.
     layout.children_mut()[1].split_row(vec![
-        rich_rust::layout::Layout::new().with_name("sidebar").with_ratio(1),
-        rich_rust::layout::Layout::new().with_name("body").with_ratio(3),
+        fast_rich::layout::Layout::new().with_name("sidebar").with_ratio(1),
+        fast_rich::layout::Layout::new().with_name("body").with_ratio(3),
     ]);
     
     layout
@@ -106,7 +106,7 @@ fn main() {
     layout.children_mut()[1].children_mut()[0].update(get_sidebar());
     
     // Start Live display
-    let mut live = rich_rust::live::Live::new();
+    let mut live = fast_rich::live::Live::new();
     live.start().unwrap();
     
     for tick in 0..100 {

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ANSI Verification Script
-# Compares rich-rust output with Python Rich at the byte level
+# Compares fast-rich output with Python Rich at the byte level
 
 set -e
 
@@ -16,7 +16,7 @@ python3 tests/ansi_verification.py
 echo ""
 
 # Step 2: Generate Rust outputs and compare
-echo "Step 2: Generating rich-rust outputs and comparing..."
+echo "Step 2: Generating fast-rich outputs and comparing..."
 cargo run --bin ansi_comparison
 echo ""
 
@@ -25,7 +25,7 @@ echo "Step 3: Hexdump comparison (basic_styles)..."
 echo "--- Python Rich ---"
 xxd tests/ansi_output/python_basic_styles.txt | head -20
 echo ""
-echo "--- rich-rust ---"
+echo "--- fast-rich ---"
 xxd tests/ansi_output/rust_basic_styles.txt | head -20
 echo ""
 

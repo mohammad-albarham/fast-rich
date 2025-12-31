@@ -68,7 +68,7 @@ Most examples produce formatted terminal output with colors, styles, and layouts
 ## Troubleshooting
 
 If an example doesn't run:
-1. Make sure you're in the project root: `cd /path/to/rich_rust`
+1. Make sure you're in the project root: `cd /path/to/fast_rich`
 2. Build the project first: `cargo build --examples`
 3. Check for compilation errors: `cargo check`
 

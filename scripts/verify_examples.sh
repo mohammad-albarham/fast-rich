@@ -1,7 +1,7 @@
 #!/bin/bash
-# Automated verification script for all rich-rust examples
+# Automated verification script for all fast-rich examples
 
-echo "=== Rich-Rust Example Verification ==="
+echo "=== Fast-Rich Example Verification ==="
 echo ""
 
 EXAMPLES=(

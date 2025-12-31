@@ -1,5 +1,5 @@
 import time
-import rich_rust
+import fast_rich
 from rich.tree import Tree as RichTree
 from rich.console import Console as RichConsole
 
@@ -15,9 +15,9 @@ def bench_python_tree():
         console.print(tree)
 
 def bench_rust_tree():
-    console = rich_rust.Console()
+    console = fast_rich.Console()
     for _ in range(ITERATIONS):
-        tree = rich_rust.Tree("Root")
+        tree = fast_rich.Tree("Root")
         for i in range(NODES):
             tree.add_leaf(f"Child {i}")
         console.print_tree(tree) 

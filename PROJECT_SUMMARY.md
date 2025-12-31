@@ -215,7 +215,7 @@ bindings/python/docs/
 ## Repository Structure
 
 ```
-rich_rust/
+fast_rich/
 ├── bindings/python/
 │   ├── fast_rich/           # 60 Python modules
 │   ├── tests/               # Parity tests
@@ -225,7 +225,7 @@ rich_rust/
 │   └── pyproject.toml       # Package config
 ├── src/                     # Rust source
 ├── docs/                    # Rust docs
-├── RICH_RUST_PLAN.md        # Project plan
+├── FAST_RICH_PLAN.md        # Project plan
 └── README.md                # Main readme
 ```
 

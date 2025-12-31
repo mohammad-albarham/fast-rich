@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run all rich-rust examples
+# Run all fast-rich examples
 # Usage: ./scripts/run_all_examples.sh
 
 set -e
@@ -10,7 +10,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║         Rich-Rust: Running All Examples                   ║"
+echo "║         Fast-Rich: Running All Examples                   ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 

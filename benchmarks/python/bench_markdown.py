@@ -1,5 +1,5 @@
 import time
-import rich_rust
+import fast_rich
 from rich.markdown import Markdown as RichMarkdown
 from rich.console import Console as RichConsole
 
@@ -28,9 +28,9 @@ def bench_python_markdown():
         console.print(md)
 
 def bench_rust_markdown():
-    console = rich_rust.Console()
+    console = fast_rich.Console()
     for _ in range(ITERATIONS):
-        md = rich_rust.Markdown(MARKDOWN_CONTENT)
+        md = fast_rich.Markdown(MARKDOWN_CONTENT)
         console.print_markdown(md)
 
 if __name__ == "__main__":

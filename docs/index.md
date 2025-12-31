@@ -31,8 +31,8 @@ fast-rich = "0.2.0"
 See the [Python Bindings Installation](python_install.md) guide.
 
 ```python
-import rich_rust
-console = rich_rust.Console()
+import fast_rich
+console = fast_rich.Console()
 console.print("Fast!")
 ```
 

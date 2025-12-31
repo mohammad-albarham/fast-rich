@@ -25,8 +25,8 @@ To build and install the bindings, you need Rust and `maturin` installed.
 ## Usage
 
 ```python
-import rich_rust
+import fast_rich
 
-console = rich_rust.Console()
+console = fast_rich.Console()
 console.print("[bold green]Hello from Rust![/]")
 ```

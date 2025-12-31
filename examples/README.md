@@ -1,6 +1,6 @@
-# Rich-Rust Examples
+# Fast-Rich Examples
 
-This directory contains demonstration programs for all rich-rust features.
+This directory contains demonstration programs for all fast-rich features.
 
 ## Running Examples
 

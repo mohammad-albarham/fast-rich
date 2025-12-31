@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use rich_rust::prompt::Prompt;
+use fast_rich::prompt::Prompt;
 
 #[pyclass(name = "Prompt")]
 pub struct PyPrompt;
@@ -28,7 +28,7 @@ impl PyConfirm {
     #[staticmethod]
     #[pyo3(signature = (prompt, default=None))]
     fn ask(prompt: &str, default: Option<bool>) -> bool {
-        rich_rust::prompt::Confirm::ask(prompt, default)
+        fast_rich::prompt::Confirm::ask(prompt, default)
     }
 }
 
@@ -40,7 +40,7 @@ impl PyIntPrompt {
     #[staticmethod]
     #[pyo3(signature = (prompt, default=None))]
     fn ask(prompt: &str, default: Option<i64>) -> i64 {
-        let mut p = rich_rust::prompt::IntPrompt::new(prompt);
+        let mut p = fast_rich::prompt::IntPrompt::new(prompt);
         if let Some(def) = default {
             p = p.default(def);
         }

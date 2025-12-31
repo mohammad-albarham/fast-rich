@@ -1,5 +1,5 @@
-use rich_rust::console::Console;
-use rich_rust::syntax::{Syntax, Theme};
+use fast_rich::console::Console;
+use fast_rich::syntax::{Syntax, Theme};
 
 fn main() {
     let console = Console::new();
@@ -21,7 +21,7 @@ fn main() {
     // Let's check SyntaxConfig. It has start_line pub, but Syntax has config() method.
     // We can use that.
     
-    let mut config = rich_rust::syntax::SyntaxConfig::default();
+    let mut config = fast_rich::syntax::SyntaxConfig::default();
     config.start_line = 10;
     config.theme = Theme::Monokai;
     config.highlight_lines = vec![12];
@@ -46,7 +46,7 @@ fn main() {
     // 3. JSON without panel
     console.rule("JSON (No Panel)");
     let json_code = r#"{
-  "name": "rich-rust",
+  "name": "fast-rich",
   "version": "0.1.0",
   "features": ["syntax", "markdown"]
 }"#;

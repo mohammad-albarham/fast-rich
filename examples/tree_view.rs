@@ -1,4 +1,4 @@
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 fn run(console: &Console) {
     console.rule("[bold yellow]Tree View Demo[/]");
@@ -7,18 +7,18 @@ fn run(console: &Console) {
     // 1. File System Tree
     console.print("[bold]1. File System Hierarchy[/]");
 
-    let mut root = Tree::new(TreeNode::new(rich_rust::markup::parse(
+    let mut root = Tree::new(TreeNode::new(fast_rich::markup::parse(
         "[bold blue]project_root/[/]",
     )));
 
-    let mut src = TreeNode::new(rich_rust::markup::parse("[blue]src/[/]"));
-    let mut core = TreeNode::new(rich_rust::markup::parse("[bold]core/[/]"));
+    let mut src = TreeNode::new(fast_rich::markup::parse("[blue]src/[/]"));
+    let mut core = TreeNode::new(fast_rich::markup::parse("[bold]core/[/]"));
     core.add("lib.rs");
     core.add("main.rs");
     src.add(core);
     src.add("utils.rs");
 
-    let mut assets = TreeNode::new(rich_rust::markup::parse("[yellow]assets/[/]"));
+    let mut assets = TreeNode::new(fast_rich::markup::parse("[yellow]assets/[/]"));
     assets.add("logo.png");
     assets.add("styles.css");
 
@@ -33,10 +33,10 @@ fn run(console: &Console) {
     // 2. Guide Styles
     console.print("[bold]2. Guide Styles[/]");
     let styles = [
-        ("Unicode (Default)", rich_rust::tree::GuideStyle::Unicode),
-        ("ASCII", rich_rust::tree::GuideStyle::Ascii),
-        ("Bold", rich_rust::tree::GuideStyle::Bold),
-        ("Double", rich_rust::tree::GuideStyle::Double),
+        ("Unicode (Default)", fast_rich::tree::GuideStyle::Unicode),
+        ("ASCII", fast_rich::tree::GuideStyle::Ascii),
+        ("Bold", fast_rich::tree::GuideStyle::Bold),
+        ("Double", fast_rich::tree::GuideStyle::Double),
     ];
 
     for (name, style) in styles {

@@ -1,5 +1,5 @@
-use rich_rust::console::Console;
-use rich_rust::markdown::Markdown;
+use fast_rich::console::Console;
+use fast_rich::markdown::Markdown;
 
 
 fn main() {
@@ -8,7 +8,7 @@ fn main() {
     let md_source = r#"
 # Markdown Parity Demo
 
-This example demonstrates the **rich-rust** markdown renderer, striving for parity with Python's *rich*.
+This example demonstrates the **fast-rich** markdown renderer, striving for parity with Python's *rich*.
 
 ## Features
 

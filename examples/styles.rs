@@ -1,6 +1,6 @@
 //! Styles example demonstrating the style system.
 
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 fn main() {
     let console = Console::new();
@@ -18,7 +18,7 @@ fn main() {
     let info_style = Style::new().foreground(Color::Blue);
 
     // Using Text with spans
-    let mut text = rich_rust::text::Text::new();
+    let mut text = fast_rich::text::Text::new();
     text.push_styled("ERROR: ", error_style);
     text.push("Something went wrong\n");
     text.push_styled("WARNING: ", warning_style);

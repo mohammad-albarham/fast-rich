@@ -1,4 +1,4 @@
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 fn run(console: &Console) {
     console.rule("[bold cyan]FASTRICH RUST SHOWCASE[/]");
@@ -14,7 +14,7 @@ fn run(console: &Console) {
 
     // 2. Panels
     console.print("[bold yellow]2. Panels[/]");
-    let inner_text = rich_rust::markup::parse("This is a panel with a [bold]title [/] and [blue]blue border[/].\nContent automatically wraps to fit.");
+    let inner_text = fast_rich::markup::parse("This is a panel with a [bold]title [/] and [blue]blue border[/].\nContent automatically wraps to fit.");
     let panel = Panel::new(inner_text)
         .title("Panel Example")
         .border_style(BorderStyle::Rounded)
@@ -34,19 +34,19 @@ fn run(console: &Console) {
         Text::plain("1"),
         Text::plain("alice"),
         Text::plain("Admin"),
-        rich_rust::markup::parse("[green]Active[/]"),
+        fast_rich::markup::parse("[green]Active[/]"),
     ]);
     table.add_row(vec![
         Text::plain("2"),
         Text::plain("bob"),
         Text::plain("Developer"),
-        rich_rust::markup::parse("[yellow]Away[/]"),
+        fast_rich::markup::parse("[yellow]Away[/]"),
     ]);
     table.add_row(vec![
         Text::plain("3"),
         Text::plain("charlie"),
         Text::plain("User"),
-        rich_rust::markup::parse("[red]Offline[/]"),
+        fast_rich::markup::parse("[red]Offline[/]"),
     ]);
 
     console.print_renderable(&table);
@@ -54,13 +54,13 @@ fn run(console: &Console) {
 
     // 4. Tree
     console.print("[bold yellow]4. Tree[/]");
-    let mut tree = Tree::new(rich_rust::markup::parse("[bold]Root[/]"));
+    let mut tree = Tree::new(fast_rich::markup::parse("[bold]Root[/]"));
 
-    let mut src = TreeNode::new(rich_rust::markup::parse("[blue]src/[/]"));
+    let mut src = TreeNode::new(fast_rich::markup::parse("[blue]src/[/]"));
     src.add("main.rs");
     src.add("lib.rs");
 
-    let mut tests = TreeNode::new(rich_rust::markup::parse("[blue]tests/[/]"));
+    let mut tests = TreeNode::new(fast_rich::markup::parse("[blue]tests/[/]"));
     tests.add("test_core.rs");
 
     tree.add(src);
@@ -87,8 +87,8 @@ fn run(console: &Console) {
 
     // 6. Traceback
     console.print("[bold yellow]6. Traceback (Simulated)[/]");
-    let tb = rich_rust::traceback::Traceback::from_error("Simulated connection error").with_config(
-        rich_rust::traceback::TracebackConfig {
+    let tb = fast_rich::traceback::Traceback::from_error("Simulated connection error").with_config(
+        fast_rich::traceback::TracebackConfig {
             show_source: false, // No real source to show here
             ..Default::default()
         },
@@ -100,7 +100,7 @@ fn run(console: &Console) {
     #[cfg(feature = "markdown")]
     {
         console.print("[bold yellow]7. Markdown Rendering[/]");
-        let md = rich_rust::markdown::Markdown::new(
+        let md = fast_rich::markdown::Markdown::new(
             "# Heading 1\n## Heading 2\n- List item 1\n- List item 2\n\n`code block`",
         );
         console.print_renderable(&md);
@@ -112,7 +112,7 @@ fn run(console: &Console) {
         console.newline();
         console.print("[bold yellow]8. Syntax Highlighting (JSON)[/]");
         let json = r#"{"name": "fast_rich", "speed": "blazing", "version": 0.3}"#;
-        let syntax = rich_rust::syntax::Syntax::new(json, "json");
+        let syntax = fast_rich::syntax::Syntax::new(json, "json");
         console.print_renderable(&syntax);
     }
 

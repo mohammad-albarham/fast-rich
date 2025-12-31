@@ -1,12 +1,12 @@
 //! ANSI Byte-Level Test Suite
 //!
-//! These tests verify that rich-rust produces ANSI output that matches
+//! These tests verify that fast-rich produces ANSI output that matches
 //! Python Rich reference output at the byte level.
 
 mod ansi_test_helpers;
 
 use ansi_test_helpers::{capture_markup, parse_ansi_sequences, print_ansi_diff, AnsiToken};
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 use std::fs;
 use std::path::Path;
 
@@ -255,7 +255,7 @@ fn test_adjacent_styled_spans() {
 
 #[test]
 fn test_nested_style_hint() {
-    // Note: rich-rust may not support true nesting like Python rich
+    // Note: fast-rich may not support true nesting like Python rich
     // This test documents current behavior
     let output = capture_markup("[bold][red]bold red[/][/]", 60);
 
@@ -372,7 +372,7 @@ fn test_forced_standard_color_system() {
     // Force standard color system
     let console = Console::capture()
         .width(60)
-        .color_system(rich_rust::console::ColorSystem::Standard);
+        .color_system(fast_rich::console::ColorSystem::Standard);
 
     // Print a color that would normally use 256-color (e.g., Orange/208 -> BrightRed/9?)
     // or RGB 255,128,0 -> likely Yellow or Red in standard
@@ -412,7 +412,7 @@ fn test_forced_standard_color_system() {
 fn test_forced_eightbit_color_system() {
     let console = Console::capture()
         .width(60)
-        .color_system(rich_rust::console::ColorSystem::EightBit);
+        .color_system(fast_rich::console::ColorSystem::EightBit);
 
     // Red color should use 38;5;1
     console.print("[red]Test[/]");
@@ -429,7 +429,7 @@ fn test_forced_eightbit_color_system() {
 fn test_forced_no_color_system() {
     let console = Console::capture()
         .width(60)
-        .color_system(rich_rust::console::ColorSystem::NoColor);
+        .color_system(fast_rich::console::ColorSystem::NoColor);
 
     console.print("[bold red]Test[/]");
     let output = console.get_captured_output();

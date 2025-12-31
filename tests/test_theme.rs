@@ -1,7 +1,7 @@
 //! Integration tests for theme system
 
-use rich_rust::style::Color;
-use rich_rust::theme::Theme;
+use fast_rich::style::Color;
+use fast_rich::theme::Theme;
 
 #[test]
 fn test_default_theme() {

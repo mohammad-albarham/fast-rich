@@ -1,7 +1,7 @@
-use rich_rust::console::{Console, RenderContext};
-use rich_rust::layout::Layout;
-use rich_rust::panel::Panel;
-use rich_rust::renderable::Renderable;
+use fast_rich::console::{Console, RenderContext};
+use fast_rich::layout::Layout;
+use fast_rich::panel::Panel;
+use fast_rich::renderable::Renderable;
 
 fn main() {
     let console = Console::new();

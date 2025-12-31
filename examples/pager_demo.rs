@@ -1,4 +1,4 @@
-use rich_rust::pager::Pager;
+use fast_rich::pager::Pager;
 
 fn main() {
     println!("=== Pager Demo ===\n");

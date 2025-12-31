@@ -1,5 +1,5 @@
-use rich_rust::padding::{Padding, PaddingSpec};
-use rich_rust::prelude::*;
+use fast_rich::padding::{Padding, PaddingSpec};
+use fast_rich::prelude::*;
 
 fn main() {
     let console = Console::new().width(60);

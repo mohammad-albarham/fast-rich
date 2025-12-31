@@ -1,4 +1,4 @@
-use rich_rust::nested_progress::NestedProgress;
+use fast_rich::nested_progress::NestedProgress;
 use std::thread;
 use std::time::Duration;
 

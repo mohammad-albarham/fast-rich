@@ -1,4 +1,4 @@
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 use std::thread;
 use std::time::Duration;
 
@@ -12,7 +12,7 @@ pub fn run(console: &Console) {
         std::env::var("CARGO_MANIFEST_DIR").is_ok() && std::env::args().any(|a| a == "--test");
     // Actually, cargo test runs this function.
 
-    let mut live = rich_rust::live::Live::new(Table::new(), console);
+    let mut live = fast_rich::live::Live::new(Table::new(), console);
     live.start();
 
     let mut table = Table::new();

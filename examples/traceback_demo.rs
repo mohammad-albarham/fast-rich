@@ -1,4 +1,4 @@
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 use std::error::Error;
 use std::fmt;
 
@@ -39,7 +39,7 @@ fn run(console: &Console) {
     console.newline();
 
     console.print("[bold]1. install_panic_hook()[/]");
-    console.print("Calling `rich_rust::traceback::install_panic_hook()` will catch panics and print specific tracebacks.");
+    console.print("Calling `fast_rich::traceback::install_panic_hook()` will catch panics and print specific tracebacks.");
     console.print("(Not triggering a real panic here to allow example to finish)");
     console.newline();
 
@@ -48,10 +48,10 @@ fn run(console: &Console) {
 
     if let Err(e) = trigger_error() {
         // Create traceback from error
-        let traceback = rich_rust::traceback::Traceback::from_error(&e.to_string()).with_config(
-            rich_rust::traceback::TracebackConfig {
+        let traceback = fast_rich::traceback::Traceback::from_error(&e.to_string()).with_config(
+            fast_rich::traceback::TracebackConfig {
                 show_source: false,
-                border_style: rich_rust::panel::BorderStyle::Rounded,
+                border_style: fast_rich::panel::BorderStyle::Rounded,
                 ..Default::default()
             },
         );
@@ -63,8 +63,8 @@ fn run(console: &Console) {
     // Source Code Traceback (Simulated)
     // In a real panic, this would read the file. We simulate it here by pointing to this file.
     console.print("[bold]3. Source Context[/]");
-    let _tb = rich_rust::traceback::Traceback::from_error("Error at line 67").with_config(
-        rich_rust::traceback::TracebackConfig {
+    let _tb = fast_rich::traceback::Traceback::from_error("Error at line 67").with_config(
+        fast_rich::traceback::TracebackConfig {
             show_source: true,
             context_lines: 2,
             ..Default::default()

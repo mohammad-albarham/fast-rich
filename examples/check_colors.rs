@@ -1,4 +1,4 @@
-use rich_rust::Console;
+use fast_rich::Console;
 
 fn main() {
     let console = Console::new().force_color(true);
@@ -16,7 +16,7 @@ fn main() {
     console.newline();
 
     println!("\n--- Debug Info ---");
-    let output = console.export_text(&rich_rust::text::Text::from("[bold red]Test[/]")); // This removes codes
+    let output = console.export_text(&fast_rich::text::Text::from("[bold red]Test[/]")); // This removes codes
     println!("Export text (plain): {:?}", output);
 
     // We can't easily capture stdout of the real console struct here without internal changes or piping,

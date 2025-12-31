@@ -1,5 +1,5 @@
-use rich_rust::group::{Fit, RenderGroup};
-use rich_rust::prelude::*;
+use fast_rich::group::{Fit, RenderGroup};
+use fast_rich::prelude::*;
 
 fn main() {
     let console = Console::new().width(70);

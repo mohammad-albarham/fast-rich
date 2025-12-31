@@ -1,4 +1,4 @@
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 #[derive(Debug)]
 pub struct User {
@@ -26,10 +26,10 @@ fn main() {
     };
 
     console.println("[bold yellow]Inspecting a User struct:[/]");
-    rich_rust::inspect::inspect(&user, InspectConfig::default());
+    fast_rich::inspect::inspect(&user, InspectConfig::default());
 
     console.println("");
     console.println("[bold yellow]Inspecting a standard Vector:[/]");
     let numbers = vec![1, 2, 3, 4, 5];
-    rich_rust::inspect::inspect(&numbers, InspectConfig::default());
+    fast_rich::inspect::inspect(&numbers, InspectConfig::default());
 }

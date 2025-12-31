@@ -1,6 +1,6 @@
 //! Style and color types for terminal output.
 //!
-//! This module provides the core styling primitives used throughout rich-rust.
+//! This module provides the core styling primitives used throughout fast-rich.
 //!
 //! # Examples
 //!

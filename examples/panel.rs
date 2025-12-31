@@ -1,6 +1,6 @@
 //! Panel example demonstrating panels and rules.
 
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 fn main() {
     let console = Console::new();

@@ -1,5 +1,5 @@
-use rich_rust::prelude::*;
-use rich_rust::Live;
+use fast_rich::prelude::*;
+use fast_rich::Live;
 use std::time::Duration;
 
 use crossterm::event::{self, Event, KeyCode};
@@ -29,10 +29,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Create a panel with the time
         let content = Panel::new(
             Text::plain(format!("Update sequence: {}", i))
-                .alignment(rich_rust::Alignment::Center)
+                .alignment(fast_rich::Alignment::Center)
         )
         .title("Live Display")
-        .style(rich_rust::Style::new().foreground(rich_rust::Color::Cyan));
+        .style(fast_rich::Style::new().foreground(fast_rich::Color::Cyan));
 
         live.update(content);
     }

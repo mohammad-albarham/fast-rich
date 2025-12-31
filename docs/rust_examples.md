@@ -1,6 +1,6 @@
 # Rust Examples
 
-This page demonstrates the capabilities of the `rich-rust` library with runnable examples.
+This page demonstrates the capabilities of the `fast-rich` library with runnable examples.
 
 ## How to Run
 

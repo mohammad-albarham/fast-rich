@@ -1,4 +1,4 @@
-//! # rich-rust
+//! # fast-rich
 //!
 //! A Rust port of Python's [Rich](https://github.com/Textualize/rich) library
 //! for beautiful terminal formatting.
@@ -7,7 +7,9 @@
 //!
 //! - **Rich text** with colors, styles, and markup
 //! - **Tables** with Unicode borders and auto-sizing
-//! - **Progress bars** with multiple tasks and spinners
+//! - **Progress bars** with multiple tasks, spinners, and customizable columns
+//! - **Live Display** for flicker-free auto-updating content
+//! - **Logging** handler for colorful structured logs
 //! - **Tree views** for hierarchical data
 //! - **Panels** and **Rules** for visual organization
 //! - **Markdown** rendering (optional)

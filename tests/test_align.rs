@@ -1,9 +1,9 @@
 //! Integration tests for align wrapper
 
-use rich_rust::align::{Align, VerticalAlignment};
-use rich_rust::console::RenderContext;
-use rich_rust::renderable::Renderable;
-use rich_rust::text::Text;
+use fast_rich::align::{Align, VerticalAlignment};
+use fast_rich::console::RenderContext;
+use fast_rich::renderable::Renderable;
+use fast_rich::text::Text;
 
 #[test]
 fn test_align_center() {

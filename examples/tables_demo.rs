@@ -1,4 +1,4 @@
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 fn run(console: &Console) {
     console.rule("[bold cyan]Table Features Demo[/]");
@@ -25,33 +25,33 @@ fn run(console: &Console) {
         .add_column(
             Column::new("Region")
                 .align(ColumnAlign::Left)
-                .width(rich_rust::table::ColumnWidth::Fixed(10)),
+                .width(fast_rich::table::ColumnWidth::Fixed(10)),
         )
         .add_column(
             Column::new("Status")
                 .align(ColumnAlign::Center)
-                .width(rich_rust::table::ColumnWidth::Fixed(10)),
+                .width(fast_rich::table::ColumnWidth::Fixed(10)),
         )
         .add_column(
             Column::new("Uptime")
                 .align(ColumnAlign::Right)
-                .width(rich_rust::table::ColumnWidth::Fixed(10)),
+                .width(fast_rich::table::ColumnWidth::Fixed(10)),
         );
 
     table2.add_row(vec![
-        rich_rust::text::Text::plain("US-East"),
-        rich_rust::markup::parse("[green]Online[/]"),
-        rich_rust::text::Text::plain("99.9%"),
+        fast_rich::text::Text::plain("US-East"),
+        fast_rich::markup::parse("[green]Online[/]"),
+        fast_rich::text::Text::plain("99.9%"),
     ]);
     table2.add_row(vec![
-        rich_rust::text::Text::plain("EU-West"),
-        rich_rust::markup::parse("[yellow]Degraded[/]"),
-        rich_rust::text::Text::plain("95.0%"),
+        fast_rich::text::Text::plain("EU-West"),
+        fast_rich::markup::parse("[yellow]Degraded[/]"),
+        fast_rich::text::Text::plain("95.0%"),
     ]);
     table2.add_row(vec![
-        rich_rust::text::Text::plain("AP-South"),
-        rich_rust::markup::parse("[red]Offline[/]"),
-        rich_rust::text::Text::plain("0.0%"),
+        fast_rich::text::Text::plain("AP-South"),
+        fast_rich::markup::parse("[red]Offline[/]"),
+        fast_rich::text::Text::plain("0.0%"),
     ]);
 
     console.print_renderable(&table2);
@@ -60,13 +60,13 @@ fn run(console: &Console) {
     // 3. Border Styles
     console.print("[bold]3. Border Variations[/]");
     let styles = [
-        ("Rounded", rich_rust::panel::BorderStyle::Rounded),
-        ("Square", rich_rust::panel::BorderStyle::Square),
-        ("Heavy", rich_rust::panel::BorderStyle::Heavy),
-        ("Double", rich_rust::panel::BorderStyle::Double),
-        ("Ascii", rich_rust::panel::BorderStyle::Ascii),
-        ("Minimal", rich_rust::panel::BorderStyle::Minimal),
-        ("Hidden", rich_rust::panel::BorderStyle::Hidden),
+        ("Rounded", fast_rich::panel::BorderStyle::Rounded),
+        ("Square", fast_rich::panel::BorderStyle::Square),
+        ("Heavy", fast_rich::panel::BorderStyle::Heavy),
+        ("Double", fast_rich::panel::BorderStyle::Double),
+        ("Ascii", fast_rich::panel::BorderStyle::Ascii),
+        ("Minimal", fast_rich::panel::BorderStyle::Minimal),
+        ("Hidden", fast_rich::panel::BorderStyle::Hidden),
     ];
 
     for (name, style) in styles {
@@ -89,13 +89,13 @@ fn run(console: &Console) {
 
     // Manual markup in cells
     table3.add_row(vec![
-        rich_rust::markup::parse("[yellow]WARN[/]"),
-        rich_rust::markup::parse("Memory usage high"),
+        fast_rich::markup::parse("[yellow]WARN[/]"),
+        fast_rich::markup::parse("Memory usage high"),
     ]);
 
     table3.add_row(vec![
-        rich_rust::markup::parse("[red bold]ERROR[/]"),
-        rich_rust::markup::parse("[red]Disk full[/]"),
+        fast_rich::markup::parse("[red bold]ERROR[/]"),
+        fast_rich::markup::parse("[red]Disk full[/]"),
     ]);
 
     console.print_renderable(&table3);

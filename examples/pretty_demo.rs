@@ -1,4 +1,4 @@
-use rich_rust::prelude::*;
+use fast_rich::prelude::*;
 
 #[allow(dead_code)] // Fields are accessed via Debug trait
 #[derive(Debug)]

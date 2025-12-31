@@ -1,5 +1,5 @@
 use log::{debug, error, info, trace, warn};
-use rich_rust::log::RichLogger;
+use fast_rich::log::RichLogger;
 
 fn main() {
     // Initialize the logger with default settings

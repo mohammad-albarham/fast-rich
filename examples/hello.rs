@@ -1,4 +1,4 @@
-use rich_rust::console::Console;
+use fast_rich::console::Console;
 
 // Logic extracted for testability
 fn run(console: &Console) {

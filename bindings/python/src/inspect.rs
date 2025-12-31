@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
-use rich_rust::console::Console;
-use rich_rust::panel::Panel;
+use fast_rich::console::Console;
+use fast_rich::panel::Panel;
 
 #[pyfunction]
 #[pyo3(signature = (obj, methods=false, help=false))]
@@ -32,9 +32,9 @@ pub fn inspect(_py: Python<'_>, obj: Bound<'_, PyAny>, methods: bool, help: bool
         }
     }
 
-    let panel = Panel::new(rich_rust::markup::parse(&report))
+    let panel = Panel::new(fast_rich::markup::parse(&report))
         .title(&format!("Inspect: [bold cyan]{}[/]", type_name))
-        .style(rich_rust::style::Style::new().foreground(rich_rust::style::Color::Magenta));
+        .style(fast_rich::style::Style::new().foreground(fast_rich::style::Color::Magenta));
 
     console.print_renderable(&panel);
     Ok(())

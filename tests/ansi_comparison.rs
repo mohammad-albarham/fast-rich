@@ -1,24 +1,24 @@
 //! ANSI Comparison Test Suite
-//! Compares rich-rust output with Python Rich reference output
+//! Compares fast-rich output with Python Rich reference output
 
-use rich_rust::align::Align;
-use rich_rust::prelude::*;
+use fast_rich::align::Align;
+use fast_rich::prelude::*;
 use std::fs;
 use std::path::Path;
 
-fn capture_ansi(renderable: &dyn rich_rust::renderable::Renderable, width: usize) -> String {
+fn capture_ansi(renderable: &dyn fast_rich::renderable::Renderable, width: usize) -> String {
     let console = Console::capture().width(width).force_color(true);
     console.print_renderable(renderable);
     console.get_captured_output()
 }
 
 fn test_basic_styles() -> String {
-    let text = rich_rust::markup::parse("[bold]Bold[/] [italic]Italic[/] [underline]Underline[/]");
+    let text = fast_rich::markup::parse("[bold]Bold[/] [italic]Italic[/] [underline]Underline[/]");
     capture_ansi(&text, 60)
 }
 
 fn test_colors() -> String {
-    let text = rich_rust::markup::parse(
+    let text = fast_rich::markup::parse(
         "[red]Red[/] [green]Green[/] [blue]Blue[/] [rgb(255,128,0)]Orange[/]",
     );
     capture_ansi(&text, 60)
@@ -36,7 +36,7 @@ fn test_table() -> String {
 }
 
 fn test_panel() -> String {
-    let content = rich_rust::markup::parse("Hello, [bold green]World[/]!");
+    let content = fast_rich::markup::parse("Hello, [bold green]World[/]!");
     let panel = Panel::new(content).title("Greeting");
     capture_ansi(&panel, 60)
 }
@@ -49,13 +49,13 @@ fn test_align() -> String {
 
 fn test_padding() -> String {
     let text = Text::plain("Padded").style(Style::new().foreground(Color::Cyan));
-    let padded = rich_rust::padding::Padding::symmetric(text, 1, 2);
+    let padded = fast_rich::padding::Padding::symmetric(text, 1, 2);
     capture_ansi(&padded, 60)
 }
 
 fn test_theme() -> String {
     // Rich-rust doesn't have markup tags like [success], so we'll test raw theme colors
-    let theme = rich_rust::theme::Theme::default_theme();
+    let theme = fast_rich::theme::Theme::default_theme();
     let mut segments = Vec::new();
     segments.push(Text::plain("Success").style(theme.get_style("success")));
     segments.push(Text::plain(" "));

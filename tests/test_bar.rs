@@ -1,9 +1,9 @@
 //! Integration tests for bar charts
 
-use rich_rust::bar::{BarChart, BarData};
-use rich_rust::console::RenderContext;
-use rich_rust::renderable::Renderable;
-use rich_rust::style::Color;
+use fast_rich::bar::{BarChart, BarData};
+use fast_rich::console::RenderContext;
+use fast_rich::renderable::Renderable;
+use fast_rich::style::Color;
 
 #[test]
 fn test_bar_chart_creation() {

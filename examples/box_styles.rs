@@ -1,6 +1,6 @@
-use rich_rust::console::Console;
-use rich_rust::panel::BorderStyle;
-use rich_rust::table::Table;
+use fast_rich::console::Console;
+use fast_rich::panel::BorderStyle;
+use fast_rich::table::Table;
 
 fn main() {
     let console = Console::new();

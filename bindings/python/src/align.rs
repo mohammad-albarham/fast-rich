@@ -2,8 +2,8 @@ use crate::panel::PyPanel;
 use crate::table::PyTable;
 use crate::text::PyText;
 use pyo3::prelude::*;
-use rich_rust::align::{Align, VerticalAlignment};
-use rich_rust::text::Alignment;
+use fast_rich::align::{Align, VerticalAlignment};
+use fast_rich::text::Alignment;
 
 #[pyclass(name = "Align")]
 pub struct PyAlign {
@@ -22,9 +22,9 @@ impl PyAlign {
         pad: bool,
     ) -> PyResult<Self> {
         let _ = pad; // Suppress unused variable warning
-        let child: Box<dyn rich_rust::renderable::Renderable + Send + Sync> =
+        let child: Box<dyn fast_rich::renderable::Renderable + Send + Sync> =
             if let Ok(text) = renderable.extract::<String>() {
-                Box::new(rich_rust::text::Text::plain(text))
+                Box::new(fast_rich::text::Text::plain(text))
             } else if let Ok(py_text) = renderable.downcast::<PyText>() {
                 Box::new(py_text.borrow().inner.clone())
             } else if let Ok(py_panel) = renderable.downcast::<PyPanel>() {

@@ -4,7 +4,7 @@
 > **Date**: 2025-12-30
 > **Platform**: macOS (Apple Silicon)
 
-This document tracks the performance evolution of `rich-rust` compared to the reference Python `rich` library.
+This document tracks the performance evolution of `fast-rich` compared to the reference Python `rich` library.
 
 ## 📈 Performance Evolution (History)
 

@@ -1,5 +1,5 @@
 // Test file to debug markup spacing issue
-use rich_rust::markup;
+use fast_rich::markup;
 
 fn main() {
     println!("=== Markup Spacing Debug ===\n");

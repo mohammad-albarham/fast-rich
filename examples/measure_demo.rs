@@ -1,5 +1,5 @@
-use rich_rust::measure::Measurable;
-use rich_rust::prelude::*;
+use fast_rich::measure::Measurable;
+use fast_rich::prelude::*;
 
 fn main() {
     let console = Console::new().width(70);

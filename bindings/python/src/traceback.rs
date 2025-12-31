@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use rich_rust::traceback::{Traceback, TracebackConfig};
+use fast_rich::traceback::{Traceback, TracebackConfig};
 
 #[pyclass(name = "Traceback")]
 pub struct PyTraceback {

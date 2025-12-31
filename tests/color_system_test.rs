@@ -1,4 +1,4 @@
-use rich_rust::console::{ColorSystem, Console};
+use fast_rich::console::{ColorSystem, Console};
 
 #[test]
 fn test_color_system_standard_downsampling() {

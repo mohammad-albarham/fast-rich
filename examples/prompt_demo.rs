@@ -1,5 +1,5 @@
-use rich_rust::prelude::*;
-use rich_rust::prompt::{Confirm, IntPrompt, Prompt};
+use fast_rich::prelude::*;
+use fast_rich::prompt::{Confirm, IntPrompt, Prompt};
 
 fn main() {
     let console = Console::new();

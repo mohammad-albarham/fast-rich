@@ -1,21 +1,21 @@
-# Getting Started with Rich-Rust
+# Getting Started with Fast-Rich
 
-**rich-rust** is a library for writing beautiful terminal software in Rust. It allows you to add color and style to text, create complex layouts, display tables, render markdown, and more.
+**fast-rich** is a library for writing beautiful terminal software in Rust. It allows you to add color and style to text, create complex layouts, display tables, render markdown, and more.
 
 ## Installation
 
-Add `rich-rust` to your `Cargo.toml`:
+Add `fast-rich` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rich-rust = "0.2.0"
+fast-rich = "0.2.0"
 ```
 
 To enable all features (Markdown, Syntax Highlighting, etc.):
 
 ```toml
 [dependencies]
-rich-rust = { version = "0.2.0", features = ["full"] }
+fast-rich = { version = "0.2.0", features = ["full"] }
 ```
 
 ## Basic Usage

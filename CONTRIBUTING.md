@@ -1,6 +1,6 @@
-# Contributing to rich-rust
+# Contributing to fast-rich
 
-Thank you for your interest in contributing to `rich-rust`! We welcome contributions of all forms, including bug reports, feature requests, documentation improvements, and code changes.
+Thank you for your interest in contributing to `fast-rich`! We welcome contributions of all forms, including bug reports, feature requests, documentation improvements, and code changes.
 
 ## Development Setup
 
@@ -11,8 +11,8 @@ Thank you for your interest in contributing to `rich-rust`! We welcome contribut
 
 2.  **Clone the repository**:
     ```bash
-    git clone https://github.com/mohammad-albarham/rich-rust
-    cd rich-rust
+    git clone https://github.com/mohammad-albarham/fast-rich
+    cd fast-rich
     ```
 
 3.  **Run Tests**:

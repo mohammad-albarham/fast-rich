@@ -1,7 +1,7 @@
 //! Integration tests for highlighter system
 
-use rich_rust::highlighter::{highlight_text, Highlighter, RegexHighlighter};
-use rich_rust::style::{Color, Style};
+use fast_rich::highlighter::{highlight_text, Highlighter, RegexHighlighter};
+use fast_rich::style::{Color, Style};
 
 #[test]
 fn test_regex_highlighter_creation() {

@@ -29,7 +29,7 @@ nav:
   - Rust Library:
     - Getting Started: rust_getting_started.md
     - Examples: rust_examples.md
-    - Tutorial: Dashboard: tutorial_dashboard.md
+    - "Tutorial - Dashboard": tutorial_dashboard.md
     - Benchmarks: benchmarks.md
     - API Reference: api.md
   - Python Bindings:

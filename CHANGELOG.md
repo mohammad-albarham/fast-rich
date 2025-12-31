@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-01-01
+
+### Fixed
+- **CI**: Resolved `Rustfmt` failures and Windows-specific line ending mismatches in byte-level tests.
+
+### Added
+- **README**: Polished Documentation section with high-fidelity badges and corrected links.
+
 ## [0.3.0] - 2025-12-31
 
 ### Added

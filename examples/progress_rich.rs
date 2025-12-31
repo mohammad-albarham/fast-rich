@@ -7,7 +7,7 @@ use std::thread;
 use std::time::Duration;
 
 fn main() {
-    let mut console = Console::new();
+    let _console = Console::new();
     println!("Rich Progress Enhancement Demo\n============================");
 
     let progress = Progress::new().with_columns(vec![

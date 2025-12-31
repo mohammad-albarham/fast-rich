@@ -34,6 +34,7 @@
 
 // Core modules
 pub mod align;
+pub mod box_drawing;
 pub mod bar;
 pub mod console;
 pub mod emoji;

@@ -72,7 +72,7 @@ impl ProgressColumn for BarColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
         let total = task.total.unwrap_or(100) as f64;
         let completed = task.completed as f64;
-        let percentage = (completed / total).min(1.0).max(0.0);
+        let percentage = (completed / total).clamp(0.0, 1.0);
         
         let width = self.bar_width;
         let filled_width = (width as f64 * percentage).round() as usize;
@@ -99,6 +99,12 @@ impl ProgressColumn for BarColumn {
 #[derive(Debug)]
 pub struct PercentageColumn(pub Style);
 
+impl Default for PercentageColumn {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PercentageColumn {
     pub fn new() -> Self {
         Self(Style::new().foreground(Color::Cyan))
@@ -116,6 +122,12 @@ impl ProgressColumn for PercentageColumn {
 #[derive(Debug)]
 pub struct SpinnerColumn {
     spinner: Spinner, // Use generic spinner for frames
+}
+
+impl Default for SpinnerColumn {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SpinnerColumn {
@@ -192,6 +204,12 @@ fn format_duration(d: Duration) -> String {
 #[derive(Debug)]
 pub struct MofNColumn {
     separator: String
+}
+
+impl Default for MofNColumn {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl MofNColumn {

@@ -7,7 +7,7 @@ use fast_rich::table::Table;
 fn render<T: Renderable>(item: &T) -> String {
     let context = RenderContext {
         width: 40,
-        height: None,
+        height: None, direction: Default::default(),
     };
     let segments = item.render(&context);
     segments

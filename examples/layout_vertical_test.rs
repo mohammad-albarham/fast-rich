@@ -48,6 +48,7 @@ fn main() {
     let context = RenderContext {
         width: 80,
         height: Some(20),
+        direction: Default::default(),
     };
 
     let segments = root.render(&context);

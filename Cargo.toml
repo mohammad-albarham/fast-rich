@@ -25,6 +25,8 @@ crossterm = "0.28"
 pulldown-cmark = { version = "0.12", optional = true }
 syntect = { version = "5.2", optional = true }
 log = { version = "0.4", optional = true }
+unicode-bidi = { version = "0.3", optional = true }
+ar-reshaper = { version = "1.5", optional = true }
 regex = "1.12.2"
 
 [features]
@@ -32,8 +34,9 @@ default = []
 markdown = ["dep:pulldown-cmark"]
 syntax = ["dep:syntect"]
 logging = ["dep:log"]
+rtl = ["dep:unicode-bidi", "dep:ar-reshaper"]
 std = []
-full = ["markdown", "syntax", "logging", "std"]
+full = ["markdown", "syntax", "logging", "rtl", "std"]
 
 [dev-dependencies]
 insta = "1.40"  # Snapshot testing

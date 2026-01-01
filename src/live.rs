@@ -99,7 +99,7 @@ impl<'a> Live<'a> {
         let width = self.console.get_width();
         let context = RenderContext {
             width,
-            height: None,
+            height: None, direction: Default::default(),
         };
 
         let segments = self.renderable.render(&context);

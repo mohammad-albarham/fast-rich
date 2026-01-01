@@ -12,7 +12,7 @@ fn test_bar_chart_creation() {
 
     let context = RenderContext {
         width: 60,
-        height: None,
+        height: None, direction: Default::default(),
     };
     let segments = chart.render(&context);
 
@@ -43,7 +43,7 @@ fn test_multiple_bars() {
 
     let context = RenderContext {
         width: 60,
-        height: None,
+        height: None, direction: Default::default(),
     };
     let segments = chart.render(&context);
 
@@ -55,7 +55,7 @@ fn test_empty_chart() {
     let chart = BarChart::new();
     let context = RenderContext {
         width: 60,
-        height: None,
+        height: None, direction: Default::default(),
     };
     let segments = chart.render(&context);
 

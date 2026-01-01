@@ -220,7 +220,7 @@ mod tests {
         let tb = Traceback::from_error("Test error");
         let context = RenderContext {
             width: 60,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = tb.render(&context);
 

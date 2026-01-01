@@ -543,7 +543,7 @@ mod tests {
         let md = Markdown::new("# Hello\n\nWorld");
         let context = RenderContext {
             width: 40,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = md.render(&context);
         assert!(!segments.is_empty());
@@ -554,7 +554,7 @@ mod tests {
         let md = Markdown::new("| Col1 | Col2 |\n|---|---|\n| Val1 | Val2 |");
         let context = RenderContext {
             width: 40,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = md.render(&context);
         assert!(!segments.is_empty());
@@ -565,7 +565,7 @@ mod tests {
         let md = Markdown::new("```rust\nfn main() {}\n```");
         let context = RenderContext {
             width: 40,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = md.render(&context);
         assert!(!segments.is_empty());

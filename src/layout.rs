@@ -213,6 +213,7 @@ impl Renderable for Layout {
                     let child_ctx = RenderContext {
                         width: context.width,
                         height: Some(h),
+                        direction: context.direction,
                     };
                     let child_segments = child.render(&child_ctx);
 
@@ -266,6 +267,7 @@ impl Renderable for Layout {
                 let child_ctx = RenderContext {
                     width: w,
                     height: target_height,
+                    direction: context.direction,
                 };
                 let child_segs = child.render(&child_ctx);
                 max_lines = std::cmp::max(max_lines, child_segs.len());
@@ -411,6 +413,7 @@ mod tests {
         let context = RenderContext {
             width: 80,
             height: Some(10),
+            direction: Default::default(),
         };
         let segments = layout.render(&context);
 
@@ -434,6 +437,7 @@ mod tests {
         let context = RenderContext {
             width: 80,
             height: None,
+            direction: Default::default(),
         };
         let segments = layout.render(&context);
 
@@ -453,6 +457,7 @@ mod tests {
         let context = RenderContext {
             width: 80,
             height: Some(5),
+            direction: Default::default(),
         };
         let segments = layout.render(&context);
 

@@ -4,6 +4,7 @@
 //! word wrapping, alignment, and combining multiple styled spans.
 
 use crate::style::Style;
+use crate::bidi::{TextDirection, is_rtl};
 use std::borrow::Cow;
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
@@ -101,6 +102,8 @@ pub struct Text {
     pub overflow: Overflow,
     /// Optional style applied to the whole text
     pub style: Style,
+    /// Text direction
+    pub direction: TextDirection,
 }
 
 impl Text {
@@ -152,6 +155,12 @@ impl Text {
     /// Set the alignment.
     pub fn alignment(mut self, alignment: Alignment) -> Self {
         self.alignment = alignment;
+        self
+    }
+
+    /// Set the text direction.
+    pub fn direction(mut self, direction: TextDirection) -> Self {
+        self.direction = direction;
         self
     }
 
@@ -300,7 +309,7 @@ impl Text {
     }
 
     /// Apply alignment to a line, returning padded spans.
-    pub fn align_line(&self, line: Vec<Span>, width: usize) -> Vec<Span> {
+    pub fn align_line(&self, line: Vec<Span>, width: usize, direction: TextDirection) -> Vec<Span> {
         let line_width: usize = line.iter().map(|s| s.width()).sum();
 
         if line_width >= width {
@@ -309,18 +318,43 @@ impl Text {
 
         let padding = width - line_width;
 
-        match self.alignment {
-            Alignment::Left => {
-                // Don't add padding for left alignment (professional behavior)
-                // This prevents visual artifacts and matches Python rich
+        // Resolve direction for this specific line if Auto
+        let is_rtl = match direction {
+            TextDirection::Ltr => false,
+            TextDirection::Rtl => true,
+            TextDirection::Auto => {
+                 let line_text: String = line.iter().map(|s| s.text.as_ref()).collect();
+                 is_rtl(&line_text)
+            }
+        };
+
+        match (self.alignment, is_rtl) {
+            (Alignment::Left, false) => {
+                // LTR Left: No padding
                 line
             }
-            Alignment::Right => {
+            (Alignment::Left, true) => {
+                // RTL Left: This means "Start" alignment in RTL, which is visually Right.
+                // So we pad Left.
                 let mut result = vec![Span::raw(" ".repeat(padding))];
                 result.extend(line);
                 result
             }
-            Alignment::Center => {
+            (Alignment::Right, false) => {
+                // LTR Right: Pad Left
+                let mut result = vec![Span::raw(" ".repeat(padding))];
+                result.extend(line);
+                result
+            }
+            (Alignment::Right, true) => {
+                // RTL Right: This means "End" alignment in RTL, which is visually Left.
+                // So we pad Right (or no padding if at left).
+                // For explicit Alignment::Right, we treat it as visual right, so pad left.
+                let mut result = vec![Span::raw(" ".repeat(padding))];
+                result.extend(line);
+                result
+            }
+            (Alignment::Center, _) => {
                 let left_pad = padding / 2;
                 let right_pad = padding - left_pad;
                 let mut result = vec![Span::raw(" ".repeat(left_pad))];
@@ -493,7 +527,7 @@ mod tests {
     fn test_alignment_left() {
         let text = Text::plain("hi").alignment(Alignment::Left);
         let lines = text.wrap(10);
-        let aligned = text.align_line(lines[0].clone(), 10);
+        let aligned = text.align_line(lines[0].clone(), 10, TextDirection::Ltr);
         let plain: String = aligned.iter().map(|s| s.text.as_ref()).collect();
         // Left alignment no longer adds padding (professional behavior)
         assert_eq!(plain, "hi");
@@ -503,7 +537,7 @@ mod tests {
     fn test_alignment_right() {
         let text = Text::plain("hi").alignment(Alignment::Right);
         let lines = text.wrap(10);
-        let aligned = text.align_line(lines[0].clone(), 10);
+        let aligned = text.align_line(lines[0].clone(), 10, TextDirection::Ltr);
         let plain: String = aligned.iter().map(|s| s.text.as_ref()).collect();
         assert_eq!(plain, "        hi");
     }
@@ -512,7 +546,7 @@ mod tests {
     fn test_alignment_center() {
         let text = Text::plain("hi").alignment(Alignment::Center);
         let lines = text.wrap(10);
-        let aligned = text.align_line(lines[0].clone(), 10);
+        let aligned = text.align_line(lines[0].clone(), 10, TextDirection::Ltr);
         let plain: String = aligned.iter().map(|s| s.text.as_ref()).collect();
         assert_eq!(plain, "    hi    ");
     }

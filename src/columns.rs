@@ -197,7 +197,7 @@ mod tests {
 
         let context = RenderContext {
             width: 30,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = columns.render(&context);
 
@@ -212,7 +212,7 @@ mod tests {
 
         let context = RenderContext {
             width: 40,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = columns.render(&context);
 
@@ -225,7 +225,7 @@ mod tests {
         let columns = Columns::new(Vec::<&str>::new());
         let context = RenderContext {
             width: 40,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = columns.render(&context);
         assert!(segments.is_empty());

@@ -105,11 +105,18 @@ impl Renderable for &str {
 /// Implement Renderable for Text.
 impl Renderable for crate::text::Text {
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
+        // Determine direction: Text's explicit direction overrides context, unless Auto
+        let direction = if self.direction == crate::bidi::TextDirection::Auto {
+            context.direction
+        } else {
+            self.direction
+        };
+
         let lines = self.wrap(context.width);
         lines
             .into_iter()
             .map(|line| {
-                let aligned = self.align_line(line, context.width);
+                let aligned = self.align_line(line, context.width, direction);
                 Segment::line(aligned)
             })
             .collect()
@@ -168,7 +175,7 @@ mod tests {
         let s = "Hello, World!".to_string();
         let context = RenderContext {
             width: 80,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = s.render(&context);
         assert_eq!(segments.len(), 1);

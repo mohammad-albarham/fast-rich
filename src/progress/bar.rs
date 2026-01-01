@@ -240,7 +240,7 @@ impl Progress {
     pub fn render_to_string(&self) -> String {
         let context = RenderContext {
             width: 80,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = self.render(&context);
 

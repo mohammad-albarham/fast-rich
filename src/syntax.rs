@@ -306,7 +306,7 @@ mod tests {
         let syntax = Syntax::new("let x = 42;", "rust");
         let context = RenderContext {
             width: 60,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = syntax.render(&context);
 
@@ -318,7 +318,7 @@ mod tests {
         let syntax = Syntax::new("print('hello')", "python").panel(false);
         let context = RenderContext {
             width: 60,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = syntax.render(&context);
 
@@ -330,7 +330,7 @@ mod tests {
         let syntax = Syntax::new("x = 1", "python").line_numbers(false);
         let context = RenderContext {
             width: 60,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = syntax.render(&context);
 
@@ -342,7 +342,7 @@ mod tests {
         let syntax = Syntax::new("let x = 42;", "rust").theme(Theme::SolarizedDark);
         let context = RenderContext {
             width: 60,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = syntax.render(&context);
 

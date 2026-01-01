@@ -296,7 +296,7 @@ mod tests {
 
         let context = RenderContext {
             width: 40,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = tree.render(&context);
 
@@ -312,7 +312,7 @@ mod tests {
 
         let context = RenderContext {
             width: 40,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = tree.render(&context);
 
@@ -329,7 +329,7 @@ mod tests {
 
         let context = RenderContext {
             width: 40,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = tree.render(&context);
 
@@ -349,7 +349,7 @@ mod tests {
 
         let context = RenderContext {
             width: 40,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = tree.render(&context);
 

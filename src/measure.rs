@@ -30,7 +30,7 @@ impl Measurement {
     pub fn measure(renderable: &impl Renderable, width: usize) -> Self {
         let context = RenderContext {
             width,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = renderable.render(&context);
 

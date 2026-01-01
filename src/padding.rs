@@ -94,7 +94,7 @@ impl Renderable for Padding {
             .saturating_sub(self.spec.left + self.spec.right);
         let child_context = RenderContext {
             width: child_width,
-            height: None,
+            height: None, direction: Default::default(),
         };
 
         // Render child

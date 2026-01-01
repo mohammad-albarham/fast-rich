@@ -79,6 +79,10 @@ pub mod markdown;
 #[cfg(feature = "syntax")]
 pub mod syntax;
 
+// RTL/Bidirectional text support
+pub mod shaping;
+pub mod bidi;
+
 // Re-exports for convenience
 pub use console::Console;
 pub use layout::Layout;
@@ -161,7 +165,8 @@ mod tests {
         assert!(!table
             .render(&console::RenderContext {
                 width: 40,
-                height: None
+                height: None,
+                direction: Default::default(),
             })
             .is_empty());
     }

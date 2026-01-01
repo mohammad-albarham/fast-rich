@@ -15,6 +15,7 @@
 use crate::markup;
 use crate::renderable::{Renderable, Segment};
 use crate::text::{Span, Text};
+use crate::bidi::TextDirection;
 
 use crossterm::{
     execute,
@@ -45,6 +46,8 @@ pub struct RenderContext {
     pub width: usize,
     /// Available height for rendering (optional).
     pub height: Option<usize>,
+    /// Text direction for rendering.
+    pub direction: TextDirection,
 }
 
 impl Default for RenderContext {
@@ -52,6 +55,7 @@ impl Default for RenderContext {
         RenderContext {
             width: 80,
             height: None,
+            direction: TextDirection::Auto,
         }
     }
 }
@@ -91,6 +95,8 @@ pub struct Console {
     emoji: bool,
     /// Soft wrap text at terminal width
     soft_wrap: bool,
+    /// Text direction
+    direction: TextDirection,
     /// Whether recording is enabled
     record: std::sync::Arc<std::sync::atomic::AtomicBool>,
     /// Buffer for recorded segments
@@ -142,6 +148,7 @@ impl Console {
             markup: true,
             emoji: true,
             soft_wrap: true,
+            direction: TextDirection::Auto,
             record: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             recording: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
         }
@@ -159,6 +166,7 @@ impl Console {
             markup: true,
             emoji: true,
             soft_wrap: true,
+            direction: TextDirection::Auto,
             record: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             recording: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
         }
@@ -177,6 +185,7 @@ impl Console {
             markup: true,
             emoji: true,
             soft_wrap: true,
+            direction: TextDirection::Auto,
             record: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             recording: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
         }
@@ -314,10 +323,17 @@ impl Console {
         let context = RenderContext {
             width: self.get_width(),
             height: None,
+            direction: self.direction,
         };
 
         let segments = renderable.render(&context);
         self.write_segments(&segments);
+    }
+
+    /// Set the text direction.
+    pub fn direction(mut self, direction: TextDirection) -> Self {
+        self.direction = direction;
+        self
     }
 
     /// Print a line (with newline at the end).
@@ -364,7 +380,16 @@ impl Console {
         }
 
         for segment in segments {
-            for span in &segment.spans {
+            // Apply BiDi reordering
+            // We use Cow to avoid allocation if no reordering is needed (e.g. forced LTR)
+            // primarily relying on reorder_styled_spans to handle the "Auto" logic efficiently.
+            let spans = if matches!(self.direction, TextDirection::Ltr) {
+                std::borrow::Cow::Borrowed(&segment.spans)
+            } else {
+                std::borrow::Cow::Owned(crate::bidi::reorder_styled_spans(&segment.spans, self.direction))
+            };
+
+            for span in spans.iter() {
                 self.write_span(span);
             }
             if segment.newline {
@@ -596,6 +621,7 @@ impl Console {
         let context = RenderContext {
             width: self.get_width(),
             height: None,
+            direction: self.direction,
         };
         let segments = renderable.render(&context);
         self.segments_to_text(&segments)
@@ -619,6 +645,7 @@ impl Console {
         let context = RenderContext {
             width: self.get_width(),
             height: None,
+            direction: self.direction,
         };
         let segments = renderable.render(&context);
         self.segments_to_html(&segments)
@@ -663,6 +690,7 @@ impl Console {
         let context = RenderContext {
             width: self.get_width(),
             height: None,
+            direction: self.direction,
         };
         let segments = renderable.render(&context);
         self.segments_to_svg(&segments)

@@ -30,6 +30,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5192cca8006f1fd4f7237516f40fa183bb07f8fbdfedaa0036de5ea9b0b45e78"
 
 [[package]]
+name = "ar-reshaper"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08dae85b57b725df143d5a2eb92c032dd032f062a636826fda1e1a4b21c40c03"
+
+[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -290,6 +296,7 @@ dependencies = [
 name = "fast-rich"
 version = "0.3.1"
 dependencies = [
+ "ar-reshaper",
  "criterion",
  "crossterm",
  "insta",
@@ -298,6 +305,7 @@ dependencies = [
  "regex",
  "syntect",
  "terminal_size",
+ "unicode-bidi",
  "unicode-segmentation",
  "unicode-width",
 ]
@@ -1107,6 +1115,12 @@ name = "unicase"
 version = "2.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75b844d17643ee918803943289730bec8aac480150456169e647ed0b576ba539"
+
+[[package]]
+name = "unicode-bidi"
+version = "0.3.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c1cb5db39152898a79168971543b1cb5020dff7fe43c8dc468b0885f5e29df5"
 
 [[package]]
 name = "unicode-ident"

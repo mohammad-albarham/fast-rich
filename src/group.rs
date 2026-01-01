@@ -86,7 +86,7 @@ impl Renderable for RenderGroup {
                 Fit::Fill => context.clone(),
                 Fit::Shrink => RenderContext {
                     width: renderable.min_width().min(context.width),
-                    height: None,
+                    height: None, direction: Default::default(),
                 },
             };
 

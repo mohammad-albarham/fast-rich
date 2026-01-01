@@ -370,7 +370,7 @@ mod tests {
         let msg = LogMessage::new("Hello").level(LogLevel::Info);
         let context = RenderContext {
             width: 80,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = msg.render(&context);
 

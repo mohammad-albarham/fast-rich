@@ -155,7 +155,7 @@ mod tests {
         let rule = Rule::line();
         let context = RenderContext {
             width: 10,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = rule.render(&context);
         assert_eq!(segments.len(), 1);
@@ -167,7 +167,7 @@ mod tests {
         let rule = Rule::new("Title");
         let context = RenderContext {
             width: 20,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = rule.render(&context);
         let text = segments[0].plain_text();
@@ -181,7 +181,7 @@ mod tests {
         let rule = Rule::line().character('=');
         let context = RenderContext {
             width: 5,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = rule.render(&context);
         assert_eq!(segments[0].plain_text(), "=====");

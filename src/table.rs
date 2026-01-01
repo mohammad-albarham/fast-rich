@@ -9,6 +9,7 @@ use crate::panel::BorderStyle;
 use crate::renderable::{Renderable, Segment};
 use crate::style::Style;
 use crate::text::{Span, Text};
+use crate::bidi::TextDirection;
 use unicode_width::UnicodeWidthStr;
 
 /// Column alignment.
@@ -378,6 +379,7 @@ impl Table {
         widths: &[usize],
         line: &Line,
         cell_styles: &[Style],
+        is_rtl: bool,
     ) -> Vec<Segment> {
         // For simplicity, render single-line rows
         // A full implementation would handle wrapping
@@ -388,12 +390,20 @@ impl Table {
         }
 
         for (i, width) in widths.iter().enumerate() {
-            let cell = cells.get(i);
+            // Determine logical index based on direction
+            // In RTL, visual i=0 (Left) corresponds to the Last Logical Column
+            let logical_index = if is_rtl {
+                 widths.len().saturating_sub(1).saturating_sub(i)
+            } else {
+                 i
+            };
+
+            let cell = cells.get(logical_index);
             let content = cell.map(|c| c.plain_text()).unwrap_or_default();
             let _content_width = UnicodeWidthStr::width(content.as_str());
-            let cell_style = cell_styles.get(i).copied().unwrap_or_default();
+            let cell_style = cell_styles.get(logical_index).copied().unwrap_or_default();
 
-            let align = self.columns.get(i).map(|c| c.align).unwrap_or_default();
+            let align = self.columns.get(logical_index).map(|c| c.align).unwrap_or_default();
             let padded = pad_string(&content, *width, align);
 
             // Add padding
@@ -475,9 +485,33 @@ impl Renderable for Table {
             return vec![];
         }
 
-        let box_chars = self.border_style.to_box();
-        let widths = self.calculate_widths(context.width);
+
+        // Detect RTL direction
+
+        let is_rtl = matches!(context.direction, TextDirection::Rtl);
+
+        let mut box_chars = self.border_style.to_box();
+        if is_rtl {
+             // Helper closure to swap line chars
+             let swap_line = |mut line: Line| {
+                 std::mem::swap(&mut line.left, &mut line.right);
+                 line
+             };
+             box_chars.top = swap_line(box_chars.top);
+             box_chars.head = swap_line(box_chars.head);
+             box_chars.mid = swap_line(box_chars.mid);
+             box_chars.bottom = swap_line(box_chars.bottom);
+             box_chars.header = swap_line(box_chars.header);
+             box_chars.cell = swap_line(box_chars.cell);
+        }
+
+        let mut widths = self.calculate_widths(context.width);
+        if is_rtl {
+            widths.reverse();
+        }
+
         let mut segments = Vec::new();
+
 
         // Calculate total table width for title centering
         let content_width: usize = widths.iter().map(|w| w + self.padding * 2).sum();
@@ -533,6 +567,7 @@ impl Renderable for Table {
                 &widths,
                 &box_chars.header,
                 &header_styles,
+                is_rtl,
             ));
 
             // Header separator
@@ -545,7 +580,7 @@ impl Renderable for Table {
         for (row_idx, row) in self.rows.iter().enumerate() {
             let cell_styles: Vec<Style> = self.columns.iter().map(|c| c.style).collect();
             // Use cell box line for vertical separators in body
-            segments.extend(self.render_row(&row.cells, &widths, &box_chars.cell, &cell_styles));
+            segments.extend(self.render_row(&row.cells, &widths, &box_chars.cell, &cell_styles, is_rtl));
 
             // Row separator
             if self.show_row_lines && row_idx < self.rows.len() - 1 {
@@ -576,7 +611,7 @@ mod tests {
 
         let context = RenderContext {
             width: 40,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = table.render(&context);
 
@@ -603,5 +638,33 @@ mod tests {
         assert_eq!(pad_string("hi", 5, ColumnAlign::Left), "hi   ");
         assert_eq!(pad_string("hi", 5, ColumnAlign::Right), "   hi");
         assert_eq!(pad_string("hi", 5, ColumnAlign::Center), " hi  ");
+    }
+
+    #[test]
+    fn test_table_rtl() {
+        let mut table = Table::new();
+        table.add_column("Left");
+        table.add_column("Right");
+        table.add_row_strs(&["L", "R"]);
+
+        let context = RenderContext {
+            width: 40,
+            height: None,
+            direction: TextDirection::Rtl,
+        };
+        let segments = table.render(&context);
+        let text: String = segments.iter().map(|s| s.plain_text()).collect();
+
+        // In RTL, "Right" column (logical last) should be Visual Left (first in text)
+        // So "Right" should appear before "Left"
+        let right_pos = text.find("Right").expect("Should find Right");
+        let left_pos = text.find("Left").expect("Should find Left");
+        assert!(right_pos < left_pos, "Right column should appear before Left column in RTL");
+
+        // Check border mirroring
+        // Standard Rounded TopLeft is '╭'. In RTL it should be swapped with TopRight '╮'.
+        // So the first character should be '╮'
+        let first_char = text.chars().next().expect("Should have output");
+        assert_eq!(first_char, '╮', "Top-Left border should be mirrored to Top-Right char");
     }
 }

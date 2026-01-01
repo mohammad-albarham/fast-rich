@@ -12,7 +12,7 @@ fn test_align_center() {
 
     let context = RenderContext {
         width: 20,
-        height: None,
+        height: None, direction: Default::default(),
     };
     let segments = aligned.render(&context);
 
@@ -26,7 +26,7 @@ fn test_align_left() {
 
     let context = RenderContext {
         width: 20,
-        height: None,
+        height: None, direction: Default::default(),
     };
     let segments = aligned.render(&context);
 
@@ -40,7 +40,7 @@ fn test_align_right() {
 
     let context = RenderContext {
         width: 20,
-        height: None,
+        height: None, direction: Default::default(),
     };
     let segments = aligned.render(&context);
 
@@ -56,7 +56,7 @@ fn test_vertical_alignment() {
 
     let context = RenderContext {
         width: 20,
-        height: None,
+        height: None, direction: Default::default(),
     };
     let segments = aligned.render(&context);
 

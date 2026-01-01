@@ -18,7 +18,7 @@ fn bench_text_rendering(c: &mut Criterion) {
     let text = markup::parse(&parsing_markup);
     let context = RenderContext {
         width: 80,
-        height: None,
+        height: None, direction: Default::default(),
     };
 
     c.bench_function("text render (wrap)", |b| {
@@ -40,7 +40,7 @@ fn bench_table_rendering_100(c: &mut Criterion) {
     }
     let context = RenderContext {
         width: 100,
-        height: None,
+        height: None, direction: Default::default(),
     };
 
     c.bench_function("table render (100 rows)", |b| {
@@ -53,7 +53,7 @@ fn bench_panel_rendering(c: &mut Criterion) {
     let panel = Panel::new(content).title("Benchmark Panel");
     let context = RenderContext {
         width: 80,
-        height: None,
+        height: None, direction: Default::default(),
     };
 
     c.bench_function("panel render", |b| {
@@ -72,7 +72,7 @@ fn bench_tree_rendering(c: &mut Criterion) {
     }
     let context = RenderContext {
         width: 80,
-        height: None,
+        height: None, direction: Default::default(),
     };
 
     c.bench_function("tree render (50 nodes)", |b| {
@@ -100,7 +100,7 @@ def foo():
     let md = Markdown::new(&md_content);
     let context = RenderContext {
         width: 80,
-        height: None,
+        height: None, direction: Default::default(),
     };
 
     c.bench_function("markdown render", |b| {
@@ -122,7 +122,7 @@ def factorial(n):
     let syntax = Syntax::new(&code, "python");
     let context = RenderContext {
         width: 80,
-        height: None,
+        height: None, direction: Default::default(),
     };
 
     c.bench_function("syntax highlight (python)", |b| {
@@ -150,7 +150,7 @@ fn bench_traceback_render(c: &mut Criterion) {
     let tb = Traceback::from_error("File not found: /path/to/missing/file.txt");
     let context = RenderContext {
         width: 80,
-        height: None,
+        height: None, direction: Default::default(),
     };
 
     c.bench_function("traceback render", |b| {

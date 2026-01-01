@@ -12,7 +12,7 @@ fn test_padding_all() {
 
     let context = RenderContext {
         width: 20,
-        height: None,
+        height: None, direction: Default::default(),
     };
     let segments = padded.render(&context);
 
@@ -27,7 +27,7 @@ fn test_padding_symmetric() {
 
     let context = RenderContext {
         width: 20,
-        height: None,
+        height: None, direction: Default::default(),
     };
     let segments = padded.render(&context);
 

@@ -4,6 +4,7 @@
 //! title, and padding.
 
 use crate::console::RenderContext;
+use crate::bidi::TextDirection;
 use crate::renderable::{Renderable, Segment};
 use crate::style::Style;
 use crate::text::{Span, Text};
@@ -168,7 +169,7 @@ impl Panel {
         self
     }
 
-    fn render_top_border(&self, width: usize, box_chars: &Box) -> Segment {
+    fn render_top_border(&self, width: usize, box_chars: &Box, is_rtl: bool) -> Segment {
         let inner_width = width.saturating_sub(2);
         let chars = box_chars.top;
 
@@ -195,8 +196,14 @@ impl Panel {
                 }
 
                 let remaining = inner_width - title_width;
-                let left_len = 2.min(remaining);
-                let right_len = remaining - left_len;
+                // In LTR, title is on Left (small padding left). In RTL, Title on Right (small padding right).
+                let (left_len, right_len) = if is_rtl {
+                    let r = 2.min(remaining);
+                    (remaining - r, r)
+                } else {
+                    let l = 2.min(remaining);
+                    (l, remaining - l)
+                };
 
                 Segment::line(vec![
                     Span::styled(chars.left.to_string(), self.style),
@@ -209,7 +216,7 @@ impl Panel {
         }
     }
 
-    fn render_bottom_border(&self, width: usize, box_chars: &Box) -> Segment {
+    fn render_bottom_border(&self, width: usize, box_chars: &Box, is_rtl: bool) -> Segment {
         let inner_width = width.saturating_sub(2);
         let chars = box_chars.bottom;
 
@@ -236,8 +243,14 @@ impl Panel {
                 }
 
                 let remaining = inner_width - sub_width;
-                let right_len = 2.min(remaining);
-                let left_len = remaining - right_len;
+                // In LTR, subtitle on Right (small padding right). In RTL, Subtitle on Left (small padding left).
+                let (left_len, right_len) = if is_rtl {
+                    let l = 2.min(remaining);
+                    (l, remaining - l)
+                } else {
+                    let r = 2.min(remaining);
+                    (remaining - r, r)
+                };
 
                 Segment::line(vec![
                     Span::styled(chars.left.to_string(), self.style),
@@ -250,7 +263,7 @@ impl Panel {
         }
     }
 
-    fn render_content_line(&self, spans: Vec<Span>, width: usize, box_chars: &Box) -> Segment {
+    fn render_content_line(&self, spans: Vec<Span>, width: usize, box_chars: &Box, is_rtl: bool) -> Segment {
         let inner_width = width.saturating_sub(2 + self.padding_x * 2);
         let content_width: usize = spans.iter().map(|s| s.width()).sum();
         let padding_right = inner_width.saturating_sub(content_width);
@@ -258,10 +271,17 @@ impl Panel {
 
         let mut line_spans = Vec::new();
         line_spans.push(Span::styled(chars.left.to_string(), self.style));
-        line_spans.push(Span::styled(" ".repeat(self.padding_x), self.style));
+        
+        let (left_pad, right_pad) = if is_rtl {
+            (padding_right + self.padding_x, self.padding_x)
+        } else {
+            (self.padding_x, padding_right + self.padding_x)
+        };
+
+        line_spans.push(Span::styled(" ".repeat(left_pad), self.style));
         line_spans.extend(spans);
         line_spans.push(Span::styled(
-            " ".repeat(padding_right + self.padding_x),
+            " ".repeat(right_pad),
             self.style,
         ));
         line_spans.push(Span::styled(chars.right.to_string(), self.style));
@@ -288,7 +308,24 @@ impl<T: Into<Text>> From<T> for Panel {
 
 impl Renderable for Panel {
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
-        let box_chars = self.border_style.to_box();
+        let is_rtl = matches!(context.direction, TextDirection::Rtl);
+
+        let mut box_chars = self.border_style.to_box();
+        // If RTL, swap left/right border characters
+        if is_rtl {
+             use crate::box_drawing::Line;
+             let swap_line = |mut line: Line| {
+                 std::mem::swap(&mut line.left, &mut line.right);
+                 line
+             };
+             box_chars.top = swap_line(box_chars.top);
+             box_chars.head = swap_line(box_chars.head);
+             box_chars.mid = swap_line(box_chars.mid);
+             box_chars.bottom = swap_line(box_chars.bottom);
+             box_chars.header = swap_line(box_chars.header);
+             box_chars.cell = swap_line(box_chars.cell);
+        }
+
         let width = if self.expand {
             context.width
         } else {
@@ -303,7 +340,7 @@ impl Renderable for Panel {
         let mut segments = Vec::new();
 
         // Top border
-        segments.push(self.render_top_border(width, &box_chars));
+        segments.push(self.render_top_border(width, &box_chars, is_rtl));
 
         // Top padding
         for _ in 0..self.padding_y {
@@ -312,7 +349,7 @@ impl Renderable for Panel {
 
         // Content lines
         for line_spans in content_lines {
-            segments.push(self.render_content_line(line_spans, width, &box_chars));
+            segments.push(self.render_content_line(line_spans, width, &box_chars, is_rtl));
         }
 
         // Bottom padding
@@ -321,7 +358,7 @@ impl Renderable for Panel {
         }
 
         // Bottom border
-        segments.push(self.render_bottom_border(width, &box_chars));
+        segments.push(self.render_bottom_border(width, &box_chars, is_rtl));
 
         segments
     }
@@ -336,7 +373,7 @@ mod tests {
         let panel = Panel::new("Hello");
         let context = RenderContext {
             width: 20,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = panel.render(&context);
 
@@ -354,7 +391,7 @@ mod tests {
         let panel = Panel::new("Content").title("Title");
         let context = RenderContext {
             width: 30,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = panel.render(&context);
 
@@ -367,7 +404,7 @@ mod tests {
         let panel = Panel::new("Test").border_style(BorderStyle::Double);
         let context = RenderContext {
             width: 20,
-            height: None,
+            height: None, direction: Default::default(),
         };
         let segments = panel.render(&context);
 

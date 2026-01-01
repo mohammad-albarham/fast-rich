@@ -156,7 +156,7 @@ cargo run --example logging --features logging
 
 ## Contributing
 
-Contributions are welcome! Please check out [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to get started.
+Contributions are welcome! Please check out [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines on how to get started.
 
 ## License
 

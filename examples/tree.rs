@@ -36,7 +36,7 @@ fn main() {
 
     let child3 = TreeNode::new("docs")
         .with_child("README.md")
-        .with_child("CHANGELOG.md")
+        .with_child("docs/CHANGELOG.md")
         .with_child("API.md");
 
     let project = Tree::new(

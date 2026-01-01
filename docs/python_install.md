@@ -4,7 +4,7 @@ The `fast-rich` Python bindings provide a high-performance alternative to the st
 
 ## Status
 
-> ⚠️ **Note**: The Python bindings are currently experimental and under active development.
+> ⚠️ **Note**: The Python bindings are currently experimental and under active development. So, please wait until I explicitly release them.
 
 ## Building from Source
 

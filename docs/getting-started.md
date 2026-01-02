@@ -17,14 +17,14 @@ Add `fast-rich` to your `Cargo.toml`:
 
     ```toml
     [dependencies]
-    fast-rich = { version = "0.2.0", features = ["full"] }
+    fast-rich = { version = "0.3.1", features = ["full"] }
     ```
 
 === "Selective Features"
 
     ```toml
     [dependencies]
-    fast-rich = { version = "0.2.0", features = ["syntax", "markdown", "logging"] }
+    fast-rich = { version = "0.3.1", features = ["syntax", "markdown", "logging"] }
     ```
 
 ### Available Features
@@ -38,7 +38,7 @@ Add `fast-rich` to your `Cargo.toml`:
 
 ## Your First Program
 
-!!! example "Hello Fast-Rich"
+!!! example "Fast-Rich in action"
 
     **Code**
     
@@ -46,10 +46,14 @@ Add `fast-rich` to your `Cargo.toml`:
     
     ```rust
     use fast_rich::prelude::*;
-    
+
     fn main() {
-        let console = Console::new();
-        console.print("[bold green]Welcome to Fast-Rich![/]");
+        let console = Console::new().force_color(true);
+
+        console.print("[bold cyan]Fast-Rich[/] - Beautiful terminal output for :crab: Rust programming language :crab:!\n");
+
+        // Styled text
+        console.print("[bold]Bold[/], [italic]italic[/], [red]colors[/], [underline]underline[/], [dim]dim[/], [reverse]reverse[/], [strike]strikethrough[/], emojis :rocket: :sparkling_heart:! and more!\n");
     }
     ```
     
@@ -91,6 +95,10 @@ fn main() {
 }
 ```
 
+**What you'll see:**
+
+![Console basics demo](assets/console_basics.gif)
+
 ## Markup Syntax
 
 Fast-Rich uses a simple markup syntax for inline styling:
@@ -112,6 +120,10 @@ console.print("[bold red on white]Bold red on white background[/]");
 // Nesting
 console.print("[bold]Bold [italic]and italic[/italic] back to bold[/]");
 ```
+
+**What you'll see:**
+
+![Markup demo](assets/markup_demo.gif)
 
 ### Escape Markup
 
@@ -143,16 +155,9 @@ fn main() {
 }
 ```
 
-**Output:**
+**What you'll see:**
 
-```
-╭─────────┬──────────╮
-│ Name    │ Value    │
-├─────────┼──────────┤
-│ Version │ 0.2.0    │
-│ Author  │ Mohammad │
-╰─────────┴──────────╯
-```
+![Table demo](assets/table_demo.gif)
 
 ## Terminal Compatibility
 

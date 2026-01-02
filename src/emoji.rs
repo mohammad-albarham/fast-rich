@@ -213,8 +213,8 @@ static EMOJI_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(
     m.insert("champagne", "🍾");
 
     // Objects & Symbols
-    m.insert("heart", "❤️");
-    m.insert("red_heart", "❤️");
+    m.insert("heart", "❤");
+    m.insert("red_heart", "❤");
     m.insert("orange_heart", "🧡");
     m.insert("yellow_heart", "💛");
     m.insert("green_heart", "💚");
@@ -223,6 +223,7 @@ static EMOJI_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(
     m.insert("black_heart", "🖤");
     m.insert("white_heart", "🤍");
     m.insert("broken_heart", "💔");
+    m.insert("sparkling_heart", "💖");
     m.insert("fire", "🔥");
     m.insert("sparkles", "✨");
     m.insert("star", "⭐");

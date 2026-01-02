@@ -18,6 +18,9 @@
 
 </div>
 
+!!! warning "Alpha Status"
+    This project is currently in **Alpha**. APIs may change and some features may be incomplete.
+
 ---
 
 ## What is Fast-Rich?
@@ -31,9 +34,6 @@ Fast-Rich brings the power of Python's popular Rich library to Rust, enabling yo
 Below is a demonstration of all library features running in sequence, including tables, panels, progress bars, and live displays:
 
 ![Fast-Rich Examples](assets/run_all.gif)
-
-!!! warning "Alpha Status"
-    This project is currently in **Alpha**. APIs may change and some features may be incomplete.
 
 ## ✨ Features
 
@@ -170,7 +170,7 @@ Hello World!
 ╰─────────────┴──────────╯
 ```
 
-## Feature Comparison
+## Feature Comparison (Still under development!!)
 
 | Feature | Python Rich | Fast-Rich |
 |:--------|:-----------:|:---------:|

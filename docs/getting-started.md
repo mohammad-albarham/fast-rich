@@ -76,22 +76,23 @@ The `Console` is your main entry point for all output. It handles:
 - Styled output rendering
 
 ```rust
-use fast_rich::prelude::*;
+use fast_rich::console::Console;
 
 fn main() {
     let console = Console::new();
     
-    // Simple print (no newline)
-    console.print("Hello ");
-    
-    // Print with newline
-    console.println("World!");
-    
-    // Print a decorative rule
-    console.rule("[bold]Section Title[/]");
-    
-    // Add blank lines
+    console.rule("[bold magenta]Console API Demo[/]");
+    console.print("This is a [bold]regular print[/].");
     console.newline();
+
+    console.println("This is a [italic]println[/] which adds a newline.");
+
+    console.rule("Padding");
+    console.print_renderable(&fast_rich::text::Text::from("Explicit Renderable"));
+    console.newline();
+
+    // Demonstrate some emoji
+    console.println("Emoji: :snake: :crab:");
 }
 ```
 
@@ -104,21 +105,25 @@ fn main() {
 Fast-Rich uses a simple markup syntax for inline styling:
 
 ```rust
-// Basic styles
-console.print("[bold]Bold text[/]");
-console.print("[italic]Italic text[/]");
-console.print("[underline]Underlined[/]");
+use fast_rich::Console;
 
-// Colors
-console.print("[red]Red text[/]");
-console.print("[blue]Blue text[/]");
-console.print("[color(255,128,0)]Orange (RGB)[/]");
+fn main() {
+    let console = Console::new();
 
-// Combinations
-console.print("[bold red on white]Bold red on white background[/]");
+    console.println("[bold cyan]═══ Markup Demo ═══[/]\n");
 
-// Nesting
-console.print("[bold]Bold [italic]and italic[/italic] back to bold[/]");
+    // Basic styles
+    console.println("[bold]Bold[/]  [italic]Italic[/]  [underline]Underline[/]  [dim]Dim[/]");
+
+    // Colors
+    console.println("[red]Red[/]  [green]Green[/]  [blue]Blue[/]  [yellow]Yellow[/]  [magenta]Magenta[/]");
+
+    // Background + combined
+    console.println("[white on red] Alert [/]  [bold green]Success![/]  [italic cyan]Info[/]");
+
+    // Emoji
+    console.println("\n:rocket: Launch  :fire: Hot  :sparkles: Magic  :check_mark: Done");
+}
 ```
 
 **What you'll see:**
@@ -142,15 +147,18 @@ use fast_rich::prelude::*;
 
 fn main() {
     let console = Console::new();
-    
-    // Create a table
+
+    console.println("[bold cyan]═══ Table Demo ═══[/]\n");
+
     let mut table = Table::new();
-    table.add_column("Name");
-    table.add_column("Value");
-    table.add_row_strs(&["Version", "0.3.1"]);
-    table.add_row_strs(&["Author", "Mohammad"]);
-    
-    // Print the table
+    table.add_column(Column::new("Name"));
+    table.add_column(Column::new("Role"));
+    table.add_column(Column::new("Status").center());
+
+    table.add_row_strs(&["Alice", "Developer", "✓ Active"]);
+    table.add_row_strs(&["Bob", "Designer", "✓ Active"]);
+    table.add_row_strs(&["Charlie", "Manager", "Away"]);
+
     console.print_renderable(&table);
 }
 ```

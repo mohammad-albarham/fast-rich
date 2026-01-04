@@ -10,6 +10,25 @@ use std::time::Duration;
 pub trait ProgressColumn: Send + Sync + Debug {
     /// Render the column for the given task.
     fn render(&self, task: &Task) -> Vec<Span>;
+
+    /// Render the column with an available width hint.
+    ///
+    /// Columns that can expand (like BarColumn with `expand: true`) should
+    /// override this to use the provided width. Default implementation
+    /// ignores the width and calls `render()`.
+    fn render_with_width(&self, task: &Task, _available_width: Option<usize>) -> Vec<Span> {
+        self.render(task)
+    }
+
+    /// Returns true if this column should expand to fill available width.
+    fn is_expandable(&self) -> bool {
+        false
+    }
+
+    /// Get the minimum width this column needs.
+    fn min_width(&self) -> usize {
+        0
+    }
 }
 
 /// Renders a static text string or text based on task properties.
@@ -56,9 +75,12 @@ impl ProgressColumn for TextColumn {
 /// - `─` (U+2500) for unfilled portion
 /// 
 /// For indeterminate tasks (no total), shows a pulsing animation.
+/// 
+/// Use `expand(true)` to make the bar expand to fill available width.
+/// Use `use_sub_blocks(true)` for smoother progress using 8th-block Unicode characters.
 #[derive(Debug)]
 pub struct BarColumn {
-    /// Width of the bar in characters
+    /// Width of the bar in characters (used as min_width when expand is true)
     pub bar_width: usize,
     /// Character for filled portion (default: '━')
     pub complete_char: char,
@@ -74,6 +96,10 @@ pub struct BarColumn {
     pub incomplete_style: Style,
     /// Style for pulse animation (indeterminate)
     pub pulse_style: Style,
+    /// If true, expand to fill available width
+    pub expand: bool,
+    /// If true, use sub-character (8th-block) Unicode for smoother progress
+    pub use_sub_blocks: bool,
 }
 
 impl Default for BarColumn {
@@ -93,6 +119,8 @@ impl BarColumn {
             finished_style: Some(Style::new().foreground(Color::Green)),
             incomplete_style: Style::new().foreground(Color::Ansi256(237)), // Dark grey
             pulse_style: Style::new().foreground(Color::Cyan),
+            expand: false,
+            use_sub_blocks: false,
         }
     }
 
@@ -126,74 +154,61 @@ impl BarColumn {
         self
     }
 
-    /// Render a pulsing bar for indeterminate progress
-    fn render_pulse(&self, task: &Task) -> Vec<Span> {
-        let width = self.bar_width;
-        let pulse_width = 6.min(width / 3); // Pulse is ~1/3 of bar width
-        
-        // Calculate pulse position based on elapsed time
-        let elapsed_ms = task.elapsed().as_millis() as usize;
-        let cycle_duration_ms = 1500; // 1.5 seconds per cycle
-        let position_in_cycle = elapsed_ms % cycle_duration_ms;
-        
-        // Pulse moves from left to right and back
-        let half_cycle = cycle_duration_ms / 2;
-        let normalized_pos = if position_in_cycle < half_cycle {
-            position_in_cycle as f64 / half_cycle as f64
-        } else {
-            1.0 - ((position_in_cycle - half_cycle) as f64 / half_cycle as f64)
-        };
-        
-        let pulse_start = ((width - pulse_width) as f64 * normalized_pos).round() as usize;
-        let pulse_end = pulse_start + pulse_width;
-        
-        let mut spans = Vec::new();
-        
-        // Before pulse
-        if pulse_start > 0 {
-            spans.push(Span::styled(
-                self.incomplete_char.to_string().repeat(pulse_start),
-                self.incomplete_style,
-            ));
-        }
-        
-        // Pulse itself
-        spans.push(Span::styled(
-            self.complete_char.to_string().repeat(pulse_width),
-            self.pulse_style,
-        ));
-        
-        // After pulse
-        let after_pulse = width.saturating_sub(pulse_end);
-        if after_pulse > 0 {
-            spans.push(Span::styled(
-                self.incomplete_char.to_string().repeat(after_pulse),
-                self.incomplete_style,
-            ));
-        }
-        
-        spans
+    /// Set whether the bar should expand to fill available width.
+    ///
+    /// When expand is true, the bar will use the remaining terminal width
+    /// after other columns are rendered. The `bar_width` becomes the minimum width.
+    pub fn expand(mut self, expand: bool) -> Self {
+        self.expand = expand;
+        self
     }
-}
 
-impl ProgressColumn for BarColumn {
-    fn render(&self, task: &Task) -> Vec<Span> {
+    /// Enable sub-character progress using 8th-block Unicode characters.
+    ///
+    /// When enabled, uses characters like ▏▎▍▌▋▊▉█ for smoother
+    /// progress rendering with 8 levels of precision per character.
+    pub fn use_sub_blocks(mut self, enabled: bool) -> Self {
+        self.use_sub_blocks = enabled;
+        self
+    }
+
+    /// Get the sub-block character for a given fraction (0-7).
+    /// Returns full blocks for full progress, partial blocks otherwise.
+    fn sub_block_char(eighths: usize) -> char {
+        match eighths {
+            0 => ' ',       // Empty
+            1 => '▏',       // 1/8 block (U+258F)
+            2 => '▎',       // 2/8 block (U+258E)
+            3 => '▍',       // 3/8 block (U+258D)
+            4 => '▌',       // 4/8 block (U+258C)
+            5 => '▋',       // 5/8 block (U+258B)
+            6 => '▊',       // 6/8 block (U+258A)
+            7 => '▉',       // 7/8 block (U+2589)
+            _ => '█',       // Full block (U+2588)
+        }
+    }
+
+    /// Render the bar with a specific width
+    fn render_bar(&self, task: &Task, width: usize) -> Vec<Span> {
         // Handle indeterminate progress (no total)
         if task.total.is_none() && !task.finished {
-            return self.render_pulse(task);
+            return self.render_pulse_with_width(task, width);
         }
 
         let total = task.total.unwrap_or(100) as f64;
         let completed = task.completed as f64;
         let percentage = (completed / total).clamp(0.0, 1.0);
 
-        let width = self.bar_width;
-        
         let style = if task.finished {
             self.finished_style.unwrap_or(self.complete_style)
         } else {
             self.complete_style
         };
+
+        // Use sub-block rendering if enabled
+        if self.use_sub_blocks && !task.finished && percentage < 1.0 {
+            return self.render_sub_blocks(percentage, width, style);
+        }
 
         // Calculate filled width, accounting for optional edge character
         let has_edge = self.edge_char.is_some() && !task.finished && percentage < 1.0;
@@ -228,6 +243,111 @@ impl ProgressColumn for BarColumn {
         }
         
         spans
+    }
+
+    /// Render progress bar with sub-character (8th-block) precision.
+    fn render_sub_blocks(&self, percentage: f64, width: usize, style: Style) -> Vec<Span> {
+        // Calculate the exact fractional position
+        let exact_filled = width as f64 * percentage;
+        let full_blocks = exact_filled as usize;
+        let fraction = exact_filled - full_blocks as f64;
+        let eighths = (fraction * 8.0).round() as usize;
+        
+        let mut spans = Vec::new();
+
+        // Full filled blocks (using block character)
+        if full_blocks > 0 {
+            spans.push(Span::styled(
+                "█".repeat(full_blocks),
+                style,
+            ));
+        }
+
+        // Partial block for fractional progress
+        if eighths > 0 && full_blocks < width {
+            spans.push(Span::styled(
+                Self::sub_block_char(eighths).to_string(),
+                style,
+            ));
+        }
+
+        // Empty portion
+        let used_width = full_blocks + if eighths > 0 { 1 } else { 0 };
+        let empty_width = width.saturating_sub(used_width);
+        if empty_width > 0 {
+            spans.push(Span::styled(
+                " ".repeat(empty_width),
+                self.incomplete_style,
+            ));
+        }
+
+        spans
+    }
+
+    /// Render pulse animation with a specific width
+    fn render_pulse_with_width(&self, task: &Task, width: usize) -> Vec<Span> {
+        let pulse_width = 6.min(width / 3);
+        
+        let elapsed_ms = task.elapsed().as_millis() as usize;
+        let cycle_duration_ms = 1500;
+        let position_in_cycle = elapsed_ms % cycle_duration_ms;
+        
+        let half_cycle = cycle_duration_ms / 2;
+        let normalized_pos = if position_in_cycle < half_cycle {
+            position_in_cycle as f64 / half_cycle as f64
+        } else {
+            1.0 - ((position_in_cycle - half_cycle) as f64 / half_cycle as f64)
+        };
+        
+        let pulse_start = ((width.saturating_sub(pulse_width)) as f64 * normalized_pos).round() as usize;
+        let pulse_end = pulse_start + pulse_width;
+        
+        let mut spans = Vec::new();
+        
+        if pulse_start > 0 {
+            spans.push(Span::styled(
+                self.incomplete_char.to_string().repeat(pulse_start),
+                self.incomplete_style,
+            ));
+        }
+        
+        spans.push(Span::styled(
+            self.complete_char.to_string().repeat(pulse_width),
+            self.pulse_style,
+        ));
+        
+        let after_pulse = width.saturating_sub(pulse_end);
+        if after_pulse > 0 {
+            spans.push(Span::styled(
+                self.incomplete_char.to_string().repeat(after_pulse),
+                self.incomplete_style,
+            ));
+        }
+        
+        spans
+    }
+}
+
+impl ProgressColumn for BarColumn {
+    fn render(&self, task: &Task) -> Vec<Span> {
+        self.render_bar(task, self.bar_width)
+    }
+
+    fn render_with_width(&self, task: &Task, available_width: Option<usize>) -> Vec<Span> {
+        let width = if self.expand {
+            available_width.unwrap_or(self.bar_width).max(self.bar_width)
+        } else {
+            self.bar_width
+        };
+        self.render_bar(task, width)
+    }
+
+    fn is_expandable(&self) -> bool {
+        self.expand
+    }
+
+    fn min_width(&self) -> usize {
+        self.bar_width
     }
 }
 

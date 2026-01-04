@@ -7,34 +7,41 @@ use std::thread;
 use std::time::Duration;
 
 fn main() {
-    let _console = Console::new();
-    println!("Rich Progress Enhancement Demo\n============================");
+    let console = Console::new();
+    console.println("[bold cyan]Rich Progress Enhancement Demo (P2)[/]");
+    console.println("[dim]=====================================\n[/]");
 
-    let progress = Progress::new().with_columns(vec![
-        Box::new(SpinnerColumn::new()),
-        Box::new(TextColumn::new("[progress.description]")),
-        Box::new(BarColumn::new(40)),
-        Box::new(PercentageColumn::new()),
-        Box::new(MofNColumn::new()),
-        Box::new(TransferSpeedColumn),
-        Box::new(TimeRemainingColumn),
-    ]);
+    // Demo 1: Standard progress with refresh_per_second setting
+    console.println("[yellow]Demo 1: Standard Progress Bar[/]");
+    console.println("");
+    
+    let mut progress = Progress::new()
+        .with_console(Console::new())
+        .refresh_per_second(10.0)  // P2: Configure refresh rate
+        .with_columns(vec![
+            Box::new(SpinnerColumn::new()),
+            Box::new(TextColumn::new("[progress.description]")),
+            Box::new(BarColumn::new(40)),
+            Box::new(PercentageColumn::new()),
+            Box::new(MofNColumn::new()),
+            Box::new(TransferSpeedColumn),
+            Box::new(TimeRemainingColumn),
+        ]);
 
     let task1 = progress.add_task("Downloading file1.zip", Some(100));
     let task2 = progress.add_task("Downloading file2.zip", Some(200));
     let task3 = progress.add_task("Processing data...", None); // Indeterminate
 
+    progress.start();
+
     let mut completed1 = 0;
     let mut completed2 = 0;
 
-    // Simulation loop
-    let steps = 100;
-    for _ in 0..steps {
+    for _ in 0..100 {
         if completed1 < 100 {
             completed1 += 1;
             progress.update(task1, completed1);
         }
-
         if completed2 < 200 {
             completed2 += 3;
             if completed2 > 200 {
@@ -42,17 +49,68 @@ fn main() {
             }
             progress.update(task2, completed2);
         }
-
-        // Spinners update automatically based on elapsed time if we call print()
-        progress.print();
-        thread::sleep(Duration::from_millis(50));
+        progress.refresh();
+        thread::sleep(Duration::from_millis(30));
     }
 
     progress.finish(task1);
     progress.finish(task2);
     progress.finish(task3);
+    progress.stop();
 
-    progress.print(); // Final print
+    console.println("");
+    console.println("[bold green]✓ Demo 1 Complete![/]\n");
 
-    println!("\nDone");
+    // Demo 2: Sub-character progress with 8th-block Unicode (P2 feature)
+    console.println("[yellow]Demo 2: Sub-Character Progress (8th-block Unicode)[/]");
+    console.println("");
+    
+    let mut sub_progress = Progress::new()
+        .with_console(Console::new())
+        .with_columns(vec![
+            Box::new(TextColumn::new("[progress.description]")),
+            Box::new(BarColumn::new(50).use_sub_blocks(true)),  // P2: Sub-block mode
+            Box::new(PercentageColumn::new()),
+        ]);
+
+    let smooth_task = sub_progress.add_task("Smooth Progress", Some(1000));
+
+    sub_progress.start();
+    for i in 0..=1000 {
+        sub_progress.update(smooth_task, i);
+        sub_progress.refresh();
+        thread::sleep(Duration::from_millis(5));
+    }
+    sub_progress.stop();
+
+    console.println("");
+    console.println("[bold green]✓ Demo 2 Complete![/]\n");
+
+    // Demo 3: Context-manager-style run() method (P2 feature)
+    console.println("[yellow]Demo 3: Context Manager run() Method[/]");
+    console.println("");
+    
+    let mut managed_progress = Progress::new()
+        .with_console(Console::new())
+        .with_columns(vec![
+            Box::new(TextColumn::new("[progress.description]")),
+            Box::new(BarColumn::new(40)),
+            Box::new(PercentageColumn::new()),
+        ]);
+
+    // P2: Use run() for automatic start/stop lifecycle
+    managed_progress.run(|p| {
+        let task = p.add_task("Auto-managed task", Some(50));
+        for i in 1..=50 {
+            p.update(task, i);
+            // Note: must call refresh manually when auto_refresh thread not implemented
+            thread::sleep(Duration::from_millis(50));
+        }
+        p.finish(task);
+    });
+
+    console.println("");
+    console.println("[bold green]✓ Demo 3 Complete![/]\n");
+
+    console.println("[bold cyan]All P2 features demonstrated successfully![/]");
 }

@@ -167,6 +167,27 @@ fn main() {
 
 ![Table demo](assets/table_demo.gif)
 
+## Progress Tracking
+
+Track long-running loops with progress bars using Python-style `track()`:
+
+```rust
+use fast_rich::progress::track;
+use std::thread;
+use std::time::Duration;
+
+fn main() {
+    // Just like Python's: for item in track(range(30), description="...")
+    for _item in track(0..30, "Processing items") {
+        thread::sleep(Duration::from_millis(80));
+    }
+}
+```
+
+**What you'll see:**
+
+![Track demo](assets/track_demo.gif)
+
 ## Terminal Compatibility
 
 Fast-Rich automatically detects terminal capabilities:

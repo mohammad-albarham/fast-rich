@@ -177,4 +177,20 @@ fn main() {
 
     console.println("");
     console.println("[bold green]✓ Demo 4 Complete![/]\n");
+
+    // Demo 5: Python-style track() iterator wrapper
+    console.println("[yellow]Demo 5: Python-style track() Iterator[/]");
+    console.println("[dim]Just like Python's: for item in track(range(100), description=\"...\")[/]\n");
+
+    use fast_rich::progress::track;
+
+    for _item in track(0..50, "Processing items") {
+        // Do work with each item
+        thread::sleep(Duration::from_millis(40));
+    }
+
+    console.println("");
+    console.println("[bold green]✓ Demo 5 Complete![/]\n");
+
+    console.println("[bold cyan]All progress features demonstrated successfully![/]");
 }

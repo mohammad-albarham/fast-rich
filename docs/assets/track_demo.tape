@@ -1,12 +1,12 @@
-# VHS tape for progress bar demo (full features)
-Output docs/assets/progress.gif
+# VHS tape for track() iterator demo
+Output docs/assets/track_demo.gif
 
 Set Shell "bash"
 Set Theme "Catppuccin Mocha"
 Set Width 1200
-Set Height 900
+Set Height 300
 Set Padding 20
-Set FontSize 18
+Set FontSize 20
 Set TypingSpeed 50ms
 
 # Clean startup
@@ -18,12 +18,12 @@ Enter
 Show
 
 # Type the command to run the example
-Type "cargo run --example progress_rich --release 2>/dev/null"
+Type "cargo run --example docs_track --release 2>/dev/null"
 Sleep 500ms
 Enter
 
-# Wait for the example to finish (all demos)
-Sleep 35s
+# Wait for the example to finish
+Sleep 4s
 
 # Pause at the end
-Sleep 2s
+Sleep 1s

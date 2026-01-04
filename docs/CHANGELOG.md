@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2-alpha] - 2026-01-04
+
+### Enhanced
+- **Progress Bars**: Significantly improved `Progress` module (Python-rich parity):
+  - Added `BarColumn` with distinct characters for filled, pointer, and empty states.
+  - Implemented pulsing animation for indeterminate tasks (unknown total).
+  - Added `refresh()`, `start()`, and `stop()` methods for flicker-free rendering.
+  - Added `run()` method for context-manager style usage.
+  - Added sub-character precision (smooth updates) using 8th-block unicode characters.
+  - Added `expand` option for full-width progress bars.
+
+### Fixed
+- **Documentation**: Fixed `track()` demo glitch where output would wrap and stack incorrectly.
+- **Example**: `docs_track` example works reliably on all terminal widths.
+
 ## [0.3.1] - 2026-01-01
 
 ### Fixed

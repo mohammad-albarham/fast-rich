@@ -2,7 +2,31 @@
 
 Fast-Rich provides a powerful progress bar system for tracking long-running tasks with multi-bar support, spinners, ETA, and customizable columns.
 
-## Quick Example
+## Python-Style track() Iterator
+
+The simplest way to add progress bars—just wrap any iterator:
+
+```rust
+use fast_rich::progress::track;
+use std::thread;
+use std::time::Duration;
+
+fn main() {
+    // Just like Python's: for item in track(range(100), description="Processing")
+    for item in track(0..100, "Processing") {
+        // Do work with each item
+        thread::sleep(Duration::from_millis(50));
+    }
+}
+```
+
+![Track demo](../assets/track_demo.gif)
+
+---
+
+## Manual Progress Control
+
+For more control, use `Progress` directly:
 
 ```rust
 use fast_rich::prelude::*;

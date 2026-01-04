@@ -2,6 +2,7 @@
 
 use super::columns::{BarColumn, MofNColumn, PercentageColumn, TextColumn};
 use super::Progress;
+use crate::console::Console;
 
 /// An iterator wrapper that displays progress.
 pub struct TrackedIterator<I>
@@ -23,14 +24,18 @@ where
     I: Iterator,
 {
     fn new(inner: I, description: &str, total: Option<u64>) -> Self {
-        let progress = Progress::new().with_columns(vec![
-            Box::new(TextColumn::new("[progress.description]")),
-            Box::new(BarColumn::new(40)),
-            Box::new(PercentageColumn::new()),
-            Box::new(MofNColumn::new()),
-        ]);
+        let mut progress = Progress::new()
+            .with_console(Console::new())
+            .auto_refresh(false)
+            .with_columns(vec![
+                Box::new(TextColumn::new("[progress.description]")),
+                Box::new(BarColumn::new(40)),
+                Box::new(PercentageColumn::new()),
+                Box::new(MofNColumn::new()),
+            ]);
 
         let task_id = progress.add_task(description, total);
+        progress.start();
 
         TrackedIterator {
             inner,
@@ -50,21 +55,19 @@ where
     type Item = I::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // Print progress before getting next item
-        self.progress.print();
-
         match self.inner.next() {
             Some(item) => {
+                // Update progress FIRST, then print (shows current state)
                 self.current += 1;
                 self.progress.update(self.task_id, self.current);
+                self.progress.refresh();
                 Some(item)
             }
             None => {
-                // Final update
+                // Final state - mark finished and clean up
                 self.progress.finish(self.task_id);
-                self.progress.print();
-                // Move to next line
-                println!();
+                self.progress.refresh();
+                self.progress.stop();
                 None
             }
         }

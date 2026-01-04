@@ -1,13 +1,13 @@
-# VHS tape for progress bar demo
+# VHS tape for progress bar demo (full features)
 Output docs/assets/progress.gif
 
 Set Shell "bash"
 Set Theme "Catppuccin Mocha"
 Set Width 1200
-Set Height 600
+Set Height 900
 Set Padding 20
-Set FontSize 24
-Set TypingSpeed 100ms
+Set FontSize 18
+Set TypingSpeed 50ms
 
 # Clean startup
 Hide
@@ -18,12 +18,12 @@ Enter
 Show
 
 # Type the command to run the example
-Type "cargo run --example progress_bar"
+Type "cargo run --example progress_rich --release 2>/dev/null"
 Sleep 500ms
 Enter
 
-# Wait for the example to finish and show the output
-Sleep 5s
+# Wait for the example to finish (all demos)
+Sleep 35s
 
 # Pause at the end
 Sleep 2s

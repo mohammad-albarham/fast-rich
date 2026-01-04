@@ -42,6 +42,3 @@ site/
 
 # OS
 .DS_Store
-
-# Agent files
-.agent/* 

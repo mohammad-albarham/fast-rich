@@ -1,15 +1,15 @@
 use fast_rich::console::Console;
 use fast_rich::progress::{
-    BarColumn, MofNColumn, PercentageColumn, Progress, SpinnerColumn, TextColumn,
-    TimeRemainingColumn, TransferSpeedColumn,
+    BarColumn, DownloadColumn, FileSizeColumn, MofNColumn, PercentageColumn, Progress,
+    SpinnerColumn, TextColumn, TimeRemainingColumn, TotalFileSizeColumn, TransferSpeedColumn,
 };
 use std::thread;
 use std::time::Duration;
 
 fn main() {
     let console = Console::new();
-    console.println("[bold cyan]Rich Progress Enhancement Demo (P2)[/]");
-    console.println("[dim]=====================================\n[/]");
+    console.println("[bold cyan]Rich Progress Enhancement Demo (P2 + P3)[/]");
+    console.println("[dim]==========================================\n[/]");
 
     // Demo 1: Standard progress with refresh_per_second setting
     console.println("[yellow]Demo 1: Standard Progress Bar[/]");
@@ -103,7 +103,7 @@ fn main() {
         let task = p.add_task("Auto-managed task", Some(50));
         for i in 1..=50 {
             p.update(task, i);
-            // Note: must call refresh manually when auto_refresh thread not implemented
+            p.refresh(); // Must call refresh manually when auto_refresh thread not implemented
             thread::sleep(Duration::from_millis(50));
         }
         p.finish(task);
@@ -112,5 +112,69 @@ fn main() {
     console.println("");
     console.println("[bold green]✓ Demo 3 Complete![/]\n");
 
-    console.println("[bold cyan]All P2 features demonstrated successfully![/]");
+    // Demo 4: File Size Columns (P3 feature)
+    console.println("[yellow]Demo 4: File Size Columns (P3)[/]");
+    console.println("");
+
+    console.println("[dim]Using FileSizeColumn:[/]");
+    let mut size_progress = Progress::new()
+        .with_console(Console::new())
+        .with_columns(vec![
+            Box::new(TextColumn::new("[progress.description]")),
+            Box::new(BarColumn::new(30)),
+            Box::new(FileSizeColumn::new()),
+        ]);
+
+    let size_task = size_progress.add_task("Reading", Some(10 * 1024 * 1024)); // 10 MB
+    size_progress.start();
+    for i in 0..50 {
+        let bytes = (i + 1) * 200 * 1024; // 200 KB increments
+        size_progress.update(size_task, bytes);
+        size_progress.refresh();
+        thread::sleep(Duration::from_millis(40));
+    }
+    size_progress.stop();
+    console.println("");
+
+    console.println("[dim]Using TotalFileSizeColumn:[/]");
+    let mut total_progress = Progress::new()
+        .with_console(Console::new())
+        .with_columns(vec![
+            Box::new(TextColumn::new("[progress.description]")),
+            Box::new(BarColumn::new(30)),
+            Box::new(TotalFileSizeColumn::new()),
+        ]);
+
+    let total_task = total_progress.add_task("Copying", Some(50 * 1024 * 1024)); // 50 MB
+    total_progress.start();
+    for i in 0..50 {
+        let bytes = (i + 1) * 1024 * 1024; // 1 MB increments
+        total_progress.update(total_task, bytes);
+        total_progress.refresh();
+        thread::sleep(Duration::from_millis(40));
+    }
+    total_progress.stop();
+    console.println("");
+
+    console.println("[dim]Using DownloadColumn (size @ speed):[/]");
+    let mut download_progress = Progress::new()
+        .with_console(Console::new())
+        .with_columns(vec![
+            Box::new(TextColumn::new("[progress.description]")),
+            Box::new(BarColumn::new(30)),
+            Box::new(DownloadColumn::new()),
+        ]);
+
+    let dl_task = download_progress.add_task("Downloading", Some(100 * 1024 * 1024)); // 100 MB
+    download_progress.start();
+    for i in 0..50 {
+        let bytes = (i + 1) * 2 * 1024 * 1024; // 2 MB increments
+        download_progress.update(dl_task, bytes);
+        download_progress.refresh();
+        thread::sleep(Duration::from_millis(50));
+    }
+    download_progress.stop();
+
+    console.println("");
+    console.println("[bold green]✓ Demo 4 Complete![/]\n");
 }

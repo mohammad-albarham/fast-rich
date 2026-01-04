@@ -507,3 +507,172 @@ impl ProgressColumn for ElapsedColumn {
         )]
     }
 }
+
+/// Formats bytes into human-readable size string (e.g., "1.2 MB").
+fn format_bytes(bytes: u64) -> String {
+    const KB: f64 = 1024.0;
+    const MB: f64 = 1024.0 * 1024.0;
+    const GB: f64 = 1024.0 * 1024.0 * 1024.0;
+
+    let bytes_f = bytes as f64;
+    if bytes_f >= GB {
+        format!("{:.1} GB", bytes_f / GB)
+    } else if bytes_f >= MB {
+        format!("{:.1} MB", bytes_f / MB)
+    } else if bytes_f >= KB {
+        format!("{:.1} KB", bytes_f / KB)
+    } else {
+        format!("{} B", bytes)
+    }
+}
+
+/// Renders the completed file size (e.g., "1.2 MB").
+///
+/// Displays the current progress in human-readable bytes.
+#[derive(Debug)]
+pub struct FileSizeColumn {
+    style: Style,
+}
+
+impl Default for FileSizeColumn {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl FileSizeColumn {
+    pub fn new() -> Self {
+        Self {
+            style: Style::new().foreground(Color::Green),
+        }
+    }
+
+    /// Set the style for the file size display.
+    pub fn style(mut self, style: Style) -> Self {
+        self.style = style;
+        self
+    }
+}
+
+impl ProgressColumn for FileSizeColumn {
+    fn render(&self, task: &Task) -> Vec<Span> {
+        let size_str = format_bytes(task.completed);
+        vec![Span::styled(size_str, self.style)]
+    }
+}
+
+/// Renders the file size as "completed / total" (e.g., "1.2 MB / 5.0 MB").
+///
+/// Shows both completed and total bytes in a single display.
+#[derive(Debug)]
+pub struct TotalFileSizeColumn {
+    separator: String,
+    completed_style: Style,
+    total_style: Style,
+}
+
+impl Default for TotalFileSizeColumn {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl TotalFileSizeColumn {
+    pub fn new() -> Self {
+        Self {
+            separator: " / ".to_string(),
+            completed_style: Style::new().foreground(Color::Green),
+            total_style: Style::new().foreground(Color::Blue),
+        }
+    }
+
+    /// Set the separator between completed and total (default: " / ").
+    pub fn separator(mut self, sep: &str) -> Self {
+        self.separator = sep.to_string();
+        self
+    }
+
+    /// Set the style for completed bytes.
+    pub fn completed_style(mut self, style: Style) -> Self {
+        self.completed_style = style;
+        self
+    }
+
+    /// Set the style for total bytes.
+    pub fn total_style(mut self, style: Style) -> Self {
+        self.total_style = style;
+        self
+    }
+}
+
+impl ProgressColumn for TotalFileSizeColumn {
+    fn render(&self, task: &Task) -> Vec<Span> {
+        let completed_str = format_bytes(task.completed);
+        let total_str = match task.total {
+            Some(t) => format_bytes(t),
+            None => "?".to_string(),
+        };
+
+        vec![
+            Span::styled(completed_str, self.completed_style),
+            Span::styled(self.separator.clone(), Style::new()),
+            Span::styled(total_str, self.total_style),
+        ]
+    }
+}
+
+/// Renders a combined download display: "size @ speed" (e.g., "1.2 MB @ 500 KB/s").
+///
+/// Combines file size progress with transfer speed in one compact column.
+#[derive(Debug)]
+pub struct DownloadColumn {
+    size_style: Style,
+    speed_style: Style,
+}
+
+impl Default for DownloadColumn {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl DownloadColumn {
+    pub fn new() -> Self {
+        Self {
+            size_style: Style::new().foreground(Color::Green),
+            speed_style: Style::new().foreground(Color::Red),
+        }
+    }
+
+    /// Set the style for file size.
+    pub fn size_style(mut self, style: Style) -> Self {
+        self.size_style = style;
+        self
+    }
+
+    /// Set the style for transfer speed.
+    pub fn speed_style(mut self, style: Style) -> Self {
+        self.speed_style = style;
+        self
+    }
+}
+
+impl ProgressColumn for DownloadColumn {
+    fn render(&self, task: &Task) -> Vec<Span> {
+        let size_str = format_bytes(task.completed);
+        let speed = task.speed();
+        let speed_str = if speed >= 1_000_000.0 {
+            format!("{:.1} MB/s", speed / 1_000_000.0)
+        } else if speed >= 1_000.0 {
+            format!("{:.1} KB/s", speed / 1_000.0)
+        } else {
+            format!("{:.0} B/s", speed)
+        };
+
+        vec![
+            Span::styled(size_str, self.size_style),
+            Span::raw(" @ "),
+            Span::styled(speed_str, self.speed_style),
+        ]
+    }
+}

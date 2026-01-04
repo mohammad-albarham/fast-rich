@@ -489,7 +489,7 @@ impl Progress {
     /// ```
     pub fn run<F, R>(&mut self, f: F) -> R
     where
-        F: FnOnce(&Self) -> R,
+        F: FnOnce(&mut Self) -> R,
     {
         self.start();
         let result = f(self);

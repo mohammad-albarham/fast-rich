@@ -76,7 +76,7 @@ Add `fast-rich` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fast-rich = "0.3.1"
+fast-rich = "0.3.2-alpha"
 ```
 
 To enable all features (including Syntax Highlighting and Markdown, which bring in extra dependencies):

@@ -10,7 +10,7 @@ Add `fast-rich` to your `Cargo.toml`:
 
     ```toml
     [dependencies]
-    fast-rich = "0.3.1"
+    fast-rich = "0.3.2-alpha"
     ```
 
 === "Full Features"
@@ -166,6 +166,59 @@ fn main() {
 **What you'll see:**
 
 ![Table demo](assets/table_demo.gif)
+
+## Progress Tracking
+ 
+Fast-Rich provides production-grade progress bars with spinners, ETA, and transfer speed. 
+
+```rust
+use fast_rich::console::Console;
+use fast_rich::progress::{
+    BarColumn, DownloadColumn, FileSizeColumn, MofNColumn, PercentageColumn, Progress,
+    SpinnerColumn, TextColumn, TimeRemainingColumn, TotalFileSizeColumn, TransferSpeedColumn,
+};
+use std::thread;
+use std::time::Duration;
+
+fn main() {
+    let console = Console::new();
+    
+    // Create a progress bar with custom columns
+    let mut progress = Progress::new()
+        .with_console(Console::new())
+        .with_columns(vec![
+            Box::new(SpinnerColumn::new()),
+            Box::new(TextColumn::new("[progress.description]")),
+            Box::new(BarColumn::new(40)),
+            Box::new(PercentageColumn::new()),
+            Box::new(TransferSpeedColumn),
+            Box::new(TimeRemainingColumn),
+        ]);
+
+    let task1 = progress.add_task("Downloading file1.zip", Some(100));
+    let task2 = progress.add_task("Downloading file2.zip", Some(200));
+
+    progress.start();
+
+    // Update progress in your loop
+    for _ in 0..100 {
+        progress.update(task1, 1); // +1 by default or specify absolute value
+        progress.advance(task2, 2);
+        
+        progress.refresh();
+        thread::sleep(Duration::from_millis(50));
+    }
+
+    progress.stop();
+}
+```
+
+**What you'll see (Full Feature Demo):**
+
+![Progress demo](assets/progress.gif)
+
+!!! tip "More Examples"
+    Check out `examples/progress_rich.rs` for more advanced usage including auto-refresh, context managers, and file transfer modes.
 
 ## Terminal Compatibility
 

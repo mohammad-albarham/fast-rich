@@ -345,6 +345,7 @@ mod tests {
         task.completed = 50;
 
         let spans = bar_col.render(&task);
-        assert_eq!(spans.len(), 2);
+        // Now we have 3 spans: filled (5), edge pointer (1), unfilled (4)
+        assert_eq!(spans.len(), 3);
     }
 }

@@ -48,52 +48,185 @@ impl ProgressColumn for TextColumn {
     }
 }
 
-/// Renders the progress bar.
+/// Renders the progress bar with distinct filled/unfilled characters.
+/// 
+/// Uses Unicode box-drawing characters for clear visual distinction:
+/// - `━` (U+2501) for filled portion
+/// - `╸` (U+257A) for edge pointer (shows progress position)
+/// - `─` (U+2500) for unfilled portion
+/// 
+/// For indeterminate tasks (no total), shows a pulsing animation.
 #[derive(Debug)]
 pub struct BarColumn {
+    /// Width of the bar in characters
     pub bar_width: usize,
+    /// Character for filled portion (default: '━')
+    pub complete_char: char,
+    /// Character for unfilled portion (default: '─')
+    pub incomplete_char: char,
+    /// Optional edge pointer character (default: Some('╸'))
+    pub edge_char: Option<char>,
+    /// Style for completed portion
     pub complete_style: Style,
+    /// Style for finished tasks
     pub finished_style: Option<Style>,
-    pub pulse_style: Option<Style>,
+    /// Style for unfilled portion
+    pub incomplete_style: Style,
+    /// Style for pulse animation (indeterminate)
+    pub pulse_style: Style,
+}
+
+impl Default for BarColumn {
+    fn default() -> Self {
+        Self::new(40)
+    }
 }
 
 impl BarColumn {
     pub fn new(bar_width: usize) -> Self {
         Self {
             bar_width,
-            complete_style: Style::new().foreground(Color::Magenta), // Default rich color
+            complete_char: '━',      // Heavy horizontal
+            incomplete_char: '─',    // Light horizontal (distinct!)
+            edge_char: Some('╸'),    // Heavy left (pointer)
+            complete_style: Style::new().foreground(Color::Magenta),
             finished_style: Some(Style::new().foreground(Color::Green)),
-            pulse_style: None,
+            incomplete_style: Style::new().foreground(Color::Ansi256(237)), // Dark grey
+            pulse_style: Style::new().foreground(Color::Cyan),
         }
+    }
+
+    /// Set the complete character
+    pub fn complete_char(mut self, c: char) -> Self {
+        self.complete_char = c;
+        self
+    }
+
+    /// Set the incomplete character
+    pub fn incomplete_char(mut self, c: char) -> Self {
+        self.incomplete_char = c;
+        self
+    }
+
+    /// Set the edge pointer character (or None to disable)
+    pub fn edge_char(mut self, c: Option<char>) -> Self {
+        self.edge_char = c;
+        self
+    }
+
+    /// Set the style for completed portion
+    pub fn complete_style(mut self, style: Style) -> Self {
+        self.complete_style = style;
+        self
+    }
+
+    /// Set the style for finished tasks
+    pub fn finished_style(mut self, style: Option<Style>) -> Self {
+        self.finished_style = style;
+        self
+    }
+
+    /// Render a pulsing bar for indeterminate progress
+    fn render_pulse(&self, task: &Task) -> Vec<Span> {
+        let width = self.bar_width;
+        let pulse_width = 6.min(width / 3); // Pulse is ~1/3 of bar width
+        
+        // Calculate pulse position based on elapsed time
+        let elapsed_ms = task.elapsed().as_millis() as usize;
+        let cycle_duration_ms = 1500; // 1.5 seconds per cycle
+        let position_in_cycle = elapsed_ms % cycle_duration_ms;
+        
+        // Pulse moves from left to right and back
+        let half_cycle = cycle_duration_ms / 2;
+        let normalized_pos = if position_in_cycle < half_cycle {
+            position_in_cycle as f64 / half_cycle as f64
+        } else {
+            1.0 - ((position_in_cycle - half_cycle) as f64 / half_cycle as f64)
+        };
+        
+        let pulse_start = ((width - pulse_width) as f64 * normalized_pos).round() as usize;
+        let pulse_end = pulse_start + pulse_width;
+        
+        let mut spans = Vec::new();
+        
+        // Before pulse
+        if pulse_start > 0 {
+            spans.push(Span::styled(
+                self.incomplete_char.to_string().repeat(pulse_start),
+                self.incomplete_style,
+            ));
+        }
+        
+        // Pulse itself
+        spans.push(Span::styled(
+            self.complete_char.to_string().repeat(pulse_width),
+            self.pulse_style,
+        ));
+        
+        // After pulse
+        let after_pulse = width.saturating_sub(pulse_end);
+        if after_pulse > 0 {
+            spans.push(Span::styled(
+                self.incomplete_char.to_string().repeat(after_pulse),
+                self.incomplete_style,
+            ));
+        }
+        
+        spans
     }
 }
 
 impl ProgressColumn for BarColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
+        // Handle indeterminate progress (no total)
+        if task.total.is_none() && !task.finished {
+            return self.render_pulse(task);
+        }
+
         let total = task.total.unwrap_or(100) as f64;
         let completed = task.completed as f64;
         let percentage = (completed / total).clamp(0.0, 1.0);
 
         let width = self.bar_width;
-        let filled_width = (width as f64 * percentage).round() as usize;
-        let empty_width = width.saturating_sub(filled_width);
-
+        
         let style = if task.finished {
             self.finished_style.unwrap_or(self.complete_style)
         } else {
             self.complete_style
         };
 
+        // Calculate filled width, accounting for optional edge character
+        let has_edge = self.edge_char.is_some() && !task.finished && percentage < 1.0;
+        let effective_width = if has_edge { width.saturating_sub(1) } else { width };
+        
+        let filled_width = (effective_width as f64 * percentage).round() as usize;
+        let empty_width = effective_width.saturating_sub(filled_width);
+
         let mut spans = Vec::new();
+        
+        // Filled portion
         if filled_width > 0 {
-            spans.push(Span::styled("━".repeat(filled_width), style));
+            spans.push(Span::styled(
+                self.complete_char.to_string().repeat(filled_width),
+                style,
+            ));
         }
+        
+        // Edge pointer (shows current progress position)
+        if has_edge && filled_width < width {
+            if let Some(edge) = self.edge_char {
+                spans.push(Span::styled(edge.to_string(), style));
+            }
+        }
+        
+        // Unfilled portion (using DIFFERENT character)
         if empty_width > 0 {
             spans.push(Span::styled(
-                "━".repeat(empty_width),
-                Style::new().foreground(Color::Ansi256(237)),
-            )); // Grey
+                self.incomplete_char.to_string().repeat(empty_width),
+                self.incomplete_style,
+            ));
         }
+        
         spans
     }
 }

@@ -9,10 +9,12 @@
 mod bar;
 mod columns;
 mod spinner;
+mod spinner_data;
 mod status;
 mod track;
 
 pub use bar::{Progress, ProgressBar, Task};
+
 pub use columns::*;
 pub use spinner::{Spinner, SpinnerStyle};
 pub use status::{with_status, Status};

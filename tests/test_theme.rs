@@ -17,7 +17,7 @@ fn test_monokai_theme() {
     // Monokai uses RGB colors - just verify they exist
     let _ = theme.primary;
     let _ = theme.success;
-    assert!(true); // Theme builds successfully
+    // Theme builds successfully (verified by compilation)
 }
 
 #[test]
@@ -25,7 +25,7 @@ fn test_night_owl_theme() {
     let theme = Theme::night_owl();
     let _ = theme.primary;
     let _ = theme.secondary;
-    assert!(true); // Theme builds successfully
+    // Theme builds successfully (verified by compilation)
 }
 
 #[test]

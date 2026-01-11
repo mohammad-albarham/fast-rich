@@ -20,10 +20,12 @@ fn main() {
     // Let's check SyntaxConfig. It has start_line pub, but Syntax has config() method.
     // We can use that.
 
-    let mut config = fast_rich::syntax::SyntaxConfig::default();
-    config.start_line = 10;
-    config.theme = Theme::Monokai;
-    config.highlight_lines = vec![12];
+    let config = fast_rich::syntax::SyntaxConfig {
+        start_line: 10,
+        theme: Theme::Monokai,
+        highlight_lines: vec![12],
+        ..Default::default()
+    };
 
     let syntax = Syntax::new(rust_code, "rust").config(config);
     console.print_renderable(&syntax);

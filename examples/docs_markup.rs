@@ -10,7 +10,9 @@ fn main() {
     console.println("[bold]Bold[/]  [italic]Italic[/]  [underline]Underline[/]  [dim]Dim[/]");
 
     // Colors
-    console.println("[red]Red[/]  [green]Green[/]  [blue]Blue[/]  [yellow]Yellow[/]  [magenta]Magenta[/]");
+    console.println(
+        "[red]Red[/]  [green]Green[/]  [blue]Blue[/]  [yellow]Yellow[/]  [magenta]Magenta[/]",
+    );
 
     // Background + combined
     console.println("[white on red] Alert [/]  [bold green]Success![/]  [italic cyan]Info[/]");

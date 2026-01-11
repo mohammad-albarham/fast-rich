@@ -12,7 +12,6 @@ use crate::style::{Color, Style};
 use crate::text::Span;
 use std::time::Instant;
 
-
 /// Spinner animation style.
 ///
 /// Use `SpinnerStyle::from_name()` for string-based lookup (Python parity).
@@ -476,18 +475,91 @@ impl SpinnerStyle {
     /// Get all available spinner style names.
     pub fn all_names() -> &'static [&'static str] {
         &[
-            "dots", "dots2", "dots3", "dots4", "dots5", "dots6", "dots7", "dots8",
-            "dots9", "dots10", "dots11", "dots12", "dots13", "dots14", "dotsCircle", "sand", "bounce",
-            "line", "line2", "pipe", "rollingLine", "simpleDots", "simpleDotsScrolling",
-            "star", "star2",
-            "arc", "circle", "circleHalves", "circleQuarters", "squareCorners", "triangle", "binary", "squish", "flip", "hamburger",
-            "boxBounce", "boxBounce2", "noise",
-            "growVertical", "growHorizontal", "balloon", "balloon2",
-            "toggle", "toggle2", "toggle3", "toggle4", "toggle5", "toggle6", "toggle7", "toggle8", "toggle9", "toggle10", "toggle11", "toggle12", "toggle13",
-            "arrow", "arrow2", "arrow3",
-            "bouncingBar", "bouncingBall", "pong", "shark", "betaWave", "aesthetic", "material",
-            "clock", "moon", "earth", "hearts", "smiley", "monkey", "runner", "weather", "christmas", "grenade", "fingerDance", "speaker", "orangePulse", "bluePulse", "orangeBluePulse", "timeTravel", "mindblown",
-            "dqpb", "point", "layer",
+            "dots",
+            "dots2",
+            "dots3",
+            "dots4",
+            "dots5",
+            "dots6",
+            "dots7",
+            "dots8",
+            "dots9",
+            "dots10",
+            "dots11",
+            "dots12",
+            "dots13",
+            "dots14",
+            "dotsCircle",
+            "sand",
+            "bounce",
+            "line",
+            "line2",
+            "pipe",
+            "rollingLine",
+            "simpleDots",
+            "simpleDotsScrolling",
+            "star",
+            "star2",
+            "arc",
+            "circle",
+            "circleHalves",
+            "circleQuarters",
+            "squareCorners",
+            "triangle",
+            "binary",
+            "squish",
+            "flip",
+            "hamburger",
+            "boxBounce",
+            "boxBounce2",
+            "noise",
+            "growVertical",
+            "growHorizontal",
+            "balloon",
+            "balloon2",
+            "toggle",
+            "toggle2",
+            "toggle3",
+            "toggle4",
+            "toggle5",
+            "toggle6",
+            "toggle7",
+            "toggle8",
+            "toggle9",
+            "toggle10",
+            "toggle11",
+            "toggle12",
+            "toggle13",
+            "arrow",
+            "arrow2",
+            "arrow3",
+            "bouncingBar",
+            "bouncingBall",
+            "pong",
+            "shark",
+            "betaWave",
+            "aesthetic",
+            "material",
+            "clock",
+            "moon",
+            "earth",
+            "hearts",
+            "smiley",
+            "monkey",
+            "runner",
+            "weather",
+            "christmas",
+            "grenade",
+            "fingerDance",
+            "speaker",
+            "orangePulse",
+            "bluePulse",
+            "orangeBluePulse",
+            "timeTravel",
+            "mindblown",
+            "dqpb",
+            "point",
+            "layer",
         ]
     }
 }
@@ -626,7 +698,8 @@ mod tests {
     #[test]
     fn test_all_spinner_styles_have_frames() {
         for name in SpinnerStyle::all_names() {
-            let style = SpinnerStyle::from_name(name).expect(&format!("Failed to find style: {}", name));
+            let style = SpinnerStyle::from_name(name)
+                .unwrap_or_else(|| panic!("Failed to find style: {}", name));
             let frames = style.frames();
             assert!(!frames.is_empty(), "{} has no frames", name);
             assert!(style.interval_ms() > 0, "{} has invalid interval", name);

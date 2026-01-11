@@ -76,7 +76,7 @@ where
 mod tests {
     #[test]
     fn test_alternate_screen_creation() {
-        // Can't easily test in CI, but we can verify the struct compiles
-        assert!(true);
+        // Can't easily test alternate screen in CI (requires TTY),
+        // but compilation verifies the struct is valid
     }
 }

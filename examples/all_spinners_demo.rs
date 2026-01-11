@@ -4,11 +4,11 @@
 
 use fast_rich::console::Console;
 use fast_rich::progress::SpinnerStyle;
-use std::{thread, time::Duration, io::Write};
+use std::{io::Write, thread, time::Duration};
 
 fn main() {
     let console = Console::new();
-    
+
     console.println("[bold cyan]═══ All Spinner Styles Demo ═══[/]");
     console.println("");
     console.println("[dim]Showing a sample of 80+ available spinner styles...[/]");
@@ -20,39 +20,31 @@ fn main() {
         ("dots", SpinnerStyle::Dots),
         ("dots2", SpinnerStyle::Dots2),
         ("dots12", SpinnerStyle::Dots12),
-        
         // Lines
         ("line", SpinnerStyle::Line),
         ("pipe", SpinnerStyle::Pipe),
-        
         // Shapes
         ("arc", SpinnerStyle::Arc),
         ("circle", SpinnerStyle::Circle),
         ("triangle", SpinnerStyle::Triangle),
-        
         // Arrows
         ("arrow", SpinnerStyle::Arrow),
         ("arrow3", SpinnerStyle::Arrow3),
-        
         // Growing
         ("growVertical", SpinnerStyle::GrowVertical),
         ("growHorizontal", SpinnerStyle::GrowHorizontal),
         ("aesthetic", SpinnerStyle::Aesthetic),
-        
         // Toggles
         ("toggle", SpinnerStyle::Toggle),
         ("toggle3", SpinnerStyle::Toggle3),
-        
         // Animations
         ("bouncingBar", SpinnerStyle::BouncingBar),
         ("bouncingBall", SpinnerStyle::BouncingBall),
-        
         // Emoji
         ("clock", SpinnerStyle::Clock),
         ("moon", SpinnerStyle::Moon),
         ("earth", SpinnerStyle::Earth),
         ("hearts", SpinnerStyle::Hearts),
-        
         // Misc
         ("star", SpinnerStyle::Star),
         ("noise", SpinnerStyle::Noise),
@@ -61,12 +53,12 @@ fn main() {
     for (name, style) in spinners_to_show {
         let frames = style.frames();
         let interval = style.interval_ms();
-        
+
         // Show spinner animating for a bit
         let iterations = 15;
         print!("  {:20} ", name);
         std::io::stdout().flush().unwrap();
-        
+
         for i in 0..iterations {
             let frame = frames[i % frames.len()];
             print!("\r  {:20} {}", name, frame);
@@ -77,10 +69,11 @@ fn main() {
     }
 
     console.println("");
-    console.println(&format!("[bold green]✓[/] Total spinner styles available: [cyan]{}[/]", SpinnerStyle::all_names().len()));
+    console.println(&format!(
+        "[bold green]✓[/] Total spinner styles available: [cyan]{}[/]",
+        SpinnerStyle::all_names().len()
+    ));
 
-
-    
     console.println("");
     console.println("[dim]Use SpinnerStyle::from_name(\"name\") for string lookup[/]");
     console.println("[dim]Use SpinnerStyle::all_names() to list all options[/]");

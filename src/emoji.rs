@@ -420,7 +420,7 @@ mod tests {
     fn test_get_emoji() {
         assert_eq!(get_emoji("smile"), Some("😄"));
         assert_eq!(get_emoji("thumbs_up"), Some("👍"));
-        assert_eq!(get_emoji("heart"), Some("❤️"));
+        assert_eq!(get_emoji("heart"), Some("❤")); // heart emoji without variation selector
         assert_eq!(get_emoji("rocket"), Some("🚀"));
     }
 

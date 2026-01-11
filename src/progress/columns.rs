@@ -392,7 +392,20 @@ impl SpinnerColumn {
             spinner: Spinner::new("").style(SpinnerStyle::Dots),
         }
     }
+
+    /// Set the spinner style.
+    ///
+    /// # Example
+    /// ```
+    /// use fast_rich::progress::{SpinnerColumn, SpinnerStyle};
+    /// let spinner = SpinnerColumn::new().with_style(SpinnerStyle::Moon);
+    /// ```
+    pub fn with_style(mut self, style: SpinnerStyle) -> Self {
+        self.spinner = Spinner::new("").style(style);
+        self
+    }
 }
+
 
 impl ProgressColumn for SpinnerColumn {
     fn render(&self, task: &Task) -> Vec<Span> {

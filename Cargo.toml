@@ -1,6 +1,6 @@
 [package]
 name = "fast-rich"
-version = "0.3.2-alpha"
+version = "0.3.2"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A Rust port of Python's Rich library for beautiful terminal formatting"

@@ -56,12 +56,13 @@ fn test_padding() -> String {
 fn test_theme() -> String {
     // Fast-rich doesn't have markup tags like [success], so we'll test raw theme colors
     let theme = fast_rich::theme::Theme::default_theme();
-    let mut segments = Vec::new();
-    segments.push(Text::plain("Success").style(theme.get_style("success")));
-    segments.push(Text::plain(" "));
-    segments.push(Text::plain("Warning").style(theme.get_style("warning")));
-    segments.push(Text::plain(" "));
-    segments.push(Text::plain("Error").style(theme.get_style("error")));
+    let segments = vec![
+        Text::plain("Success").style(theme.get_style("success")),
+        Text::plain(" "),
+        Text::plain("Warning").style(theme.get_style("warning")),
+        Text::plain(" "),
+        Text::plain("Error").style(theme.get_style("error")),
+    ];
 
     // Combine into single output
     let console = Console::capture().width(60).force_color(true);
@@ -111,6 +112,42 @@ fn compare_outputs(test_name: &str) -> bool {
     }
 }
 
+fn main() {
+    fs::create_dir_all("tests/ansi_output").expect("Failed to create output dir");
+
+    let tests = [
+        ("basic_styles", test_basic_styles as fn() -> String),
+        ("colors", test_colors),
+        ("table", test_table),
+        ("panel", test_panel),
+        ("align", test_align),
+        ("padding", test_padding),
+        ("theme", test_theme),
+    ];
+
+    println!("=== Generating Rust ANSI Outputs ===\n");
+    for (name, test_func) in &tests {
+        let output = test_func();
+        println!("=== {} ===", name.to_uppercase());
+        println!("{:?}", output);
+        export_raw_bytes(name, &output);
+    }
+
+    println!("\n=== Comparing with Python Reference ===\n");
+    let mut all_match = true;
+    for (name, _) in &tests {
+        if !compare_outputs(name) {
+            all_match = false;
+        }
+    }
+
+    if all_match {
+        println!("\n✓ All tests match Python Rich output exactly!");
+    } else {
+        println!("\n⚠ Some tests have mismatches - see details above");
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -145,41 +182,5 @@ mod tests {
     fn verify_align() {
         let output = test_align();
         export_raw_bytes("align", &output);
-    }
-}
-
-fn main() {
-    fs::create_dir_all("tests/ansi_output").expect("Failed to create output dir");
-
-    let tests = [
-        ("basic_styles", test_basic_styles as fn() -> String),
-        ("colors", test_colors),
-        ("table", test_table),
-        ("panel", test_panel),
-        ("align", test_align),
-        ("padding", test_padding),
-        ("theme", test_theme),
-    ];
-
-    println!("=== Generating Rust ANSI Outputs ===\n");
-    for (name, test_func) in &tests {
-        let output = test_func();
-        println!("=== {} ===", name.to_uppercase());
-        println!("{:?}", output);
-        export_raw_bytes(name, &output);
-    }
-
-    println!("\n=== Comparing with Python Reference ===\n");
-    let mut all_match = true;
-    for (name, _) in &tests {
-        if !compare_outputs(name) {
-            all_match = false;
-        }
-    }
-
-    if all_match {
-        println!("\n✓ All tests match Python Rich output exactly!");
-    } else {
-        println!("\n⚠ Some tests have mismatches - see details above");
     }
 }

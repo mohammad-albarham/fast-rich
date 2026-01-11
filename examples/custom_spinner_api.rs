@@ -16,7 +16,7 @@ fn main() {
     // Option 1: Create a column with Moon style directly (Type-safe)
     let spinner_col = SpinnerColumn::new().with_style(SpinnerStyle::Moon);
     let label = "Moon Spinner";
-    
+
     // Option 2: Create a column using string lookup (Flexible)
     // Uncomment the lines below to test string-based lookup:
     // let spinner_col = SpinnerColumn::new().with_style(
@@ -25,13 +25,10 @@ fn main() {
     // let label = "Dots12 (lookup)";
 
     // 3. Setup Progress with the chosen column
-    let mut progress = Progress::new()
-        .with_console(console)
-        .with_columns(vec![
-            Box::new(spinner_col),
-            Box::new(TextColumn::new(label)),
-        ]);
-
+    let mut progress = Progress::new().with_console(console).with_columns(vec![
+        Box::new(spinner_col),
+        Box::new(TextColumn::new(label)),
+    ]);
 
     progress.start();
     let task_id = progress.add_task("Downloading parity...", Some(50));
@@ -41,7 +38,7 @@ fn main() {
         progress.refresh();
         thread::sleep(Duration::from_millis(80));
     }
-    
+
     progress.stop();
     println!("\n✅ Custom API test successful!");
 }

@@ -14,10 +14,10 @@ fn main() {
     // Demo 1: Standard progress with refresh_per_second setting
     console.println("[yellow]Demo 1: Standard Progress Bar[/]");
     console.println("");
-    
+
     let mut progress = Progress::new()
         .with_console(Console::new())
-        .refresh_per_second(10.0)  // P2: Configure refresh rate
+        .refresh_per_second(10.0) // P2: Configure refresh rate
         .with_columns(vec![
             Box::new(SpinnerColumn::new()),
             Box::new(TextColumn::new("[progress.description]")),
@@ -64,12 +64,12 @@ fn main() {
     // Demo 2: Sub-character progress with 8th-block Unicode (P2 feature)
     console.println("[yellow]Demo 2: Sub-Character Progress (8th-block Unicode)[/]");
     console.println("");
-    
+
     let mut sub_progress = Progress::new()
         .with_console(Console::new())
         .with_columns(vec![
             Box::new(TextColumn::new("[progress.description]")),
-            Box::new(BarColumn::new(50).use_sub_blocks(true)),  // P2: Sub-block mode
+            Box::new(BarColumn::new(50).use_sub_blocks(true)), // P2: Sub-block mode
             Box::new(PercentageColumn::new()),
         ]);
 
@@ -89,7 +89,7 @@ fn main() {
     // Demo 3: Context-manager-style run() method (P2 feature)
     console.println("[yellow]Demo 3: Context Manager run() Method[/]");
     console.println("");
-    
+
     let mut managed_progress = Progress::new()
         .with_console(Console::new())
         .with_columns(vec![
@@ -180,7 +180,9 @@ fn main() {
 
     // Demo 5: Python-style track() iterator wrapper
     console.println("[yellow]Demo 5: Python-style track() Iterator[/]");
-    console.println("[dim]Just like Python's: for item in track(range(100), description=\"...\")[/]\n");
+    console.println(
+        "[dim]Just like Python's: for item in track(range(100), description=\"...\")[/]\n",
+    );
 
     use fast_rich::progress::track;
 

@@ -360,7 +360,7 @@ fn test_all_python_references() {
 
         if let Some(expected) = load_python_reference(name) {
             if output != expected {
-                eprintln!("Mismatch in {}", name);
+                std::eprintln!("Mismatch in {}", name);
                 print_ansi_diff(&expected, &output);
                 // Don't panic here - collect all failures
             }

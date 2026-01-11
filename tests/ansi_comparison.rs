@@ -75,7 +75,7 @@ fn test_theme() -> String {
 fn export_raw_bytes(test_name: &str, output: &str) {
     let path = format!("tests/ansi_output/rust_{}.txt", test_name);
     fs::write(&path, output.as_bytes()).expect("Failed to write output");
-    println!("Exported: {}", path);
+    std::println!("Exported: {}", path);
 }
 
 fn compare_outputs(test_name: &str) -> bool {
@@ -83,7 +83,7 @@ fn compare_outputs(test_name: &str) -> bool {
     let rust_path = format!("tests/ansi_output/rust_{}.txt", test_name);
 
     if !Path::new(&python_path).exists() {
-        println!("⚠  Python reference not found: {}", python_path);
+        std::println!("⚠  Python reference not found: {}", python_path);
         return false;
     }
 
@@ -91,19 +91,21 @@ fn compare_outputs(test_name: &str) -> bool {
     let rust_output = fs::read_to_string(&rust_path).expect("Failed to read Rust output");
 
     if python_output == rust_output {
-        println!("✓ {} - EXACT MATCH", test_name);
+        std::println!("✓ {} - EXACT MATCH", test_name);
         true
     } else {
-        println!("✗ {} - MISMATCH", test_name);
-        println!("  Python length: {} bytes", python_output.len());
-        println!("  Rust length:   {} bytes", rust_output.len());
+        std::println!("✗ {} - MISMATCH", test_name);
+        std::println!("  Python length: {} bytes", python_output.len());
+        std::println!("  Rust length:   {} bytes", rust_output.len());
 
         // Show first difference
         for (i, (p, r)) in python_output.bytes().zip(rust_output.bytes()).enumerate() {
             if p != r {
-                println!(
+                std::println!(
                     "  First diff at byte {}: Python={:02x} Rust={:02x}",
-                    i, p, r
+                    i,
+                    p,
+                    r
                 );
                 break;
             }
@@ -125,15 +127,15 @@ fn main() {
         ("theme", test_theme),
     ];
 
-    println!("=== Generating Rust ANSI Outputs ===\n");
+    std::println!("=== Generating Rust ANSI Outputs ===\n");
     for (name, test_func) in &tests {
         let output = test_func();
-        println!("=== {} ===", name.to_uppercase());
-        println!("{:?}", output);
+        std::println!("=== {} ===", name.to_uppercase());
+        std::println!("{:?}", output);
         export_raw_bytes(name, &output);
     }
 
-    println!("\n=== Comparing with Python Reference ===\n");
+    std::println!("\n=== Comparing with Python Reference ===\n");
     let mut all_match = true;
     for (name, _) in &tests {
         if !compare_outputs(name) {
@@ -142,9 +144,9 @@ fn main() {
     }
 
     if all_match {
-        println!("\n✓ All tests match Python Rich output exactly!");
+        std::println!("\n✓ All tests match Python Rich output exactly!");
     } else {
-        println!("\n⚠ Some tests have mismatches - see details above");
+        std::println!("\n⚠ Some tests have mismatches - see details above");
     }
 }
 

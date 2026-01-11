@@ -124,26 +124,55 @@ progress.update_description(task_id, "Almost done...");
 For tasks with unknown duration, use spinners:
 
 ```rust
-use fast_rich::prelude::*;
+use fast_rich::progress::{Progress, SpinnerColumn, SpinnerStyle, TextColumn, BarColumn};
+use fast_rich::console::Console;
 
 fn main() {
-    let spinner = Spinner::new()
-        .message("Loading...")
-        .style(SpinnerStyle::Dots);
+    let columns: Vec<Box<dyn fast_rich::progress::ProgressColumn>> = vec![
+        Box::new(SpinnerColumn::new().with_style(SpinnerStyle::Moon)),
+        Box::new(TextColumn::new("[progress.description]")),
+        Box::new(BarColumn::new(30)),
+    ];
     
-    // Use with Status for single-task indication
-    let status = Status::new("Processing data");
-    // ... do work ...
+    let mut progress = Progress::new()
+        .with_console(Console::new())
+        .with_columns(columns);
+    
+    progress.start();
+    let task = progress.add_task("Processing...", Some(100));
+    // ... update progress ...
+    progress.stop();
 }
 ```
 
 ### Spinner Styles
 
-| Style | Pattern |
-|:------|:--------|
-| `SpinnerStyle::Dots` | `⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏` |
-| `SpinnerStyle::Line` | `- \ | /` |
-| `SpinnerStyle::Braille` | `⣾ ⣽ ⣻ ⢿ ⡿ ⣟ ⣯ ⣷` |
+Fast-Rich includes **80+ spinner styles**. Here are some popular ones:
+
+| Style | Pattern | Description |
+|:------|:--------|:------------|
+| `SpinnerStyle::Dots` | `⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏` | Classic braille dots (default) |
+| `SpinnerStyle::Line` | `- \\ | /` | Simple ASCII line |
+| `SpinnerStyle::Moon` | 🌑 🌒 🌓 🌔 🌕 🌖 🌗 🌘 | Moon phases |
+| `SpinnerStyle::Earth` | 🌍 🌎 🌏 | Rotating globe |
+| `SpinnerStyle::Clock` | 🕐 🕑 🕒 ... 🕛 | Clock faces |
+| `SpinnerStyle::Hearts` | 💛 💙 💜 💚 ❤️ | Color hearts |
+| `SpinnerStyle::Star` | ✶ ✸ ✹ ✺ ✹ ✷ | Twinkling star |
+| `SpinnerStyle::Arrow` | ← ↖ ↑ ↗ → ↘ ↓ ↙ | Rotating arrow |
+| `SpinnerStyle::BouncingBar` | `[=   ]` `[ =  ]` ... | Bouncing bar |
+| `SpinnerStyle::GrowHorizontal` | ▏ ▎ ▍ ▌ ▋ ▊ ▉ █ | Growing block |
+| `SpinnerStyle::Aesthetic` | ▰▱▱▱ ▰▰▱▱ ... | Aesthetic blocks |
+
+!!! tip "List All Spinners"
+    ```rust
+    use fast_rich::progress::SpinnerStyle;
+    println!("Available: {} styles", SpinnerStyle::all_names().len());
+    ```
+
+Run the spinner demo:
+```bash
+cargo run --example spinner_column_demo
+```
 
 ---
 
@@ -253,3 +282,34 @@ This is useful for:
     Progress bars use ANSI cursor control. They work best in 
     interactive terminals. In CI environments, consider using 
     snapshot rendering or simpler output.
+
+---
+
+## Try the Examples
+
+Explore the full capabilities of progress bars and spinners:
+
+```bash
+# Basic progress bar demo
+cargo run --example progress_rich
+
+# Python-style track() iterator
+cargo run --example docs_track
+
+# All 85 spinner styles
+cargo run --example all_spinners_demo
+
+# Custom spinner configuration
+cargo run --example spinner_column_demo
+cargo run --example custom_spinner_api
+
+# List available spinner names
+cargo run --example list_spinners
+```
+
+These examples demonstrate:
+- ✅ Multi-task progress tracking
+- ✅ Custom columns (spinner, percentage, ETA, speed)
+- ✅ 85 spinner styles (emoji, ASCII, unicode)
+- ✅ `track()` iterator for simple loops
+- ✅ `start()`/`stop()`/`refresh()` lifecycle

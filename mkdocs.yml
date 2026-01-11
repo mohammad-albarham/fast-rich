@@ -50,6 +50,7 @@ nav:
     - guides/index.md
     - Text & Styles: guides/text-styles.md
     - Console: guides/console.md
+    - Print Macros: guides/print-macros.md
     - Tables: guides/tables.md
     - Panels & Rules: guides/panels.md
     - Progress Bars: guides/progress.md

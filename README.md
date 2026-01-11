@@ -76,21 +76,21 @@ Add `fast-rich` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fast-rich = "0.3.2-alpha"
+fast-rich = "0.3.2"
 ```
 
 To enable all features (including Syntax Highlighting and Markdown, which bring in extra dependencies):
 
 ```toml
 [dependencies]
-fast-rich = { version = "0.3.1", features = ["full"] }
+fast-rich = { version = "0.3.2", features = ["full"] }
 ```
 
 Or pick specific features:
 
 ```toml
 [dependencies]
-fast-rich = { version = "0.3.1", features = ["syntax", "markdown", "logging"] }
+fast-rich = { version = "0.3.2", features = ["syntax", "markdown", "logging"] }
 ```
 
 ## Quick Start
@@ -133,10 +133,21 @@ Detailed guides and API references are available at our official documentation s
 Run the included examples to see features in action:
 
 ```bash
+# Core features
 cargo run --example showcase
+cargo run --example hero
+
+# Print macros (drop-in replacement for std::print!)
+cargo run --example print_shadowing
+
+# Progress bars and spinners
+cargo run --example progress_rich
+cargo run --example spinner_column_demo
+cargo run --example all_spinners_demo
+
+# Other features
 cargo run --example syntax_highlighting --features syntax
 cargo run --example live_clock
-cargo run --example progress_rich
 cargo run --example logging --features logging
 ```
 
@@ -157,6 +168,23 @@ cargo run --example logging --features logging
 ## Contributing
 
 Contributions are welcome! Please check out [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines on how to get started.
+
+## Contributors
+
+<!-- ALL-CONTRIBUTORS-BADGE:START -->
+[![All Contributors](https://img.shields.io/github/contributors/mohammad-albarham/fast-rich?style=flat-square)](https://github.com/mohammad-albarham/fast-rich/graphs/contributors)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
+
+Thanks to everyone who has contributed to Fast-Rich! 🙏
+
+<a href="https://github.com/mohammad-albarham/fast-rich/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=mohammad-albarham/fast-rich" />
+</a>
+
+Special thanks to:
+- Everyone who has [opened issues](https://github.com/mohammad-albarham/fast-rich/issues) to report bugs or request features
+- All [pull request contributors](https://github.com/mohammad-albarham/fast-rich/pulls?q=is%3Apr+is%3Amerged) who helped improve the codebase
+- The [Python Rich](https://github.com/Textualize/rich) team for the original inspiration
 
 ## License
 

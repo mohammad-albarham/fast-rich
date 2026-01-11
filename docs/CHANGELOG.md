@@ -5,7 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.2-alpha] - 2026-01-04
+## [0.3.2] - 2026-01-11
+
+### Added
+- **Print Macros**: Drop-in `print!`/`println!` replacements that shadow std macros with rich markup support.
+  - `print!`, `println!`, `eprint!`, `eprintln!` - styled output macros
+  - `print_raw!`, `println_raw!`, `eprint_raw!`, `eprintln_raw!` - raw output (no parsing)
+  - `rprint!`, `rprintln!` - non-shadowing aliases
+- **Spinner Styles**: 80+ spinner styles for `SpinnerColumn`:
+  - `SpinnerColumn::new().with_style(SpinnerStyle::Moon)`
+  - Emoji spinners: Moon, Earth, Clock, Hearts, Star
+  - ASCII spinners: Arrow, BouncingBar, GrowHorizontal, Aesthetic
+  - `SpinnerStyle::all_names()` to list available styles
 
 ### Enhanced
 - **Progress Bars**: Significantly improved `Progress` module (Python-rich parity):

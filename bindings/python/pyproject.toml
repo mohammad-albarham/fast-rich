@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "fast-rich"
-version = "0.3.1"
+version = "0.3.2"
 description = "A drop-in replacement for Python Rich, powered by Rust for maximum performance"
 readme = "fast_rich/README.md"
 requires-python = ">=3.10"

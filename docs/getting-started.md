@@ -10,21 +10,21 @@ Add `fast-rich` to your `Cargo.toml`:
 
     ```toml
     [dependencies]
-    fast-rich = "0.3.2-alpha"
+    fast-rich = "0.3.2"
     ```
 
 === "Full Features"
 
     ```toml
     [dependencies]
-    fast-rich = { version = "0.3.1", features = ["full"] }
+    fast-rich = { version = "0.3.2", features = ["full"] }
     ```
 
 === "Selective Features"
 
     ```toml
     [dependencies]
-    fast-rich = { version = "0.3.1", features = ["syntax", "markdown", "logging"] }
+    fast-rich = { version = "0.3.2", features = ["syntax", "markdown", "logging"] }
     ```
 
 ### Available Features
@@ -66,6 +66,39 @@ Add `fast-rich` to your `Cargo.toml`:
     **What you'll see**
     
     ![First program output](assets/hero.gif)
+
+## Drop-in Print Macros
+
+Fast-Rich provides `print!` and `println!` macros that shadow the standard library versions, giving you styled output with zero friction:
+
+```rust
+// Shadow the standard library macros
+use fast_rich::{print, println};
+
+fn main() {
+    // Works exactly like std::println!, but with rich markup!
+    println!("[bold green]Success![/] All systems operational.");
+
+    // Format arguments work as expected
+    let name = "Alice";
+    let score = 100;
+    println!("[cyan]Player[/]: {} scored [yellow]{}[/] points", name, score);
+
+    // Emoji support built-in
+    println!(":rocket: Launch  :fire: Hot  :sparkles: Magic");
+}
+```
+
+!!! tip "Raw Output for Untrusted Input"
+    If your data might contain text that looks like markup tags (e.g., `[Red]`), use `println_raw!` to skip parsing:
+    ```rust
+    use fast_rich::println_raw;
+    let user_data = get_untrusted_input();
+    println_raw!("{}", user_data);  // Prints literally, no markup parsing
+    ```
+
+!!! info "More Print Macros"
+    See the [Print Macros Guide](guides/print-macros.md) for `eprint!`, `eprintln!`, and edge case handling.
 
 ## Understanding the Console
 

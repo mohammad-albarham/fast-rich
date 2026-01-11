@@ -42,3 +42,6 @@ site/
 
 # OS
 .DS_Store
+
+# Rich
+rich/*

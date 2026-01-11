@@ -6,9 +6,8 @@ use fast_rich::style::{Color, Style};
 #[test]
 fn test_regex_highlighter_creation() {
     let hl = RegexHighlighter::new();
-    // Highlighter builds successfully
+    // Highlighter builds successfully (verified by compilation)
     let _ = hl;
-    assert!(true);
 }
 
 #[test]

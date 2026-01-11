@@ -67,6 +67,27 @@ path = "examples/progress.rs"
 name = "tree"
 path = "examples/tree.rs"
 
+# Examples requiring optional features
+[[example]]
+name = "logging"
+path = "examples/logging.rs"
+required-features = ["logging"]
+
+[[example]]
+name = "logging_custom"
+path = "examples/logging_custom.rs"
+required-features = ["logging"]
+
+[[example]]
+name = "markdown_parity"
+path = "examples/markdown_parity.rs"
+required-features = ["markdown"]
+
+[[example]]
+name = "syntax_highlighting"
+path = "examples/syntax_highlighting.rs"
+required-features = ["syntax"]
+
 [[bench]]
 name = "render_benchmark"
 harness = false

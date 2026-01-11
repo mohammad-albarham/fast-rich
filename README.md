@@ -3,11 +3,20 @@
 
   <h1>Fast-Rich</h1>
 
+  <!-- Primary Badges: Versioning, Docs, Health -->
   [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://mohammad-albarham.github.io/fast-rich)
   [![Crates.io](https://img.shields.io/crates/v/fast-rich.svg)](https://crates.io/crates/fast-rich)
   [![Rust API](https://docs.rs/fast-rich/badge.svg)](https://docs.rs/fast-rich)
-  [![License](https://img.shields.io/crates/l/fast-rich.svg)](https://github.com/mohammad-albarham/fast-rich/blob/main/LICENSE)
   [![Build Status](https://github.com/mohammad-albarham/fast-rich/workflows/CI/badge.svg)](https://github.com/mohammad-albarham/fast-rich/actions)
+  [![codecov](https://codecov.io/gh/mohammad-albarham/fast-rich/branch/main/graph/badge.svg?token=)](https://codecov.io/gh/mohammad-albarham/fast-rich)
+  [![License](https://img.shields.io/crates/l/fast-rich.svg)](https://github.com/mohammad-albarham/fast-rich/blob/main/LICENSE)
+  ![Rust Version](https://img.shields.io/badge/rust-1.70%2B-blue.svg)
+
+  <!-- Secondary Badges: Activity and Social -->
+  [![Downloads](https://img.shields.io/crates/d/fast-rich.svg)](https://crates.io/crates/fast-rich)
+  ![GitHub last commit](https://img.shields.io/github/last-commit/mohammad-albarham/fast-rich.svg)
+  ![Lines of Code](https://img.shields.io/endpoint?url=https%3A%2F%2Ftokei.kojix2.net%2Fbadge%2Fgithub%2Fmohammad-albarham%2Ffast-rich%3Fcategory%3Dlines)
+  [![GitHub stars](https://img.shields.io/github/stars/mohammad-albarham/fast-rich.svg?style=social)](https://github.com/mohammad-albarham/fast-rich/stargazers)
   ![Status](https://img.shields.io/badge/status-under--development-orange)
 
   **High-performance Rust port of Python's popular [Rich](https://github.com/Textualize/rich) library.**

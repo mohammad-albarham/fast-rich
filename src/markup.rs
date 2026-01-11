@@ -98,7 +98,22 @@ pub fn tokenize(input: &str) -> Vec<MarkupToken> {
                     }
 
                     let style = Style::parse(&style_parts.join(" "));
-                    tokens.push(MarkupToken::OpenTag(style, link));
+
+                    // Heuristic: If we parsed no style and no link, it's likely not a tag
+                    // (e.g. "[1, 2, 3]" from debug output). Treat it as literal text.
+                    if style.is_empty() && link.is_none() {
+                        // Reconstruct the original text
+                        let original = if tag_content.contains(']') {
+                            // If we had unescaped brackets inside, we might lose fidelity here
+                            // but for standard debug output it's usually fine.
+                            format!("[{}]", tag_content)
+                        } else {
+                            format!("[{}]", tag_content)
+                        };
+                        tokens.push(MarkupToken::Text(original));
+                    } else {
+                        tokens.push(MarkupToken::OpenTag(style, link));
+                    }
                 }
             }
             ':' => {

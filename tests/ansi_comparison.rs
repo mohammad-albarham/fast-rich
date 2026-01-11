@@ -56,12 +56,13 @@ fn test_padding() -> String {
 fn test_theme() -> String {
     // Fast-rich doesn't have markup tags like [success], so we'll test raw theme colors
     let theme = fast_rich::theme::Theme::default_theme();
-    let mut segments = Vec::new();
-    segments.push(Text::plain("Success").style(theme.get_style("success")));
-    segments.push(Text::plain(" "));
-    segments.push(Text::plain("Warning").style(theme.get_style("warning")));
-    segments.push(Text::plain(" "));
-    segments.push(Text::plain("Error").style(theme.get_style("error")));
+    let segments = vec![
+        Text::plain("Success").style(theme.get_style("success")),
+        Text::plain(" "),
+        Text::plain("Warning").style(theme.get_style("warning")),
+        Text::plain(" "),
+        Text::plain("Error").style(theme.get_style("error")),
+    ];
 
     // Combine into single output
     let console = Console::capture().width(60).force_color(true);
@@ -74,7 +75,7 @@ fn test_theme() -> String {
 fn export_raw_bytes(test_name: &str, output: &str) {
     let path = format!("tests/ansi_output/rust_{}.txt", test_name);
     fs::write(&path, output.as_bytes()).expect("Failed to write output");
-    println!("Exported: {}", path);
+    std::println!("Exported: {}", path);
 }
 
 fn compare_outputs(test_name: &str) -> bool {
@@ -82,7 +83,7 @@ fn compare_outputs(test_name: &str) -> bool {
     let rust_path = format!("tests/ansi_output/rust_{}.txt", test_name);
 
     if !Path::new(&python_path).exists() {
-        println!("⚠  Python reference not found: {}", python_path);
+        std::println!("⚠  Python reference not found: {}", python_path);
         return false;
     }
 
@@ -90,24 +91,62 @@ fn compare_outputs(test_name: &str) -> bool {
     let rust_output = fs::read_to_string(&rust_path).expect("Failed to read Rust output");
 
     if python_output == rust_output {
-        println!("✓ {} - EXACT MATCH", test_name);
+        std::println!("✓ {} - EXACT MATCH", test_name);
         true
     } else {
-        println!("✗ {} - MISMATCH", test_name);
-        println!("  Python length: {} bytes", python_output.len());
-        println!("  Rust length:   {} bytes", rust_output.len());
+        std::println!("✗ {} - MISMATCH", test_name);
+        std::println!("  Python length: {} bytes", python_output.len());
+        std::println!("  Rust length:   {} bytes", rust_output.len());
 
         // Show first difference
         for (i, (p, r)) in python_output.bytes().zip(rust_output.bytes()).enumerate() {
             if p != r {
-                println!(
+                std::println!(
                     "  First diff at byte {}: Python={:02x} Rust={:02x}",
-                    i, p, r
+                    i,
+                    p,
+                    r
                 );
                 break;
             }
         }
         false
+    }
+}
+
+fn main() {
+    fs::create_dir_all("tests/ansi_output").expect("Failed to create output dir");
+
+    let tests = [
+        ("basic_styles", test_basic_styles as fn() -> String),
+        ("colors", test_colors),
+        ("table", test_table),
+        ("panel", test_panel),
+        ("align", test_align),
+        ("padding", test_padding),
+        ("theme", test_theme),
+    ];
+
+    std::println!("=== Generating Rust ANSI Outputs ===\n");
+    for (name, test_func) in &tests {
+        let output = test_func();
+        std::println!("=== {} ===", name.to_uppercase());
+        std::println!("{:?}", output);
+        export_raw_bytes(name, &output);
+    }
+
+    std::println!("\n=== Comparing with Python Reference ===\n");
+    let mut all_match = true;
+    for (name, _) in &tests {
+        if !compare_outputs(name) {
+            all_match = false;
+        }
+    }
+
+    if all_match {
+        std::println!("\n✓ All tests match Python Rich output exactly!");
+    } else {
+        std::println!("\n⚠ Some tests have mismatches - see details above");
     }
 }
 
@@ -145,41 +184,5 @@ mod tests {
     fn verify_align() {
         let output = test_align();
         export_raw_bytes("align", &output);
-    }
-}
-
-fn main() {
-    fs::create_dir_all("tests/ansi_output").expect("Failed to create output dir");
-
-    let tests = [
-        ("basic_styles", test_basic_styles as fn() -> String),
-        ("colors", test_colors),
-        ("table", test_table),
-        ("panel", test_panel),
-        ("align", test_align),
-        ("padding", test_padding),
-        ("theme", test_theme),
-    ];
-
-    println!("=== Generating Rust ANSI Outputs ===\n");
-    for (name, test_func) in &tests {
-        let output = test_func();
-        println!("=== {} ===", name.to_uppercase());
-        println!("{:?}", output);
-        export_raw_bytes(name, &output);
-    }
-
-    println!("\n=== Comparing with Python Reference ===\n");
-    let mut all_match = true;
-    for (name, _) in &tests {
-        if !compare_outputs(name) {
-            all_match = false;
-        }
-    }
-
-    if all_match {
-        println!("\n✓ All tests match Python Rich output exactly!");
-    } else {
-        println!("\n⚠ Some tests have mismatches - see details above");
     }
 }

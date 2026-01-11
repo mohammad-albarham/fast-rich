@@ -67,7 +67,6 @@ fn test_bar_chart_width() {
     let chart = BarChart::new().width(40);
     // Width is set, verified by compilation
     let _ = chart;
-    assert!(true);
 }
 
 #[test]
@@ -75,7 +74,6 @@ fn test_bar_chart_character() {
     let chart = BarChart::new().bar_char('▓');
     // Character is set, verified by compilation
     let _ = chart;
-    assert!(true);
 }
 
 #[test]
@@ -83,5 +81,4 @@ fn test_bar_chart_show_values() {
     let chart = BarChart::new().show_values(false);
     // show_values is set, verified by compilation
     let _ = chart;
-    assert!(true);
 }

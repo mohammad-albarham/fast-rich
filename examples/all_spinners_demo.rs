@@ -77,8 +77,9 @@ fn main() {
     }
 
     console.println("");
-    console.println("[bold green]✓ Total spinner styles available:[/] [cyan]{}[/]", );
-    println!("  Total available: {}", SpinnerStyle::all_names().len());
+    console.println(&format!("[bold green]✓[/] Total spinner styles available: [cyan]{}[/]", SpinnerStyle::all_names().len()));
+
+
     
     console.println("");
     console.println("[dim]Use SpinnerStyle::from_name(\"name\") for string lookup[/]");

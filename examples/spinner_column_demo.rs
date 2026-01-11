@@ -6,32 +6,6 @@ use fast_rich::console::Console;
 use fast_rich::progress::{Progress, SpinnerColumn, BarColumn, TextColumn, PercentageColumn, SpinnerStyle};
 use std::{thread, time::Duration};
 
-/// Custom SpinnerColumn that allows setting the style
-#[derive(Debug)]
-struct StyledSpinnerColumn {
-    style: SpinnerStyle,
-}
-
-impl StyledSpinnerColumn {
-    fn new(style: SpinnerStyle) -> Self {
-        Self { style }
-    }
-}
-
-impl fast_rich::progress::ProgressColumn for StyledSpinnerColumn {
-    fn render(&self, task: &fast_rich::progress::Task) -> Vec<fast_rich::text::Span> {
-        let frames = self.style.frames();
-        let interval = self.style.interval_ms();
-        let elapsed_ms = task.elapsed().as_millis() as u64;
-        let idx = ((elapsed_ms / interval) as usize) % frames.len();
-        
-        vec![fast_rich::text::Span::styled(
-            frames[idx].to_string(),
-            fast_rich::style::Style::new().foreground(fast_rich::style::Color::Green),
-        )]
-    }
-}
-
 fn main() {
     println!("\n🎯 SpinnerColumn Demo\n");
     println!("Testing different spinner styles with progress:\n");
@@ -48,6 +22,24 @@ fn main() {
     // Demo 4: Aesthetic bar
     demo_spinner("Aesthetic", SpinnerStyle::Aesthetic);
     
+    // Demo 5: Hearts emoji
+    demo_spinner("Hearts 💕", SpinnerStyle::Hearts);
+    
+    // Demo 6: Clock emoji
+    demo_spinner("Clock 🕐", SpinnerStyle::Clock);
+    
+    // Demo 7: Bouncing bar animation
+    demo_spinner("BouncingBar", SpinnerStyle::BouncingBar);
+    
+    // Demo 8: Earth globe
+    demo_spinner("Earth 🌍", SpinnerStyle::Earth);
+    
+    // Demo 9: Growing horizontal
+    demo_spinner("GrowHorizontal", SpinnerStyle::GrowHorizontal);
+    
+    // Demo 10: Star
+    demo_spinner("Star ✨", SpinnerStyle::Star);
+
     println!("\n🎉 Demo complete!");
     println!("\n📋 Available spinners: {}", SpinnerStyle::all_names().len());
 }
@@ -55,8 +47,10 @@ fn main() {
 fn demo_spinner(name: &str, style: SpinnerStyle) {
     println!("━━━ {} ━━━\n", name);
     
+    // This is the proper user-facing API:
+    // SpinnerColumn::new().with_style(SpinnerStyle::Moon)
     let columns: Vec<Box<dyn fast_rich::progress::ProgressColumn>> = vec![
-        Box::new(StyledSpinnerColumn::new(style)),
+        Box::new(SpinnerColumn::new().with_style(style)),
         Box::new(TextColumn::new("[progress.description]")),
         Box::new(BarColumn::new(30)),
         Box::new(PercentageColumn::new()),

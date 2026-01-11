@@ -1,6 +1,6 @@
 //! Spinner animations for indeterminate progress.
 //!
-//! Provides 80+ spinner styles from cli-spinners.
+//! Provides 85 spinner styles from cli-spinners.
 //!
 //! # Attribution
 //! Spinner definitions are sourced from cli-spinners:

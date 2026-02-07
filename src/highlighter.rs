@@ -128,6 +128,203 @@ pub fn highlight_text(text: &str, highlighter: &impl Highlighter) -> Text {
     Text::from_spans(spans)
 }
 
+// =============================================================================
+// JSON Highlighter
+// =============================================================================
+
+/// Highlighter specifically designed for JSON syntax.
+///
+/// Applies distinct colors to:
+/// - Keys (strings followed by `:`)
+/// - String values
+/// - Numbers (including hex `0x...`)
+/// - Booleans (`true`/`false`)
+/// - Null
+/// - Braces, brackets, and parentheses
+#[derive(Debug, Clone)]
+pub struct JsonHighlighter {
+    string_re: Regex,
+    number_re: Regex,
+    bool_true_re: Regex,
+    bool_false_re: Regex,
+    null_re: Regex,
+    brace_re: Regex,
+    hex_re: Regex,
+    key_style: Style,
+    string_style: Style,
+    number_style: Style,
+    bool_true_style: Style,
+    bool_false_style: Style,
+    null_style: Style,
+    brace_style: Style,
+}
+
+impl Default for JsonHighlighter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl JsonHighlighter {
+    /// Create a new JSON highlighter with default colors.
+    pub fn new() -> Self {
+        use crate::style::Color;
+
+        JsonHighlighter {
+            // Regex patterns
+            string_re: Regex::new(r#""(?:[^"\\]|\\.)*""#).unwrap(),
+            number_re: Regex::new(r"-?\b\d+\.?\d*(?:[eE][+-]?\d+)?\b").unwrap(),
+            bool_true_re: Regex::new(r"\btrue\b").unwrap(),
+            bool_false_re: Regex::new(r"\bfalse\b").unwrap(),
+            null_re: Regex::new(r"\bnull\b").unwrap(),
+            // Include parentheses in braces (matching Python rich)
+            brace_re: Regex::new(r"[\{\}\[\]\(\)]").unwrap(),
+            // Hex numbers matching Python rich's JSONHighlighter
+            hex_re: Regex::new(r"0x[0-9a-fA-F]+\b").unwrap(),
+            // Styles
+            key_style: Style::new().foreground(Color::Blue).bold(),
+            string_style: Style::new().foreground(Color::Green),
+            number_style: Style::new().foreground(Color::Cyan),
+            bool_true_style: Style::new().foreground(Color::BrightGreen),
+            bool_false_style: Style::new().foreground(Color::BrightRed),
+            null_style: Style::new().foreground(Color::Magenta).italic(),
+            brace_style: Style::new().foreground(Color::White).dim(),
+        }
+    }
+
+    /// Set custom key style.
+    pub fn key_style(mut self, style: Style) -> Self {
+        self.key_style = style;
+        self
+    }
+
+    /// Set custom string style.
+    pub fn string_style(mut self, style: Style) -> Self {
+        self.string_style = style;
+        self
+    }
+
+    /// Set custom number style.
+    pub fn number_style(mut self, style: Style) -> Self {
+        self.number_style = style;
+        self
+    }
+}
+
+impl Highlighter for JsonHighlighter {
+    fn highlight(&self, text: &str) -> Vec<Span> {
+        // Collect all matches with their positions and styles
+        let mut matches: Vec<(usize, usize, Style)> = Vec::new();
+
+        // Find all string literals
+        for m in self.string_re.find_iter(text) {
+            // Check if this string is a key (followed by ":")
+            let rest = &text[m.end()..];
+            let is_key = rest.trim_start().starts_with(':');
+            let style = if is_key {
+                self.key_style
+            } else {
+                self.string_style
+            };
+            matches.push((m.start(), m.end(), style));
+        }
+
+        // Find numbers (only if not inside a string)
+        for m in self.number_re.find_iter(text) {
+            let overlaps = matches
+                .iter()
+                .any(|(s, e, _)| m.start() >= *s && m.end() <= *e);
+            if !overlaps {
+                matches.push((m.start(), m.end(), self.number_style));
+            }
+        }
+
+        // Find true
+        for m in self.bool_true_re.find_iter(text) {
+            let overlaps = matches
+                .iter()
+                .any(|(s, e, _)| m.start() >= *s && m.end() <= *e);
+            if !overlaps {
+                matches.push((m.start(), m.end(), self.bool_true_style));
+            }
+        }
+
+        // Find false
+        for m in self.bool_false_re.find_iter(text) {
+            let overlaps = matches
+                .iter()
+                .any(|(s, e, _)| m.start() >= *s && m.end() <= *e);
+            if !overlaps {
+                matches.push((m.start(), m.end(), self.bool_false_style));
+            }
+        }
+
+        // Find null
+        for m in self.null_re.find_iter(text) {
+            let overlaps = matches
+                .iter()
+                .any(|(s, e, _)| m.start() >= *s && m.end() <= *e);
+            if !overlaps {
+                matches.push((m.start(), m.end(), self.null_style));
+            }
+        }
+
+        // Find hex numbers
+        for m in self.hex_re.find_iter(text) {
+            let overlaps = matches
+                .iter()
+                .any(|(s, e, _)| m.start() >= *s && m.end() <= *e);
+            if !overlaps {
+                matches.push((m.start(), m.end(), self.number_style));
+            }
+        }
+
+        // Find braces
+        for m in self.brace_re.find_iter(text) {
+            let overlaps = matches
+                .iter()
+                .any(|(s, e, _)| m.start() >= *s && m.end() <= *e);
+            if !overlaps {
+                matches.push((m.start(), m.end(), self.brace_style));
+            }
+        }
+
+        // Sort by start position
+        matches.sort_by_key(|m| m.0);
+
+        // Build spans
+        let mut spans = Vec::new();
+        let mut last_end = 0;
+
+        for (start, end, style) in matches {
+            // Skip overlapping matches
+            if start < last_end {
+                continue;
+            }
+
+            // Add unstyled text before match
+            if start > last_end {
+                spans.push(Span::raw(text[last_end..start].to_string()));
+            }
+
+            // Add styled match
+            spans.push(Span::styled(text[start..end].to_string(), style));
+            last_end = end;
+        }
+
+        // Add remaining text
+        if last_end < text.len() {
+            spans.push(Span::raw(text[last_end..].to_string()));
+        }
+
+        if spans.is_empty() {
+            vec![Span::raw(text.to_string())]
+        } else {
+            spans
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

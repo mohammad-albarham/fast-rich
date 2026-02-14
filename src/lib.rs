@@ -144,6 +144,7 @@ pub mod progress;
 
 // Utilities
 pub mod inspect;
+pub mod json;
 pub mod prompt;
 pub mod traceback;
 
@@ -452,6 +453,7 @@ pub mod prelude {
     pub use crate::columns::Columns;
     pub use crate::console::Console;
     pub use crate::inspect::{inspect, InspectConfig};
+    pub use crate::json::Json;
     pub use crate::log::ConsoleLog;
     pub use crate::panel::{BorderStyle, Panel};
     pub use crate::progress::{track, Progress, ProgressBar, Spinner, SpinnerStyle, Status};

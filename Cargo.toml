@@ -26,6 +26,8 @@ pulldown-cmark = { version = "0.12", optional = true }
 syntect = { version = "5.2", optional = true }
 log = { version = "0.4", optional = true }
 regex = "1.12.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
 
 [features]
 default = []
@@ -38,6 +40,7 @@ full = ["markdown", "syntax", "logging", "std"]
 [dev-dependencies]
 insta = "1.40"  # Snapshot testing
 criterion = "0.5"
+tempfile = "3.10"  # Temporary files for testing
 
 [[example]]
 name = "hello"
@@ -66,6 +69,10 @@ path = "examples/progress.rs"
 [[example]]
 name = "tree"
 path = "examples/tree.rs"
+
+[[example]]
+name = "json_demo"
+path = "examples/json_demo.rs"
 
 # Examples requiring optional features
 [[example]]

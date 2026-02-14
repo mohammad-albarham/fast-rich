@@ -369,7 +369,8 @@ fn format_json(value: &Value, indent: &JsonIndent, ensure_ascii: bool) -> String
     match indent {
         JsonIndent::Compact => {
             // Compact output - no whitespace
-            let result = serde_json::to_string(value).unwrap_or_default();
+            let result = serde_json::to_string(value)
+                .expect("Failed to serialize JSON value to string");
             if ensure_ascii {
                 escape_non_ascii(&result)
             } else {
@@ -381,8 +382,10 @@ fn format_json(value: &Value, indent: &JsonIndent, ensure_ascii: bool) -> String
             let formatter = serde_json::ser::PrettyFormatter::with_indent(&indent_bytes);
             let mut buf = Vec::new();
             let mut ser = serde_json::Serializer::with_formatter(&mut buf, formatter);
-            value.serialize(&mut ser).ok();
-            let result = String::from_utf8(buf).unwrap_or_default();
+            value.serialize(&mut ser)
+                .expect("Failed to serialize JSON value with custom formatter");
+            let result = String::from_utf8(buf)
+                .expect("JSON serialization produced invalid UTF-8");
 
             if ensure_ascii {
                 escape_non_ascii(&result)
@@ -395,8 +398,10 @@ fn format_json(value: &Value, indent: &JsonIndent, ensure_ascii: bool) -> String
             let formatter = serde_json::ser::PrettyFormatter::with_indent(&indent_bytes);
             let mut buf = Vec::new();
             let mut ser = serde_json::Serializer::with_formatter(&mut buf, formatter);
-            value.serialize(&mut ser).ok();
-            let result = String::from_utf8(buf).unwrap_or_default();
+            value.serialize(&mut ser)
+                .expect("Failed to serialize JSON value with custom formatter");
+            let result = String::from_utf8(buf)
+                .expect("JSON serialization produced invalid UTF-8");
 
             if ensure_ascii {
                 escape_non_ascii(&result)

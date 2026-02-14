@@ -161,6 +161,13 @@ impl Text {
         self
     }
 
+    /// Disable word wrapping (equivalent to `overflow(Overflow::Visible)`).
+    ///
+    /// When set, text will extend beyond the available width instead of wrapping.
+    pub fn no_wrap(self) -> Self {
+        self.overflow(Overflow::Visible)
+    }
+
     /// Set the overall style.
     pub fn style(mut self, style: Style) -> Self {
         self.style = style;

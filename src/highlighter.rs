@@ -346,4 +346,198 @@ mod tests {
         let spans = hl.highlight("Visit https://example.com for info");
         assert!(spans.len() > 1);
     }
+
+    // =============================================================================
+    // JSON Highlighter Tests
+    // =============================================================================
+
+    #[test]
+    fn test_json_highlighter_keys() {
+        let hl = JsonHighlighter::new();
+        let spans = hl.highlight(r#"{"name": "value"}"#);
+        
+        // Find the key span ("name")
+        let key_span = spans.iter().find(|s| s.text == r#""name""#).unwrap();
+        assert!(key_span.style.bold, "Key should be bold");
+        assert_eq!(key_span.style.foreground, Some(Color::Blue), "Key should be blue");
+    }
+
+    #[test]
+    fn test_json_highlighter_string_values() {
+        let hl = JsonHighlighter::new();
+        let spans = hl.highlight(r#"{"key": "value"}"#);
+        
+        // Find the value span ("value")
+        let value_span = spans.iter().find(|s| s.text == r#""value""#).unwrap();
+        assert_eq!(value_span.style.foreground, Some(Color::Green), "String value should be green");
+        assert!(!value_span.style.bold, "String value should not be bold");
+    }
+
+    #[test]
+    fn test_json_highlighter_numbers() {
+        let hl = JsonHighlighter::new();
+        
+        // Test integer
+        let spans = hl.highlight(r#"{"count": 42}"#);
+        let num_span = spans.iter().find(|s| s.text == "42").unwrap();
+        assert_eq!(num_span.style.foreground, Some(Color::Cyan), "Number should be cyan");
+        
+        // Test float
+        let spans = hl.highlight(r#"{"pi": 3.14}"#);
+        let num_span = spans.iter().find(|s| s.text == "3.14").unwrap();
+        assert_eq!(num_span.style.foreground, Some(Color::Cyan), "Float should be cyan");
+        
+        // Test negative number
+        let spans = hl.highlight(r#"{"temp": -10}"#);
+        let num_span = spans.iter().find(|s| s.text == "-10").unwrap();
+        assert_eq!(num_span.style.foreground, Some(Color::Cyan), "Negative number should be cyan");
+        
+        // Test scientific notation
+        let spans = hl.highlight(r#"{"big": 1.5e10}"#);
+        let num_span = spans.iter().find(|s| s.text == "1.5e10").unwrap();
+        assert_eq!(num_span.style.foreground, Some(Color::Cyan), "Scientific notation should be cyan");
+    }
+
+    #[test]
+    fn test_json_highlighter_hex_numbers() {
+        let hl = JsonHighlighter::new();
+        let spans = hl.highlight(r#"{"hex": 0x1A2B}"#);
+        
+        let hex_span = spans.iter().find(|s| s.text == "0x1A2B").unwrap();
+        assert_eq!(hex_span.style.foreground, Some(Color::Cyan), "Hex number should be cyan");
+    }
+
+    #[test]
+    fn test_json_highlighter_booleans() {
+        let hl = JsonHighlighter::new();
+        
+        // Test true
+        let spans = hl.highlight(r#"{"active": true}"#);
+        let true_span = spans.iter().find(|s| s.text == "true").unwrap();
+        assert_eq!(true_span.style.foreground, Some(Color::BrightGreen), "true should be bright green");
+        
+        // Test false
+        let spans = hl.highlight(r#"{"active": false}"#);
+        let false_span = spans.iter().find(|s| s.text == "false").unwrap();
+        assert_eq!(false_span.style.foreground, Some(Color::BrightRed), "false should be bright red");
+    }
+
+    #[test]
+    fn test_json_highlighter_null() {
+        let hl = JsonHighlighter::new();
+        let spans = hl.highlight(r#"{"value": null}"#);
+        
+        let null_span = spans.iter().find(|s| s.text == "null").unwrap();
+        assert_eq!(null_span.style.foreground, Some(Color::Magenta), "null should be magenta");
+        assert!(null_span.style.italic, "null should be italic");
+    }
+
+    #[test]
+    fn test_json_highlighter_braces() {
+        let hl = JsonHighlighter::new();
+        let spans = hl.highlight(r#"{"arr": [1, 2], "obj": {}}"#);
+        
+        // Check that braces/brackets are styled
+        let brace_chars = ["{", "}", "[", "]"];
+        for ch in &brace_chars {
+            let brace_span = spans.iter().find(|s| s.text == *ch);
+            assert!(brace_span.is_some(), "Brace/bracket '{}' should be found", ch);
+            let brace_span = brace_span.unwrap();
+            assert_eq!(brace_span.style.foreground, Some(Color::White), "Brace should be white");
+            assert!(brace_span.style.dim, "Brace should be dim");
+        }
+    }
+
+    #[test]
+    fn test_json_highlighter_parentheses() {
+        let hl = JsonHighlighter::new();
+        let spans = hl.highlight(r#"{"func": (value)}"#);
+        
+        // Check that parentheses are styled (matching Python rich)
+        let paren_span = spans.iter().find(|s| s.text == "(");
+        assert!(paren_span.is_some(), "Opening parenthesis should be found");
+        let paren_span = paren_span.unwrap();
+        assert_eq!(paren_span.style.foreground, Some(Color::White), "Parenthesis should be white");
+        assert!(paren_span.style.dim, "Parenthesis should be dim");
+    }
+
+    #[test]
+    fn test_json_highlighter_no_highlight_in_strings() {
+        let hl = JsonHighlighter::new();
+        // The string contains "true", "false", "null", and "123" but they should not be highlighted
+        // because they are inside a string value
+        let spans = hl.highlight(r#"{"text": "true false null 123"}"#);
+        
+        // Find the value span which should contain the entire string including the content
+        let value_span = spans.iter().find(|s| s.text == r#""true false null 123""#).unwrap();
+        assert_eq!(value_span.style.foreground, Some(Color::Green), "String content should be green");
+        
+        // Ensure "true", "false", "null", "123" are NOT styled separately when inside the string
+        // They should be part of the single string span
+        let separate_true = spans.iter().any(|s| s.text == "true" && s.style.foreground == Some(Color::BrightGreen));
+        let separate_false = spans.iter().any(|s| s.text == "false" && s.style.foreground == Some(Color::BrightRed));
+        let separate_null = spans.iter().any(|s| s.text == "null" && s.style.foreground == Some(Color::Magenta));
+        let separate_num = spans.iter().any(|s| s.text == "123" && s.style.foreground == Some(Color::Cyan));
+        
+        assert!(!separate_true, "Keywords inside strings should not be highlighted separately");
+        assert!(!separate_false, "Keywords inside strings should not be highlighted separately");
+        assert!(!separate_null, "Keywords inside strings should not be highlighted separately");
+        assert!(!separate_num, "Numbers inside strings should not be highlighted separately");
+    }
+
+    #[test]
+    fn test_json_highlighter_complex_json() {
+        let hl = JsonHighlighter::new();
+        let json = r#"{"name": "John", "age": 30, "active": true, "data": null, "items": [1, 2, 3]}"#;
+        let spans = hl.highlight(json);
+        
+        // Verify we have multiple spans (not just one raw span)
+        assert!(spans.len() > 1, "Complex JSON should have multiple styled spans");
+        
+        // Verify key is styled as key
+        let name_key = spans.iter().find(|s| s.text == r#""name""#).unwrap();
+        assert!(name_key.style.bold, "Key should be bold");
+        
+        // Verify string value
+        let name_value = spans.iter().find(|s| s.text == r#""John""#).unwrap();
+        assert_eq!(name_value.style.foreground, Some(Color::Green), "String value should be green");
+        
+        // Verify number
+        let age_value = spans.iter().find(|s| s.text == "30").unwrap();
+        assert_eq!(age_value.style.foreground, Some(Color::Cyan), "Number should be cyan");
+        
+        // Verify boolean
+        let active_value = spans.iter().find(|s| s.text == "true").unwrap();
+        assert_eq!(active_value.style.foreground, Some(Color::BrightGreen), "Boolean true should be bright green");
+        
+        // Verify null
+        let null_value = spans.iter().find(|s| s.text == "null").unwrap();
+        assert_eq!(null_value.style.foreground, Some(Color::Magenta), "null should be magenta");
+    }
+
+    #[test]
+    fn test_json_highlighter_custom_styles() {
+        let custom_key_style = Style::new().foreground(Color::Yellow);
+        let custom_string_style = Style::new().foreground(Color::Red);
+        let custom_number_style = Style::new().foreground(Color::Magenta);
+        
+        let hl = JsonHighlighter::new()
+            .key_style(custom_key_style)
+            .string_style(custom_string_style)
+            .number_style(custom_number_style);
+        
+        let spans = hl.highlight(r#"{"key": "value", "num": 42}"#);
+        
+        // Verify custom key style
+        let key_span = spans.iter().find(|s| s.text == r#""key""#).unwrap();
+        assert_eq!(key_span.style.foreground, Some(Color::Yellow), "Custom key style should be yellow");
+        
+        // Verify custom string style
+        let value_span = spans.iter().find(|s| s.text == r#""value""#).unwrap();
+        assert_eq!(value_span.style.foreground, Some(Color::Red), "Custom string style should be red");
+        
+        // Verify custom number style
+        let num_span = spans.iter().find(|s| s.text == "42").unwrap();
+        assert_eq!(num_span.style.foreground, Some(Color::Magenta), "Custom number style should be magenta");
+    }
 }

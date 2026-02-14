@@ -375,7 +375,7 @@ fn format_json(value: &Value, indent: &JsonIndent, ensure_ascii: bool) -> String
         JsonIndent::Compact => {
             // Compact output - no whitespace
             let result = serde_json::to_string(value)
-                .expect(ERR_SERIALIZE_COMPACT);
+                .expect("Failed to serialize JSON value - serde_json::Value should always be serializable");
             if ensure_ascii {
                 escape_non_ascii(&result)
             } else {
@@ -388,9 +388,9 @@ fn format_json(value: &Value, indent: &JsonIndent, ensure_ascii: bool) -> String
             let mut buf = Vec::new();
             let mut ser = serde_json::Serializer::with_formatter(&mut buf, formatter);
             value.serialize(&mut ser)
-                .expect(ERR_SERIALIZE_FORMATTED);
+                .expect("Failed to serialize JSON value - serde_json::Value should always be serializable");
             let result = String::from_utf8(buf)
-                .expect(ERR_INVALID_UTF8);
+                .expect("JSON serialization produced invalid UTF-8 - this should never happen");
 
             if ensure_ascii {
                 escape_non_ascii(&result)
@@ -404,9 +404,9 @@ fn format_json(value: &Value, indent: &JsonIndent, ensure_ascii: bool) -> String
             let mut buf = Vec::new();
             let mut ser = serde_json::Serializer::with_formatter(&mut buf, formatter);
             value.serialize(&mut ser)
-                .expect(ERR_SERIALIZE_FORMATTED);
+                .expect("Failed to serialize JSON value - serde_json::Value should always be serializable");
             let result = String::from_utf8(buf)
-                .expect(ERR_INVALID_UTF8);
+                .expect("JSON serialization produced invalid UTF-8 - this should never happen");
 
             if ensure_ascii {
                 escape_non_ascii(&result)

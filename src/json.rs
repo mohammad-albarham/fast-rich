@@ -364,13 +364,18 @@ impl Renderable for Json {
     }
 }
 
+// Error messages for JSON serialization
+const ERR_SERIALIZE_COMPACT: &str = "Failed to serialize JSON value to string";
+const ERR_SERIALIZE_FORMATTED: &str = "Failed to serialize JSON value with custom formatter";
+const ERR_INVALID_UTF8: &str = "JSON serialization produced invalid UTF-8";
+
 /// Format a JSON value with custom indentation and ASCII escaping.
 fn format_json(value: &Value, indent: &JsonIndent, ensure_ascii: bool) -> String {
     match indent {
         JsonIndent::Compact => {
             // Compact output - no whitespace
             let result = serde_json::to_string(value)
-                .expect("Failed to serialize JSON value - serde_json::Value should always be serializable");
+                .expect(ERR_SERIALIZE_COMPACT);
             if ensure_ascii {
                 escape_non_ascii(&result)
             } else {
@@ -383,9 +388,9 @@ fn format_json(value: &Value, indent: &JsonIndent, ensure_ascii: bool) -> String
             let mut buf = Vec::new();
             let mut ser = serde_json::Serializer::with_formatter(&mut buf, formatter);
             value.serialize(&mut ser)
-                .expect("Failed to serialize JSON value - serde_json::Value should always be serializable");
+                .expect(ERR_SERIALIZE_FORMATTED);
             let result = String::from_utf8(buf)
-                .expect("JSON serialization produced invalid UTF-8 - this should never happen");
+                .expect(ERR_INVALID_UTF8);
 
             if ensure_ascii {
                 escape_non_ascii(&result)
@@ -399,9 +404,9 @@ fn format_json(value: &Value, indent: &JsonIndent, ensure_ascii: bool) -> String
             let mut buf = Vec::new();
             let mut ser = serde_json::Serializer::with_formatter(&mut buf, formatter);
             value.serialize(&mut ser)
-                .expect("Failed to serialize JSON value - serde_json::Value should always be serializable");
+                .expect(ERR_SERIALIZE_FORMATTED);
             let result = String::from_utf8(buf)
-                .expect("JSON serialization produced invalid UTF-8 - this should never happen");
+                .expect(ERR_INVALID_UTF8);
 
             if ensure_ascii {
                 escape_non_ascii(&result)

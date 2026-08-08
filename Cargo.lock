@@ -288,7 +288,7 @@ dependencies = [
 
 [[package]]
 name = "fast-rich"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "criterion",
  "crossterm",

@@ -104,6 +104,7 @@ impl Markdown {
         let mut in_table = false;
         let mut in_table_head = false;
         let mut current_table_headers: Vec<String> = Vec::new();
+        let mut current_table_alignments: Vec<pulldown_cmark::Alignment> = Vec::new();
         let mut current_table_rows: Vec<Vec<String>> = Vec::new();
         let mut current_row: Vec<String> = Vec::new();
         let mut current_cell_text = String::new();
@@ -163,9 +164,10 @@ impl Markdown {
                         style_stack.push(self.config.quote_style);
                         elements.push(MarkdownElement::StartBlockQuote);
                     }
-                    Tag::Table(_) => {
+                    Tag::Table(alignments) => {
                         in_table = true;
                         current_table_headers.clear();
+                        current_table_alignments = alignments;
                         current_table_rows.clear();
                     }
                     Tag::TableHead => {
@@ -217,6 +219,7 @@ impl Markdown {
                         in_table = false;
                         elements.push(MarkdownElement::Table {
                             headers: std::mem::take(&mut current_table_headers),
+                            alignments: std::mem::take(&mut current_table_alignments),
                             rows: std::mem::take(&mut current_table_rows),
                         });
                     }
@@ -257,6 +260,15 @@ impl Markdown {
                     } else {
                         elements.push(MarkdownElement::InlineCode(code.to_string()));
                     }
+                }
+                Event::TaskListMarker(checked) => {
+                    let check_str = if checked { "[✓] " } else { "[ ] " };
+                    let style = if checked {
+                        Style::new().foreground(Color::Green).bold()
+                    } else {
+                        Style::new().foreground(Color::Yellow)
+                    };
+                    elements.push(MarkdownElement::Text(check_str.to_string(), style));
                 }
                 Event::SoftBreak => {
                     if in_table {
@@ -309,6 +321,7 @@ enum MarkdownElement {
     HorizontalRule,
     Table {
         headers: Vec<String>,
+        alignments: Vec<pulldown_cmark::Alignment>,
         rows: Vec<Vec<String>>,
     },
 }
@@ -461,15 +474,25 @@ impl Renderable for Markdown {
                     }
                     self.add_blank_line(&mut segments, blockquote_depth);
                 }
-                MarkdownElement::Table { headers, rows } => {
+                MarkdownElement::Table {
+                    headers,
+                    alignments,
+                    rows,
+                } => {
                     if !current_line.is_empty() {
                         self.flush_line(&mut segments, &mut current_line, blockquote_depth);
                     }
 
                     let mut table = Table::new();
-                    for header in headers {
+                    for (i, header) in headers.iter().enumerate() {
+                        let align = match alignments.get(i) {
+                            Some(pulldown_cmark::Alignment::Center) => crate::table::ColumnAlign::Center,
+                            Some(pulldown_cmark::Alignment::Right) => crate::table::ColumnAlign::Right,
+                            _ => crate::table::ColumnAlign::Left,
+                        };
                         table.add_column(
-                            crate::table::Column::new(&header)
+                            crate::table::Column::new(header)
+                                .align(align)
                                 .header_style(Style::new().bold().foreground(Color::Cyan)),
                         );
                     }
@@ -551,7 +574,18 @@ mod tests {
 
     #[test]
     fn test_markdown_table() {
-        let md = Markdown::new("| Col1 | Col2 |\n|---|---|\n| Val1 | Val2 |");
+        let md = Markdown::new("| Left | Center | Right |\n|:---|:---:|---:|\n| Val1 | Val2 | Val3 |");
+        let context = RenderContext {
+            width: 40,
+            height: None,
+        };
+        let segments = md.render(&context);
+        assert!(!segments.is_empty());
+    }
+
+    #[test]
+    fn test_markdown_task_list() {
+        let md = Markdown::new("- [x] Done task\n- [ ] Todo task");
         let context = RenderContext {
             width: 40,
             height: None,

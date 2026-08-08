@@ -6,8 +6,6 @@ Thank you for your interest in contributing to `fast-rich`! We welcome contribut
 
 1.  **Prerequisites**:
     *   Rust (stable)
-    *   Python 3.8+ (for bindings)
-    *   `maturin` (for building python bindings: `pip install maturin`)
 
 2.  **Clone the repository**:
     ```bash
@@ -23,20 +21,6 @@ Thank you for your interest in contributing to `fast-rich`! We welcome contribut
 4.  **Run Examples**:
     ```bash
     cargo run --example showcase
-    ```
-
-## Python Bindings Development
-
-The Python bindings are located in `bindings/python`.
-
-1.  **Build and Install (Dev Mode)**:
-    ```bash
-    maturin develop
-    ```
-
-2.  **Run Python Tests**:
-    ```bash
-    pytest
     ```
 
 ## Coding Standards

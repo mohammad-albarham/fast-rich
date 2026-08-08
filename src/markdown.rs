@@ -486,8 +486,12 @@ impl Renderable for Markdown {
                     let mut table = Table::new();
                     for (i, header) in headers.iter().enumerate() {
                         let align = match alignments.get(i) {
-                            Some(pulldown_cmark::Alignment::Center) => crate::table::ColumnAlign::Center,
-                            Some(pulldown_cmark::Alignment::Right) => crate::table::ColumnAlign::Right,
+                            Some(pulldown_cmark::Alignment::Center) => {
+                                crate::table::ColumnAlign::Center
+                            }
+                            Some(pulldown_cmark::Alignment::Right) => {
+                                crate::table::ColumnAlign::Right
+                            }
                             _ => crate::table::ColumnAlign::Left,
                         };
                         table.add_column(
@@ -574,7 +578,8 @@ mod tests {
 
     #[test]
     fn test_markdown_table() {
-        let md = Markdown::new("| Left | Center | Right |\n|:---|:---:|---:|\n| Val1 | Val2 | Val3 |");
+        let md =
+            Markdown::new("| Left | Center | Right |\n|:---|:---:|---:|\n| Val1 | Val2 | Val3 |");
         let context = RenderContext {
             width: 40,
             height: None,

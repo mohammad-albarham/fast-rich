@@ -67,9 +67,7 @@ nav:
   - Reference:
     - API Overview: reference/api.md
     - Benchmarks: benchmarks.md
-  - Python Bindings:
-    - Installation: python_install.md
-    - API Reference: python_api.md
+
   - Contributing:
     - contributing/index.md
     - Building Docs: contributing/building-docs.md

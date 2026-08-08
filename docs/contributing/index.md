@@ -7,8 +7,6 @@ Thank you for your interest in contributing to Fast-Rich! This guide covers deve
 ### Prerequisites
 
 - **Rust** (stable, 1.70+)
-- **Python 3.8+** (for bindings development)
-- **maturin** (for Python bindings): `pip install maturin`
 
 ### Clone and Build
 
@@ -54,7 +52,6 @@ fast-rich/
 │   └── ...
 ├── examples/              # Example programs
 ├── tests/                 # Integration tests
-├── bindings/              # Python bindings
 ├── docs/                  # Documentation (this site)
 └── benches/               # Benchmarks
 ```
@@ -133,33 +130,6 @@ Use conventional commits:
 - `test: add tests for layout splitting`
 - `refactor: simplify console output logic`
 
----
-
-## Python Bindings
-
-The Python bindings are in `bindings/python`.
-
-### Build and Test
-
-```bash
-cd bindings/python
-maturin develop
-pytest
-```
-
-### Structure
-
-```
-bindings/python/
-├── src/
-│   └── lib.rs        # PyO3 bindings
-├── python/
-│   └── fast_rich/    # Python package
-└── tests/
-    └── test_*.py     # Python tests
-```
-
----
 
 ## Documentation
 

@@ -78,79 +78,13 @@ Comparing Rust implementation speedups over time.
 
 ## 🔍 Methodology
 
-Benchmarks are executed using `pyo3` bindings. The Python interpreter overhead is included in the "Rust" times, making these results conservative estimates.
+Benchmarks track the performance of the Rust implementation against the original Python `rich` library.
 
 - **Machine**: macOS / Apple Silicon
-- **Python**: 3.14.0 (via `uv`)
 
 ---
 
-## 🐍 fast_rich vs Python Rich (Drop-in Replacement)
 
-The following benchmarks compare `fast_rich` (our drop-in Python Rich replacement) against the original Python `rich` library. These use the Python wrapper API with identical interfaces.
-
-### Latest Results (v0.3.0) - 100% Coverage
-
-**Date**: 2025-12-31  
-**Test**: Python 3.14.0, rich 14.2.0  
-**Modules**: 60 (100% Rich API coverage)
-
-| Benchmark | Python Rich | fast_rich | Speedup | Notes |
-| :--- | ---: | ---: | ---: | :--- |
-| **JSON (50 prints)** | 7.67ms | 0.07ms | 🚀 **112.5x** | Best performance |
-| **Markdown (20 renders)** | 9.35ms | 0.10ms | 🚀 **92.6x** | |
-| **Table (1000 rows)** | 66.85ms | 0.79ms | 🚀 **84.9x** | Large data |
-| **Markup (100 escapes)** | 7.12ms | 0.10ms | 🚀 **74.8x** | |
-| **Columns (50 items)** | 1.87ms | 0.07ms | 🔥 **27.7x** | |
-| **Rule (100 rules)** | 6.46ms | 0.25ms | 🔥 **25.4x** | |
-| **Panel (50 panels)** | 2.91ms | 0.13ms | 🔥 **23.1x** | |
-| **Align (100 ops)** | 4.07ms | 0.24ms | ⚡️ **17.1x** | |
-| **Padding (100 ops)** | 3.44ms | 0.27ms | ⚡️ **12.9x** | |
-| **Progress (100 updates)** | 0.94ms | 0.07ms | ⚡️ **12.8x** | |
-| **Tree (10×10 nodes)** | 1.89ms | 0.15ms | ⚡️ **12.7x** | |
-| **Text (100 styled lines)** | 1.93ms | 0.19ms | ⚡️ **10.4x** | |
-| **Cells (1000 measures)** | 0.04ms | 0.02ms | ✓ **1.9x** | Utility |
-
-**Average Speedup**: 39.1x  
-**Range**: 1.9x - 112.5x
-
-Legend: 🚀 >50x  🔥 >20x  ⚡️ >10x  ✓ <10x
-
-### Feature Benchmark Coverage (Complete)
-
-**ALL 12 features now benchmarked with comprehensive results:**
-
-| Feature | Implemented | Benchmarked | Speedup |
-| :--- | :---: | :---: | ---: |
-| Markdown | ✅ | ✅ | **115.6x** |
-| JSON | ✅ | ✅ | **111.9x** |
-| Table (1000) | ✅ | ✅ | **90.8x** |
-| Columns | ✅ | ✅ | **32.1x** |
-| Rule | ✅ | ✅ | **28.0x** |
-| Panel | ✅ | ✅ | **22.9x** |
-| Align | ✅ | ✅ | **18.4x** |
-| Padding | ✅ | ✅ | **14.4x** |
-| Progress | ✅ | ✅ | **13.6x** |
-| Tree | ✅ | ✅ | **12.9x** |
-| Table (10) | ✅ | ✅ | **11.8x** |
-| Text/Style | ✅ | ✅ | **11.3x** |
-
-**Additional modules (not benchmarked - utility/I/O bound):**
-- Layout, Live, Prompt (I/O bound - N/A)
-- Pretty, Emoji, Spinner (utility - trivial overhead)
-- Highlighter, Theme, Segment, etc. (internal use)
-
-### Running Benchmarks
-
-```bash
-cd bindings/python
-PYTHONPATH=. .venv/bin/python benchmarks/compare_performance.py
-```
-
-### Benchmark Script Location
-
-- **Python comparison**: `bindings/python/benchmarks/compare_performance.py`
-- **Rust core**: `benches/` (using criterion)
 
 ---
 
@@ -166,7 +100,6 @@ PYTHONPATH=. .venv/bin/python benchmarks/compare_performance.py
 ### Key Optimizations
 
 1. **Rust Core**: Heavy computation done in compiled Rust
-2. **Zero-copy where possible**: Minimize Python ↔ Rust data transfer
-3. **Efficient string handling**: Pre-allocated buffers
-4. **Cached rendering**: Style and box calculations cached
+2. **Efficient string handling**: Pre-allocated buffers
+3. **Cached rendering**: Style and box calculations cached
 

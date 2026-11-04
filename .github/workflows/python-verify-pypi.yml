@@ -39,7 +39,13 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Remove Rust toolchain
-        run: rm -rf "$HOME/.cargo" "$HOME/.rustup"
+        run: |
+          rm -rf "$HOME/.cargo" "$HOME/.rustup"
+          # macOS runners also ship rustup via Homebrew; delete every remaining binary on PATH.
+          SUDO=$([ "$RUNNER_OS" = Windows ] || echo sudo)
+          for tool in cargo rustc rustup; do
+            while p=$(command -v "$tool"); do echo "removing $p"; $SUDO rm -f "$p"; hash -r; done
+          done
       - name: Install from PyPI
         run: python -m pip install --no-cache-dir "fast-rich==${FAST_RICH_VERSION}"
       - name: Smoke test

@@ -12,13 +12,13 @@ pub struct Layout {
     /// Split direction.
     direction: Direction,
     /// Fixed size (width or height depending on parent direction).
-    size: Option<u16>,
+    size: Option<usize>,
     /// Ratio for flexible sizing.
     ratio: u32,
     /// Name for debugging.
     name: Option<String>,
     /// Minimum size.
-    minimum_size: u16,
+    minimum_size: usize,
     /// Is this layout visible?
     visible: bool,
 }
@@ -51,7 +51,7 @@ impl Layout {
     }
 
     /// Set a fixed size for this layout.
-    pub fn with_size(mut self, size: u16) -> Self {
+    pub fn with_size(mut self, size: usize) -> Self {
         self.size = Some(size);
         self
     }
@@ -63,7 +63,7 @@ impl Layout {
     }
 
     /// Set a minimum size for this layout.
-    pub fn with_minimum_size(mut self, size: u16) -> Self {
+    pub fn with_minimum_size(mut self, size: usize) -> Self {
         self.minimum_size = size;
         self
     }
@@ -91,7 +91,7 @@ impl Layout {
     }
 
     /// Calculate split sizes for a given total space.
-    fn calculate_splits(&self, total_size: u16) -> Vec<u16> {
+    fn calculate_splits(&self, total_size: usize) -> Vec<usize> {
         let count = self.children.len();
         if count == 0 {
             return Vec::new();
@@ -146,14 +146,20 @@ impl Layout {
                 sizes[i] = s;
                 remaining -= s;
             } else {
-                // No violators, distribute rest
-                let mut distributed = 0;
+                // No violators, distribute rest.
+                // Clamp every assignment to what remains: rounding several
+                // flexible children upward (f64 round is half-away-from-zero)
+                // can otherwise push `distributed` past `remaining` and
+                // underflow on the final subtraction.
+                let mut distributed: usize = 0;
+                let last = candidates.len() - 1;
                 for (idx, &i) in candidates.iter().enumerate() {
                     let child = &self.children[i];
-                    let s = if idx == candidates.len() - 1 {
-                        remaining - distributed
+                    let available = remaining - distributed.min(remaining);
+                    let s = if idx == last {
+                        available
                     } else {
-                        (child.ratio as f64 * unit).round() as u16
+                        ((child.ratio as f64 * unit).round() as usize).min(available)
                     };
                     sizes[i] = s;
                     distributed += s;
@@ -191,20 +197,17 @@ impl Renderable for Layout {
         }
 
         // Branch node: Calculate splits
-        let (width, _height) = match self.direction {
-            Direction::Horizontal => (context.width as u16, context.height.unwrap_or(0) as u16),
-            Direction::Vertical => (context.width as u16, context.height.unwrap_or(0) as u16),
-        };
+        let width = context.width;
 
         let mut segments = Vec::new();
 
         if self.direction == Direction::Vertical {
             if let Some(total_height) = context.height {
                 // Fixed height: Calculate splits based on height
-                let splits = self.calculate_splits(total_height as u16);
+                let splits = self.calculate_splits(total_height);
 
                 for (i, child) in self.children.iter().enumerate() {
-                    let h = splits[i] as usize;
+                    let h = splits[i];
                     if h == 0 {
                         continue;
                     }
@@ -256,7 +259,7 @@ impl Renderable for Layout {
             let target_height = context.height;
 
             for (i, child) in self.children.iter().enumerate() {
-                let w = splits[i] as usize;
+                let w = splits[i];
                 if w == 0 {
                     columns_output.push(Vec::new());
                     continue;
@@ -281,7 +284,7 @@ impl Renderable for Layout {
             for line_idx in 0..final_lines {
                 let mut line_spans = Vec::new();
                 for (col_idx, _child) in self.children.iter().enumerate() {
-                    let w = splits[col_idx] as usize;
+                    let w = splits[col_idx];
                     let segs = &columns_output[col_idx];
 
                     if line_idx < segs.len() {
@@ -363,7 +366,30 @@ mod tests {
         ]);
         let splits = layout.calculate_splits(100);
         assert_eq!(splits, vec![33, 33, 34]);
-        assert_eq!(splits.iter().sum::<u16>(), 100);
+        assert_eq!(splits.iter().sum::<usize>(), 100);
+    }
+
+    #[test]
+    fn test_calculate_splits_no_underflow_many_flexible() {
+        // 4 ratio-1 children into 2 cells: rounding pushes distributed past
+        // remaining; must clamp instead of underflowing (debug panic).
+        let mut layout = Layout::new();
+        layout.split_row(vec![
+            Layout::new().with_ratio(1),
+            Layout::new().with_ratio(1),
+            Layout::new().with_ratio(1),
+            Layout::new().with_ratio(1),
+        ]);
+        let splits = layout.calculate_splits(2);
+        assert!(splits.iter().sum::<usize>() <= 2);
+        assert!(splits.iter().all(|&s| s <= 2));
+
+        // Wide stress: many children into a narrow total.
+        let children: Vec<Layout> = (0..200).map(|_| Layout::new().with_ratio(1)).collect();
+        let mut layout = Layout::new();
+        layout.split_row(children);
+        let splits = layout.calculate_splits(100);
+        assert!(splits.iter().sum::<usize>() <= 100);
     }
     #[test]
     fn test_calculate_splits_min_size_simple() {

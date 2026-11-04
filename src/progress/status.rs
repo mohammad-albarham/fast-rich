@@ -61,7 +61,7 @@ impl Status {
             while running.load(Ordering::SeqCst) {
                 // Clear line and print spinner
                 let frame = spinner.current_frame();
-                let msg = message.lock().unwrap().clone();
+                let msg = message.lock().unwrap_or_else(|e| e.into_inner()).clone();
                 print!("\r\x1B[K{} {}", frame, msg);
                 let _ = io::stdout().flush();
 
@@ -85,7 +85,7 @@ impl Status {
 
     /// Update the status message.
     pub fn update(&mut self, message: &str) {
-        *self.message.lock().unwrap() = message.to_string();
+        *self.message.lock().unwrap_or_else(|e| e.into_inner()) = message.to_string();
     }
 }
 

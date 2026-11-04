@@ -8,7 +8,7 @@ use crate::renderable::{Renderable, Segment};
 use crate::style::Style;
 use crate::text::{Span, Text};
 
-use crate::box_drawing::{self, Box};
+use crate::box_drawing::{self, BoxStyle};
 
 /// Border style for panels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -48,7 +48,7 @@ pub enum BorderStyle {
 
 impl BorderStyle {
     /// Get the box characters for this style.
-    pub fn to_box(&self) -> Box {
+    pub fn to_box(&self) -> BoxStyle {
         match self {
             BorderStyle::Rounded => box_drawing::ROUNDED,
             BorderStyle::Square => box_drawing::SQUARE,
@@ -64,7 +64,7 @@ impl BorderStyle {
             BorderStyle::HeavyEdge => box_drawing::HEAVY_EDGE,
             BorderStyle::HeavyHead => box_drawing::HEAVY_HEAD,
             BorderStyle::DoubleEdge => box_drawing::DOUBLE_EDGE,
-            BorderStyle::Hidden => Box {
+            BorderStyle::Hidden => BoxStyle {
                 top: box_drawing::Line::new(' ', ' ', ' ', ' '),
                 head: box_drawing::Line::new(' ', ' ', ' ', ' '),
                 mid: box_drawing::Line::new(' ', ' ', ' ', ' '),
@@ -85,6 +85,8 @@ pub struct Panel {
     title: Option<String>,
     /// Optional subtitle at the bottom
     subtitle: Option<String>,
+    /// Style for the subtitle
+    subtitle_style: Style,
     /// Border style
     border_style: BorderStyle,
     /// Style for the border
@@ -109,9 +111,11 @@ impl Panel {
             border_style: BorderStyle::Rounded,
             style: Style::new(),
             title_style: Style::new(),
+            subtitle_style: Style::new(),
             padding_x: 1,
             padding_y: 0,
-            expand: true,
+            // Fit the content by default, like Python Rich's Panel.
+            expand: false,
         }
     }
 
@@ -145,6 +149,12 @@ impl Panel {
         self
     }
 
+    /// Set the subtitle style (defaults to plain).
+    pub fn subtitle_style(mut self, style: Style) -> Self {
+        self.subtitle_style = style;
+        self
+    }
+
     /// Set horizontal padding.
     pub fn padding_x(mut self, padding: usize) -> Self {
         self.padding_x = padding;
@@ -168,7 +178,7 @@ impl Panel {
         self
     }
 
-    fn render_top_border(&self, width: usize, box_chars: &Box) -> Segment {
+    fn render_top_border(&self, width: usize, box_chars: &BoxStyle) -> Segment {
         let inner_width = width.saturating_sub(2);
         let chars = box_chars.top;
 
@@ -209,7 +219,7 @@ impl Panel {
         }
     }
 
-    fn render_bottom_border(&self, width: usize, box_chars: &Box) -> Segment {
+    fn render_bottom_border(&self, width: usize, box_chars: &BoxStyle) -> Segment {
         let inner_width = width.saturating_sub(2);
         let chars = box_chars.bottom;
 
@@ -242,7 +252,7 @@ impl Panel {
                 Segment::line(vec![
                     Span::styled(chars.left.to_string(), self.style),
                     Span::styled(chars.mid.to_string().repeat(left_len), self.style),
-                    Span::styled(sub_with_space, self.title_style),
+                    Span::styled(sub_with_space, self.subtitle_style),
                     Span::styled(chars.mid.to_string().repeat(right_len), self.style),
                     Span::styled(chars.right.to_string(), self.style),
                 ])
@@ -250,7 +260,7 @@ impl Panel {
         }
     }
 
-    fn render_content_line(&self, spans: Vec<Span>, width: usize, box_chars: &Box) -> Segment {
+    fn render_content_line(&self, spans: Vec<Span>, width: usize, box_chars: &BoxStyle) -> Segment {
         let inner_width = width.saturating_sub(2 + self.padding_x * 2);
         let content_width: usize = spans.iter().map(|s| s.width()).sum();
         let padding_right = inner_width.saturating_sub(content_width);
@@ -269,7 +279,7 @@ impl Panel {
         Segment::line(line_spans)
     }
 
-    fn render_empty_line(&self, width: usize, box_chars: &Box) -> Segment {
+    fn render_empty_line(&self, width: usize, box_chars: &BoxStyle) -> Segment {
         let inner_width = width.saturating_sub(2);
         let chars = box_chars.cell;
         Segment::line(vec![

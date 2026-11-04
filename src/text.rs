@@ -190,120 +190,27 @@ impl Text {
     }
 
     /// Split the text into lines, wrapping at the given width.
+    ///
+    /// Embedded `\n` characters are treated as hard line breaks; the
+    /// remaining text is then laid out according to the overflow mode.
     pub fn wrap(&self, width: usize) -> Vec<Vec<Span>> {
         if width == 0 {
             return vec![];
         }
 
+        let logical_lines = split_on_newlines(&self.spans);
+
         match self.overflow {
-            Overflow::Visible => vec![self.spans.clone()],
-            Overflow::Truncate | Overflow::Ellipsis => {
-                vec![self.truncate_spans(width, self.overflow == Overflow::Ellipsis)]
-            }
-            Overflow::Wrap => self.wrap_spans(width),
+            Overflow::Visible => logical_lines,
+            Overflow::Truncate | Overflow::Ellipsis => logical_lines
+                .into_iter()
+                .map(|line| truncate_line(&line, width, self.overflow == Overflow::Ellipsis))
+                .collect(),
+            Overflow::Wrap => logical_lines
+                .into_iter()
+                .flat_map(|line| wrap_line(&line, width))
+                .collect(),
         }
-    }
-
-    fn truncate_spans(&self, width: usize, ellipsis: bool) -> Vec<Span> {
-        let mut result = Vec::new();
-        let mut remaining_width = if ellipsis {
-            width.saturating_sub(1)
-        } else {
-            width
-        };
-
-        for span in &self.spans {
-            if remaining_width == 0 {
-                break;
-            }
-
-            let span_width = span.width();
-            if span_width <= remaining_width {
-                result.push(span.clone());
-                remaining_width -= span_width;
-            } else {
-                // Truncate this span
-                let truncated = truncate_str(&span.text, remaining_width);
-                result.push(Span::styled(truncated.to_string(), span.style));
-                remaining_width = 0;
-            }
-        }
-
-        if ellipsis && self.width() > width {
-            result.push(Span::raw("…"));
-        }
-
-        result
-    }
-
-    fn wrap_spans(&self, max_width: usize) -> Vec<Vec<Span>> {
-        let mut lines: Vec<Vec<Span>> = Vec::new();
-        let mut current_line: Vec<Span> = Vec::new();
-        let mut current_width = 0;
-
-        for span in &self.spans {
-            let words = split_into_words(&span.text);
-
-            for (word, trailing_space) in words {
-                let word_width = UnicodeWidthStr::width(word);
-                let space_width = if trailing_space { 1 } else { 0 };
-                let total_width = word_width + space_width;
-
-                // If word fits on current line
-                if current_width + word_width <= max_width {
-                    let text = if trailing_space {
-                        format!("{word} ")
-                    } else {
-                        word.to_string()
-                    };
-                    current_line.push(Span::styled(text, span.style));
-                    current_width += total_width;
-                } else if word_width > max_width {
-                    // Word is too long, need to break it
-                    if !current_line.is_empty() {
-                        lines.push(std::mem::take(&mut current_line));
-                        current_width = 0;
-                    }
-
-                    // Break the word across lines
-                    let broken = break_word(word, max_width);
-                    for (i, part) in broken.iter().enumerate() {
-                        if i > 0 {
-                            lines.push(std::mem::take(&mut current_line));
-                        }
-                        current_line.push(Span::styled(part.to_string(), span.style));
-                        current_width = UnicodeWidthStr::width(part.as_str());
-                    }
-
-                    if trailing_space && current_width < max_width {
-                        current_line.push(Span::styled(" ", span.style));
-                        current_width += 1;
-                    }
-                } else {
-                    // Start new line
-                    if !current_line.is_empty() {
-                        lines.push(std::mem::take(&mut current_line));
-                    }
-                    let text = if trailing_space {
-                        format!("{word} ")
-                    } else {
-                        word.to_string()
-                    };
-                    current_line.push(Span::styled(text, span.style));
-                    current_width = total_width;
-                }
-            }
-        }
-
-        if !current_line.is_empty() {
-            lines.push(current_line);
-        }
-
-        if lines.is_empty() {
-            lines.push(Vec::new());
-        }
-
-        lines
     }
 
     /// Apply alignment to a line, returning padded spans.
@@ -362,69 +269,246 @@ fn truncate_str(s: &str, max_width: usize) -> &str {
     &s[..end]
 }
 
-/// Split text into words, preserving trailing spaces.
-fn split_into_words(s: &str) -> Vec<(&str, bool)> {
-    let mut words = Vec::new();
-    let mut word_start = None;
-    let mut leading_spaces = 0;
+/// A whitespace-separated lexical unit produced by [`tokenize`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Token<'a> {
+    /// A run of one or more non-whitespace characters.
+    Word(&'a str),
+    /// A run of whitespace (excluding newlines), preserved verbatim.
+    Spaces(&'a str),
+    /// A hard line break (`\n`).
+    Newline,
+}
 
-    // Count leading spaces and add them as prefix
+/// Split a string into words, whitespace runs, and hard line breaks.
+fn tokenize(s: &str) -> Vec<Token<'_>> {
+    let mut tokens = Vec::new();
+    let mut run: Option<(usize, TokenKind)> = None;
+
     for (i, c) in s.char_indices() {
-        if c.is_whitespace() {
-            leading_spaces = i + c.len_utf8();
+        if c == '\n' {
+            if let Some((start, kind)) = run.take() {
+                tokens.push(make_token(&s[start..i], kind));
+            }
+            tokens.push(Token::Newline);
+            continue;
+        }
+        let kind = if c.is_whitespace() {
+            TokenKind::Spaces
         } else {
-            break;
+            TokenKind::Word
+        };
+        match run {
+            Some((_, k)) if k == kind => {}
+            Some((start, k)) => {
+                tokens.push(make_token(&s[start..i], k));
+                run = Some((i, kind));
+            }
+            None => run = Some((i, kind)),
+        }
+    }
+    if let Some((start, kind)) = run {
+        tokens.push(make_token(&s[start..], kind));
+    }
+
+    tokens
+}
+
+fn make_token(text: &str, kind: TokenKind) -> Token<'_> {
+    match kind {
+        TokenKind::Spaces => Token::Spaces(text),
+        _ => Token::Word(text),
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum TokenKind {
+    Word,
+    Spaces,
+}
+
+/// Split spans into logical lines at embedded `\n` characters.
+fn split_on_newlines(spans: &[Span]) -> Vec<Vec<Span>> {
+    let mut lines: Vec<Vec<Span>> = vec![Vec::new()];
+
+    for span in spans {
+        let mut rest: &str = &span.text;
+        loop {
+            if let Some(pos) = rest.find('\n') {
+                let (head, tail) = rest.split_at(pos);
+                if !head.is_empty() {
+                    lines
+                        .last_mut()
+                        .expect("lines always has a current line")
+                        .push(Span {
+                            text: head.to_string().into(),
+                            style: span.style,
+                            link: span.link.clone(),
+                        });
+                }
+                lines.push(Vec::new());
+                rest = &tail[1..];
+            } else {
+                if !rest.is_empty() {
+                    lines
+                        .last_mut()
+                        .expect("lines always has a current line")
+                        .push(Span {
+                            text: rest.to_string().into(),
+                            style: span.style,
+                            link: span.link.clone(),
+                        });
+                }
+                break;
+            }
         }
     }
 
-    // If there are leading spaces, add empty prefix with trailing space
-    // or just add the spaces to the first word
-    let chars_to_process = if leading_spaces > 0 {
-        &s[leading_spaces..]
+    lines
+}
+
+/// Truncate a single logical line to `width` display columns.
+fn truncate_line(line: &[Span], width: usize, ellipsis: bool) -> Vec<Span> {
+    let line_width: usize = line.iter().map(|s| s.width()).sum();
+    let mut result = Vec::new();
+    let mut remaining_width = if ellipsis && line_width > width {
+        width.saturating_sub(1)
     } else {
-        s
+        width
     };
 
-    for (i, c) in chars_to_process.char_indices() {
-        if c.is_whitespace() {
-            if let Some(start) = word_start {
-                let word = &chars_to_process[start..i];
-                // Add leading spaces to first word
-                let final_word = if start == 0 && leading_spaces > 0 {
-                    // This is handled differently - we'll prepend spaces
-                    word
-                } else {
-                    word
-                };
-                words.push((final_word, true));
-                word_start = None;
-            }
-        } else if word_start.is_none() {
-            word_start = Some(i);
+    for span in line {
+        if remaining_width == 0 {
+            break;
+        }
+
+        let span_width = span.width();
+        if span_width <= remaining_width {
+            result.push(span.clone());
+            remaining_width -= span_width;
+        } else {
+            // Truncate this span (keep its hyperlink)
+            let truncated = truncate_str(&span.text, remaining_width);
+            let mut truncated_span = Span::styled(truncated.to_string(), span.style);
+            truncated_span.link = span.link.clone();
+            result.push(truncated_span);
+            remaining_width = 0;
         }
     }
 
-    if let Some(start) = word_start {
-        words.push((&chars_to_process[start..], false));
+    if ellipsis && line_width > width {
+        result.push(Span::raw("…"));
     }
 
-    // If we had leading spaces and at least one word, prepend spaces to first word
-    // OR if the entire string was spaces, return empty
-    if leading_spaces > 0 && !words.is_empty() {
-        // We need to handle leading spaces by prepending to first word
-        // But since we're returning slices, we can't easily modify
-        // Instead, return leading space as separate "word" with trailing_space=true
-        // Actually, best approach: add leading space indicator
-        // For simplicity in this context, we return (" ", true) as first entry
-        let mut result = vec![(&s[..leading_spaces], false)];
-        result.extend(words);
-        return result;
-    } else if leading_spaces > 0 && words.is_empty() {
-        // String was only spaces
-        return vec![(s, false)];
+    result
+}
+
+/// Wrap a single logical line (no embedded newlines) at `max_width`.
+///
+/// Words are kept intact when possible, whitespace runs between words are
+/// preserved, and a line never exceeds `max_width` display columns. Adjacent
+/// fragments sharing the same style are merged into one span.
+fn wrap_line(line: &[Span], max_width: usize) -> Vec<Vec<Span>> {
+    let mut lines: Vec<Vec<Span>> = Vec::new();
+    let mut current_line: Vec<Span> = Vec::new();
+    let mut current_width = 0usize;
+    // Whitespace run awaiting the next word; emitted (and counted) only if
+    // a word actually follows on the same line, so lines never end up one
+    // column over max_width from a trailing space. The spaces keep the style
+    // of the span they came from (matches Rich: separators are not styled by
+    // the following word).
+    let mut pending_spaces: Option<(&str, Style)> = None;
+
+    for span in line {
+        for token in tokenize(&span.text) {
+            match token {
+                Token::Newline => { /* unreachable: handled by split_on_newlines */ }
+                Token::Spaces(s) => {
+                    if current_width > 0 {
+                        pending_spaces = Some((s, span.style));
+                    }
+                    // Spaces at the start of a line are dropped (except the
+                    // very first fragment, which is kept below via current_width == 0
+                    // only when the line is brand new and nothing flushed yet).
+                    if current_width == 0 && lines.is_empty() && current_line.is_empty() {
+                        // Preserve leading indentation of the first line.
+                        push_fragment(&mut current_line, s, span.style, span.link.as_deref());
+                        current_width += UnicodeWidthStr::width(s);
+                    }
+                }
+                Token::Word(word) => {
+                    let word_width = UnicodeWidthStr::width(word);
+
+                    if word_width > max_width {
+                        // Word is too long for any line: start fresh, then break it.
+                        if current_width > 0 {
+                            lines.push(std::mem::take(&mut current_line));
+                            current_width = 0;
+                        }
+                        pending_spaces = None;
+
+                        let broken = break_word(word, max_width);
+                        for part in broken.iter() {
+                            if current_width + UnicodeWidthStr::width(part.as_str()) > max_width {
+                                lines.push(std::mem::take(&mut current_line));
+                                current_width = 0;
+                            }
+                            push_fragment(
+                                &mut current_line,
+                                part,
+                                span.style,
+                                span.link.as_deref(),
+                            );
+                            current_width += UnicodeWidthStr::width(part.as_str());
+                        }
+                    } else {
+                        let spaces_width = pending_spaces
+                            .map(|(s, _)| UnicodeWidthStr::width(s))
+                            .unwrap_or(0);
+                        if current_width + spaces_width + word_width > max_width
+                            && current_width > 0
+                        {
+                            // Wrap: pending spaces are dropped at the line end.
+                            lines.push(std::mem::take(&mut current_line));
+                            current_width = 0;
+                            pending_spaces = None;
+                        } else if let Some((s, style)) = pending_spaces.take() {
+                            push_fragment(&mut current_line, s, style, None);
+                            current_width += spaces_width;
+                        }
+
+                        push_fragment(&mut current_line, word, span.style, span.link.as_deref());
+                        current_width += word_width;
+                    }
+                }
+            }
+        }
     }
 
-    words
+    if !current_line.is_empty() {
+        lines.push(current_line);
+    }
+
+    if lines.is_empty() {
+        lines.push(Vec::new());
+    }
+
+    lines
+}
+
+/// Append a text fragment to a line, merging into the previous span when it
+/// has the same style and neither span carries a hyperlink (keeps span
+/// counts proportional to style changes, not to word counts).
+fn push_fragment(line: &mut Vec<Span>, fragment: &str, style: Style, link: Option<&str>) {
+    if let Some(last) = line.last_mut() {
+        if last.style == style && last.link.is_none() && link.is_none() {
+            last.text.to_mut().push_str(fragment);
+            return;
+        }
+    }
+    let mut span = Span::styled(fragment.to_string(), style);
+    span.link = link.map(|s| s.to_string());
+    line.push(span);
 }
 
 /// Break a long word into parts that fit within max_width.
@@ -475,8 +559,68 @@ mod tests {
         let text = Text::plain("hello world");
         let lines = text.wrap(6);
         assert_eq!(lines.len(), 2);
-        assert_eq!(lines[0][0].text, "hello ");
-        assert_eq!(lines[1][0].text, "world");
+        let first: String = lines[0].iter().map(|s| s.text.as_ref()).collect();
+        let second: String = lines[1].iter().map(|s| s.text.as_ref()).collect();
+        assert_eq!(first, "hello");
+        assert_eq!(second, "world");
+    }
+
+    #[test]
+    fn test_wrap_preserves_newlines() {
+        let text = Text::plain("a\nb");
+        let lines = text.wrap(20);
+        let plain: Vec<String> = lines
+            .iter()
+            .map(|l| l.iter().map(|s| s.text.as_ref()).collect())
+            .collect();
+        assert_eq!(plain, vec!["a".to_string(), "b".to_string()]);
+    }
+
+    #[test]
+    fn test_wrap_multi_line_styled() {
+        let mut text = Text::new();
+        text.push_styled("red1", Style::new().foreground(crate::style::Color::Red));
+        text.push("\nmore");
+        let lines = text.wrap(40);
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[0][0].style.foreground, Some(crate::style::Color::Red));
+        assert_eq!(lines[1][0].text, "more");
+    }
+
+    #[test]
+    fn test_wrap_preserves_inner_spaces() {
+        let text = Text::plain("a  b");
+        let lines = text.wrap(20);
+        let plain: String = lines[0].iter().map(|s| s.text.as_ref()).collect();
+        assert_eq!(plain, "a  b");
+    }
+
+    #[test]
+    fn test_wrap_exact_fit_has_no_trailing_space() {
+        // "one two" is exactly 7 columns; the line must not become 8 wide
+        let text = Text::plain("one two three");
+        let lines = text.wrap(7);
+        assert_eq!(lines.len(), 2);
+        let first: String = lines[0].iter().map(|s| s.text.as_ref()).collect();
+        let second: String = lines[1].iter().map(|s| s.text.as_ref()).collect();
+        assert_eq!(first, "one two");
+        assert_eq!(UnicodeWidthStr::width(first.as_str()), 7);
+        assert_eq!(second, "three");
+    }
+
+    #[test]
+    fn test_wrap_merges_adjacent_same_style_spans() {
+        let text = Text::plain("the quick brown fox jumps over the lazy dog");
+        let lines = text.wrap(80);
+        assert_eq!(lines.len(), 1);
+        assert_eq!(lines[0].len(), 1, "single style should merge into one span");
+    }
+
+    #[test]
+    fn test_visible_overflow_splits_newlines() {
+        let text = Text::plain("a\nb\nc").overflow(Overflow::Visible);
+        let lines = text.wrap(80);
+        assert_eq!(lines.len(), 3);
     }
 
     #[test]

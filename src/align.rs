@@ -26,6 +26,13 @@ pub struct Align {
 }
 
 impl Align {
+    /// Control whether the aligned output is padded to the full width
+    /// (default: `true`).
+    pub fn pad(mut self, pad: bool) -> Self {
+        self.pad = pad;
+        self
+    }
+
     /// Create a new left-aligned wrapper.
     pub fn left(child: impl Renderable + Send + Sync + 'static) -> Self {
         Align {
@@ -156,5 +163,56 @@ impl Renderable for Align {
         }
 
         aligned_segments
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::console::RenderContext;
+    use crate::text::Text;
+
+    fn render_aligned(a: &Align, width: usize) -> Vec<String> {
+        a.render(&RenderContext {
+            width,
+            height: None,
+        })
+        .iter()
+        .map(|s| s.plain_text())
+        .collect()
+    }
+
+    #[test]
+    fn test_center_alignment_pads_both_sides() {
+        let align = Align::center(Text::plain("hi".to_string()));
+        let lines = render_aligned(&align, 10);
+        assert!(lines[0].contains("hi"));
+        assert!(
+            lines[0].starts_with(' '),
+            "center should indent: {:?}",
+            lines[0]
+        );
+    }
+
+    #[test]
+    fn test_right_alignment_indents() {
+        let align = Align::right(Text::plain("hi".to_string()));
+        let lines = render_aligned(&align, 10);
+        assert!(lines[0].trim_end().ends_with("hi"));
+        assert!(
+            lines[0].starts_with("  "),
+            "right should push away from edge: {:?}",
+            lines[0]
+        );
+    }
+
+    #[test]
+    fn test_pad_false_omits_trailing_padding() {
+        let padded = Align::left(Text::plain("hi".to_string())).pad(true);
+        let unpadded = Align::left(Text::plain("hi".to_string())).pad(false);
+        let a = render_aligned(&padded, 10);
+        let b = render_aligned(&unpadded, 10);
+        assert_eq!(a[0], "hi        ");
+        assert_eq!(b[0], "hi");
     }
 }

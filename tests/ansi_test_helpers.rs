@@ -18,7 +18,9 @@ pub fn capture_ansi<R: Renderable>(renderable: &R, width: usize) -> String {
 /// Capture ANSI output from markup string.
 pub fn capture_markup(content: &str, width: usize) -> String {
     let console = Console::capture().width(width).force_color(true);
+    // Python Rich's console.print adds a trailing newline.
     console.print(content);
+    console.newline();
     console.get_captured_output()
 }
 

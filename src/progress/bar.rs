@@ -1,4 +1,5 @@
 use crate::console::{Console, RenderContext};
+use crate::live::count_terminal_lines;
 use crate::progress::columns::{
     BarColumn, PercentageColumn, ProgressColumn, TextColumn, TimeRemainingColumn,
 };
@@ -10,6 +11,14 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
+
+/// Lock a mutex, tolerating poisoning.
+///
+/// A panic in another thread while holding the lock must not turn every
+/// subsequent render into a cascade of panics.
+fn lock_or_recover<T>(lock: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    lock.lock().unwrap_or_else(|e| e.into_inner())
+}
 
 /// A task being tracked by the progress bar.
 #[derive(Debug, Clone)]
@@ -128,37 +137,44 @@ impl ProgressBar {
     }
 }
 
-/// Multi-task progress display with optional Live-like lifecycle.
+/// Multi-task progress display with a live lifecycle.
 ///
-/// Supports start/stop methods with cursor hiding for flicker-free updates.
-/// When `auto_refresh` is enabled, a background thread refreshes the display
-/// at the specified `refresh_per_second` rate.
+/// `Progress` is cheaply shareable: all mutable state lives behind an `Arc`,
+/// so task handles can be advanced from other threads while the display
+/// refreshes. `start()`/`stop()` hide the cursor for flicker-free updates;
+/// when `auto_refresh` is enabled (the default), a background thread
+/// re-renders the display at `refresh_per_second` until `stop()`.
 pub struct Progress {
+    /// Shared state (tasks, columns, console, refresh bookkeeping).
+    inner: Arc<ProgressInner>,
+    /// Handle to the background refresh thread (when auto-refresh runs).
+    refresh_thread: Option<JoinHandle<()>>,
+}
+
+/// State shared between the owning handle and the auto-refresh thread.
+struct ProgressInner {
     /// Tasks being tracked
-    tasks: Arc<Mutex<Vec<Task>>>,
+    tasks: Mutex<Vec<Task>>,
     /// Next task ID
-    next_id: Arc<Mutex<usize>>,
+    next_id: Mutex<usize>,
     /// Columns to display
     columns: Vec<Box<dyn ProgressColumn>>,
-    /// Whether to show the progress
-    #[allow(dead_code)]
-    visible: bool,
     /// Console for output (used with start/stop lifecycle)
     console: Option<Console>,
     /// Whether the progress display is currently started
-    started: bool,
+    started: AtomicBool,
     /// Current height in terminal lines (for cursor movement)
-    height: Arc<Mutex<usize>>,
+    height: Mutex<usize>,
     /// If true, clear output on stop instead of leaving visible
     transient: bool,
     /// Refresh rate in Hz (refreshes per second, default: 10.0)
     refresh_per_second: f64,
     /// Whether auto-refresh is enabled (default: true when console is set)
     auto_refresh: bool,
-    /// Handle to the background refresh thread
-    refresh_thread: Option<JoinHandle<()>>,
     /// Signal to stop the refresh thread
-    stop_signal: Arc<AtomicBool>,
+    stop_signal: AtomicBool,
+    /// Serializes rendering between the owner and the refresh thread.
+    render_lock: Mutex<()>,
 }
 
 impl Default for Progress {
@@ -171,82 +187,95 @@ impl Progress {
     /// Create a new progress display with default columns.
     pub fn new() -> Self {
         Progress {
-            tasks: Arc::new(Mutex::new(Vec::new())),
-            next_id: Arc::new(Mutex::new(0)),
-            columns: vec![
-                Box::new(TextColumn::new("[progress.description]")),
-                Box::new(BarColumn::new(40)),
-                Box::new(PercentageColumn::new()),
-                Box::new(TimeRemainingColumn),
-            ],
-            visible: true,
-            console: None,
-            started: false,
-            height: Arc::new(Mutex::new(0)),
-            transient: false,
-            refresh_per_second: 10.0,
-            auto_refresh: true,
+            inner: Arc::new(ProgressInner {
+                tasks: Mutex::new(Vec::new()),
+                next_id: Mutex::new(0),
+                columns: vec![
+                    Box::new(TextColumn::new("[progress.description]")),
+                    Box::new(BarColumn::new(40)),
+                    Box::new(PercentageColumn::new()),
+                    Box::new(TimeRemainingColumn),
+                ],
+                console: None,
+                started: AtomicBool::new(false),
+                height: Mutex::new(0),
+                transient: false,
+                refresh_per_second: 10.0,
+                auto_refresh: true,
+                stop_signal: AtomicBool::new(false),
+                render_lock: Mutex::new(()),
+            }),
             refresh_thread: None,
-            stop_signal: Arc::new(AtomicBool::new(false)),
         }
     }
 
     /// Create a progress display with a Console (enables start/stop lifecycle).
     pub fn with_console(mut self, console: Console) -> Self {
-        self.console = Some(console);
+        if let Some(inner) = Arc::get_mut(&mut self.inner) {
+            inner.console = Some(console);
+        }
         self
     }
 
     /// Set whether output is cleared on stop (transient mode).
     pub fn transient(mut self, transient: bool) -> Self {
-        self.transient = transient;
+        if let Some(inner) = Arc::get_mut(&mut self.inner) {
+            inner.transient = transient;
+        }
         self
     }
 
     /// Set the refresh rate in Hz (refreshes per second).
     ///
-    /// Default is 10.0. Set lower if updates are infrequent to reduce CPU usage.
+    /// Default is 10.0. Set lower if updates are infrequent to reduce CPU
+    /// usage. Values above 60 are clamped.
     pub fn refresh_per_second(mut self, rate: f64) -> Self {
-        self.refresh_per_second = rate.max(0.1); // Minimum 0.1 Hz
+        if let Some(inner) = Arc::get_mut(&mut self.inner) {
+            inner.refresh_per_second = rate.clamp(0.1, 60.0);
+        }
         self
     }
 
     /// Enable or disable auto-refresh.
     ///
-    /// When enabled (default), a background thread automatically refreshes the display.
-    /// When disabled, you must call `refresh()` manually after updating tasks.
+    /// When enabled (default) and a console is set, a background thread
+    /// re-renders the display at `refresh_per_second`. When disabled, you
+    /// must call `refresh()` manually after updating tasks.
     pub fn auto_refresh(mut self, enabled: bool) -> Self {
-        self.auto_refresh = enabled;
+        if let Some(inner) = Arc::get_mut(&mut self.inner) {
+            inner.auto_refresh = enabled;
+        }
         self
     }
 
     /// Set custom columns.
     pub fn with_columns(mut self, columns: Vec<Box<dyn ProgressColumn>>) -> Self {
-        self.columns = columns;
+        if let Some(inner) = Arc::get_mut(&mut self.inner) {
+            inner.columns = columns;
+        }
         self
     }
 
     /// Add a new task.
     pub fn add_task(&self, description: &str, total: Option<u64>) -> usize {
-        let mut next_id = self.next_id.lock().unwrap();
+        let mut next_id = lock_or_recover(&self.inner.next_id);
         let id = *next_id;
         *next_id += 1;
 
         let task = Task::new(id, description, total);
-        self.tasks.lock().unwrap().push(task);
+        lock_or_recover(&self.inner.tasks).push(task);
 
         id
     }
 
     /// Advance a task by the given amount.
     pub fn advance(&self, task_id: usize, amount: u64) {
-        if let Ok(mut tasks) = self.tasks.lock() {
-            if let Some(task) = tasks.iter_mut().find(|t| t.id == task_id) {
-                task.completed += amount;
-                if let Some(total) = task.total {
-                    if task.completed >= total {
-                        task.finished = true;
-                    }
+        let mut tasks = lock_or_recover(&self.inner.tasks);
+        if let Some(task) = tasks.iter_mut().find(|t| t.id == task_id) {
+            task.completed += amount;
+            if let Some(total) = task.total {
+                if task.completed >= total {
+                    task.finished = true;
                 }
             }
         }
@@ -254,13 +283,12 @@ impl Progress {
 
     /// Update a task's completed count.
     pub fn update(&self, task_id: usize, completed: u64) {
-        if let Ok(mut tasks) = self.tasks.lock() {
-            if let Some(task) = tasks.iter_mut().find(|t| t.id == task_id) {
-                task.completed = completed;
-                if let Some(total) = task.total {
-                    if task.completed >= total {
-                        task.finished = true;
-                    }
+        let mut tasks = lock_or_recover(&self.inner.tasks);
+        if let Some(task) = tasks.iter_mut().find(|t| t.id == task_id) {
+            task.completed = completed;
+            if let Some(total) = task.total {
+                if task.completed >= total {
+                    task.finished = true;
                 }
             }
         }
@@ -268,32 +296,36 @@ impl Progress {
 
     /// Mark a task as finished.
     pub fn finish(&self, task_id: usize) {
-        if let Ok(mut tasks) = self.tasks.lock() {
-            if let Some(task) = tasks.iter_mut().find(|t| t.id == task_id) {
-                task.finished = true;
-            }
+        let mut tasks = lock_or_recover(&self.inner.tasks);
+        if let Some(task) = tasks.iter_mut().find(|t| t.id == task_id) {
+            task.finished = true;
         }
     }
 
     /// Remove a task.
     pub fn remove(&self, task_id: usize) {
-        if let Ok(mut tasks) = self.tasks.lock() {
-            tasks.retain(|t| t.id != task_id);
-        }
+        lock_or_recover(&self.inner.tasks).retain(|t| t.id != task_id);
     }
 
     /// Check if all tasks are finished.
     pub fn is_finished(&self) -> bool {
-        self.tasks
-            .lock()
-            .map(|tasks| tasks.iter().all(|t| t.finished))
-            .unwrap_or(true)
+        lock_or_recover(&self.inner.tasks)
+            .iter()
+            .all(|t| t.finished)
     }
 
-    /// Render the progress display.
+    /// Render the progress display to a string.
+    ///
+    /// Uses the configured console width when available, else 80 columns.
     pub fn render_to_string(&self) -> String {
+        let width = self
+            .inner
+            .console
+            .as_ref()
+            .map(|c| c.get_width())
+            .unwrap_or(80);
         let context = RenderContext {
-            width: 80,
+            width,
             height: None,
         };
         let segments = self.render(&context);
@@ -309,13 +341,12 @@ impl Progress {
     }
 
     /// Print the progress to stdout (with cursor control for updates).
+    ///
+    /// Only used when no console is configured; prefer `start()`/`refresh()`.
     pub fn print(&self) {
         let output = self.render_to_string();
 
-        // Move cursor up and clear lines for update
-        let tasks = self.tasks.lock().unwrap();
-        let num_lines = tasks.len();
-        drop(tasks);
+        let num_lines = lock_or_recover(&self.inner.tasks).len();
 
         if num_lines > 0 {
             // Move cursor up
@@ -333,31 +364,37 @@ impl Progress {
     /// Start the live progress display.
     ///
     /// Hides the cursor and prepares for flicker-free updates via `refresh()`.
-    /// When `auto_refresh` is enabled, spawns a background thread for automatic updates.
-    /// Must have a Console set via `with_console()` to use this method.
+    /// When `auto_refresh` is enabled, spawns a background thread that
+    /// re-renders at `refresh_per_second`. Must have a Console set via
+    /// `with_console()` to use the live lifecycle.
     pub fn start(&mut self) {
-        if self.started {
+        if self.is_started() {
             return;
         }
-        if let Some(ref console) = self.console {
+        if let Some(ref console) = self.inner.console {
             console.show_cursor(false);
         }
-        self.started = true;
-        *self.height.lock().unwrap() = 0;
-        self.stop_signal.store(false, Ordering::SeqCst);
+        self.inner.started.store(true, Ordering::SeqCst);
+        *lock_or_recover(&self.inner.height) = 0;
+        self.inner.stop_signal.store(false, Ordering::SeqCst);
 
         // Spawn auto-refresh thread if enabled
-        if self.auto_refresh && self.console.is_some() {
-            let _tasks = Arc::clone(&self.tasks);
-            let _height = Arc::clone(&self.height);
-            let _stop_signal = Arc::clone(&self.stop_signal);
-            let _interval_ms = (1000.0 / self.refresh_per_second) as u64;
-
-            // We need to clone console for the thread - but Console doesn't impl Clone
-            // Instead, we'll use a different approach: the thread signals refresh needed
-            // and we do the actual refresh on the main struct. For now, we'll do manual refresh.
-            // TODO: For true auto-refresh, we need Console to be Arc<Console> or similar
-            // For now, auto_refresh will be a reminder to call refresh() in a loop
+        if self.inner.auto_refresh && self.inner.console.is_some() {
+            let inner = Arc::clone(&self.inner);
+            let interval = Duration::from_secs_f64(1.0 / self.inner.refresh_per_second.max(0.1));
+            self.refresh_thread = std::thread::Builder::new()
+                .name("fast-rich-progress-refresh".into())
+                .spawn(move || loop {
+                    if inner.stop_signal.load(Ordering::SeqCst) {
+                        break;
+                    }
+                    std::thread::sleep(interval);
+                    if inner.stop_signal.load(Ordering::SeqCst) {
+                        break;
+                    }
+                    refresh_shared(&inner);
+                })
+                .ok();
         }
 
         self.refresh();
@@ -365,24 +402,24 @@ impl Progress {
 
     /// Stop the live progress display.
     ///
-    /// Shows the cursor and optionally clears the output (if transient mode is enabled).
-    /// If a background refresh thread is running, it will be stopped.
+    /// Shows the cursor and optionally clears the output (if transient mode
+    /// is enabled). Stops and joins the background refresh thread, if any.
     pub fn stop(&mut self) {
-        if !self.started {
+        if !self.is_started() {
             return;
         }
 
         // Signal stop to any background thread
-        self.stop_signal.store(true, Ordering::SeqCst);
+        self.inner.stop_signal.store(true, Ordering::SeqCst);
 
         // Join refresh thread if present
         if let Some(handle) = self.refresh_thread.take() {
             let _ = handle.join();
         }
 
-        let current_height = *self.height.lock().unwrap();
+        let current_height = *lock_or_recover(&self.inner.height);
 
-        if let Some(ref console) = self.console {
+        if let Some(ref console) = self.inner.console {
             // Clear previous output
             if current_height > 0 {
                 console.move_cursor_up(current_height as u16);
@@ -393,7 +430,7 @@ impl Progress {
                 console.move_cursor_up(current_height as u16);
             }
 
-            if !self.transient {
+            if !self.inner.transient {
                 // Leave final output visible
                 console.print_renderable(self);
                 console.newline();
@@ -402,67 +439,24 @@ impl Progress {
             console.show_cursor(true);
         }
 
-        self.started = false;
-        *self.height.lock().unwrap() = 0;
+        self.inner.started.store(false, Ordering::SeqCst);
+        *lock_or_recover(&self.inner.height) = 0;
     }
 
     /// Refresh the progress display.
     ///
     /// When used with start/stop lifecycle, provides flicker-free updates.
-    /// Can also be used standalone as an improved version of `print()`.
-    pub fn refresh(&mut self) {
-        if let Some(ref console) = self.console {
-            if !self.started {
+    /// Safe to call from any thread; rendering is serialized against the
+    /// auto-refresh thread.
+    pub fn refresh(&self) {
+        if let Some(ref console) = self.inner.console {
+            if !self.is_started() {
                 // Fallback to simple print if not started
                 console.print_renderable(self);
                 console.newline();
                 return;
             }
-
-            let current_height = *self.height.lock().unwrap();
-
-            // Move cursor up to overwrite previous output
-            if current_height > 0 {
-                console.move_cursor_up(current_height as u16);
-            }
-
-            // Get render context with terminal width
-            let width = console.get_width();
-            let context = RenderContext {
-                width,
-                height: None,
-            };
-
-            let segments = self.render(&context);
-
-            // Count lines for next refresh
-            let mut lines = 0;
-            for segment in &segments {
-                if segment.newline {
-                    lines += 1;
-                }
-            }
-
-            // Write segments
-            console.write_segments(&segments);
-
-            // Ensure we end with a newline
-            if !segments.is_empty() && !segments.last().unwrap().newline {
-                console.newline();
-                lines += 1;
-            }
-
-            // Clear any leftover lines from previous render
-            if current_height > lines {
-                let diff = current_height - lines;
-                for _ in 0..diff {
-                    console.clear_line();
-                    console.newline();
-                }
-                console.move_cursor_up(diff as u16);
-            }
-
-            *self.height.lock().unwrap() = lines;
+            refresh_shared(&self.inner);
         } else {
             // No console - use legacy print
             self.print();
@@ -499,25 +493,118 @@ impl Progress {
 
     /// Check if the progress display is currently started.
     pub fn is_started(&self) -> bool {
-        self.started
+        self.inner.started.load(Ordering::SeqCst)
+    }
+}
+
+/// Re-render the live display in place (shared by owner and refresh thread).
+fn refresh_shared(inner: &ProgressInner) {
+    let Some(ref console) = inner.console else {
+        return;
+    };
+    // Serialize against the owner thread's refresh() calls.
+    let _guard = lock_or_recover(&inner.render_lock);
+    let current_height = *lock_or_recover(&inner.height);
+
+    // Move cursor up to overwrite previous output
+    if current_height > 0 {
+        console.move_cursor_up(current_height as u16);
+    }
+
+    // Get render context with terminal width
+    let width = console.get_width();
+    let context = RenderContext {
+        width,
+        height: None,
+    };
+
+    let segments = inner.render(&context);
+
+    // Count physical terminal lines (soft-wrapped rows included)
+    let lines = count_terminal_lines(&segments, width);
+
+    // Write segments
+    console.write_segments(&segments);
+
+    // Ensure we end with a newline
+    if let Some(last) = segments.last() {
+        if !last.newline {
+            console.newline();
+        }
+    }
+
+    // Clear any leftover lines from previous render
+    if current_height > lines {
+        let diff = current_height - lines;
+        for _ in 0..diff {
+            console.clear_line();
+            console.newline();
+        }
+        console.move_cursor_up(diff as u16);
+    }
+
+    *lock_or_recover(&inner.height) = lines;
+}
+
+impl ProgressInner {
+    /// Render one task row, giving expandable columns their share of the
+    /// width left over after the natural widths of all columns.
+    fn render_row(&self, task: &Task, total_width: usize) -> Vec<Span> {
+        let separators = self.columns.len().saturating_sub(1);
+        let naturals: Vec<usize> = self
+            .columns
+            .iter()
+            .map(|c| c.render(task).iter().map(|s| s.width()).sum())
+            .collect();
+        let natural_total: usize = naturals.iter().sum::<usize>() + separators;
+
+        let expandable: Vec<bool> = self.columns.iter().map(|c| c.is_expandable()).collect();
+        let expand_count = expandable.iter().filter(|&&e| e).count();
+
+        let mut widths = naturals.clone();
+        if expand_count > 0 {
+            let free = total_width.saturating_sub(natural_total);
+            if free > 0 {
+                let base = free.checked_div(expand_count).unwrap_or(0);
+                let mut remainder = free.checked_rem(expand_count).unwrap_or(0);
+                for (i, &expandable_i) in expandable.iter().enumerate() {
+                    if expandable_i {
+                        let mut w = naturals[i] + base;
+                        if remainder > 0 {
+                            w += 1;
+                            remainder -= 1;
+                        }
+                        widths[i] = w;
+                    }
+                }
+            }
+        }
+
+        let mut spans = Vec::new();
+        for (i, column) in self.columns.iter().enumerate() {
+            if i > 0 {
+                spans.push(Span::raw(" "));
+            }
+            spans.extend(column.render_with_width(task, Some(widths[i])));
+        }
+
+        spans
     }
 }
 
 impl Renderable for Progress {
-    fn render(&self, _context: &RenderContext) -> Vec<Segment> {
-        let tasks = self.tasks.lock().unwrap();
+    fn render(&self, context: &RenderContext) -> Vec<Segment> {
+        self.inner.render(context)
+    }
+}
+
+impl Renderable for ProgressInner {
+    fn render(&self, context: &RenderContext) -> Vec<Segment> {
+        let tasks = lock_or_recover(&self.tasks);
         let mut segments = Vec::new();
 
         for task in tasks.iter() {
-            let mut spans = Vec::new();
-
-            for (i, column) in self.columns.iter().enumerate() {
-                if i > 0 {
-                    spans.push(Span::raw(" "));
-                }
-                spans.extend(column.render(task));
-            }
-
+            let spans = self.render_row(task, context.width);
             segments.push(Segment::line(spans));
         }
 
@@ -527,8 +614,9 @@ impl Renderable for Progress {
 
 impl Drop for Progress {
     fn drop(&mut self) {
-        // Ensure cursor is shown if we exit unexpectedly
-        if self.started {
+        // Ensure cursor is shown and the refresh thread is stopped if we
+        // exit unexpectedly.
+        if self.is_started() {
             self.stop();
         }
     }
@@ -568,8 +656,40 @@ mod tests {
         progress.advance(id, 25);
         progress.advance(id, 25);
 
-        let tasks = progress.tasks.lock().unwrap();
+        let tasks = lock_or_recover(&progress.inner.tasks);
         assert_eq!(tasks[0].completed, 50);
+    }
+
+    #[test]
+    fn test_expandable_column_gets_free_width() {
+        // With an expandable BarColumn, the row should use the full width.
+        let progress = Progress::new().with_columns(vec![
+            Box::new(TextColumn::new("ab")),
+            Box::new(BarColumn::new(10).expand(true)),
+        ]);
+        let inner = Progress {
+            inner: Arc::clone(&progress.inner),
+            refresh_thread: None,
+        };
+        let task = Task::new(0, "ab", Some(100));
+        let row = inner.inner.render_row(&task, 50);
+        let row_width: usize = row.iter().map(|s| s.width()).sum::<usize>();
+        assert_eq!(row_width, 50, "expandable row should fill the given width");
+    }
+
+    #[test]
+    fn test_auto_refresh_thread_starts_and_stops() {
+        let console = Console::capture().width(60);
+        let mut progress = Progress::new()
+            .with_console(console)
+            .refresh_per_second(60.0);
+        progress.add_task("Work", Some(100));
+        progress.start();
+        assert!(progress.is_started());
+        // Give the background thread a moment to render at least once.
+        std::thread::sleep(Duration::from_millis(60));
+        progress.stop();
+        assert!(!progress.is_started());
     }
 
     #[test]

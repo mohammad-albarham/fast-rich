@@ -25,7 +25,7 @@ fn test_colors() -> String {
 }
 
 fn test_table() -> String {
-    let mut table = Table::new().set_title("Test Table");
+    let mut table = Table::new().title("Test Table");
     let col1 = Column::new("Language").style(Style::new().foreground(Color::Cyan));
     let col2 = Column::new("Features").style(Style::new().foreground(Color::Magenta));
     table.add_column(col1);

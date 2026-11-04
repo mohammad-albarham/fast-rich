@@ -141,8 +141,10 @@ pub fn highlight_text(text: &str, highlighter: &impl Highlighter) -> Text {
 /// - Booleans (`true`/`false`)
 /// - Null
 /// - Braces, brackets, and parentheses
-#[derive(Debug, Clone)]
-pub struct JsonHighlighter {
+///
+/// Regex patterns shared by all [`JsonHighlighter`] instances, compiled once.
+#[derive(Debug)]
+struct JsonPatterns {
     string_re: Regex,
     number_re: Regex,
     bool_true_re: Regex,
@@ -150,6 +152,24 @@ pub struct JsonHighlighter {
     null_re: Regex,
     brace_re: Regex,
     hex_re: Regex,
+}
+
+static JSON_PATTERNS: std::sync::LazyLock<JsonPatterns> =
+    std::sync::LazyLock::new(|| JsonPatterns {
+        string_re: Regex::new(r#""(?:[^"\\]|\\.)*""#).expect("static regex"),
+        number_re: Regex::new(r"-?\b\d+\.?\d*(?:[eE][+-]?\d+)?\b").expect("static regex"),
+        bool_true_re: Regex::new(r"\btrue\b").expect("static regex"),
+        bool_false_re: Regex::new(r"\bfalse\b").expect("static regex"),
+        null_re: Regex::new(r"\bnull\b").expect("static regex"),
+        brace_re: Regex::new(r"[\{\}\[\]\(\)]").expect("static regex"),
+        hex_re: Regex::new(r"0x[0-9a-fA-F]+\b").expect("static regex"),
+    });
+
+/// A JSON highlighter. Instances are cheap: the regex patterns are compiled
+/// once per process and shared.
+#[derive(Debug, Clone)]
+pub struct JsonHighlighter {
+    patterns: &'static JsonPatterns,
     key_style: Style,
     string_style: Style,
     number_style: Style,
@@ -171,16 +191,7 @@ impl JsonHighlighter {
         use crate::style::Color;
 
         JsonHighlighter {
-            // Regex patterns
-            string_re: Regex::new(r#""(?:[^"\\]|\\.)*""#).unwrap(),
-            number_re: Regex::new(r"-?\b\d+\.?\d*(?:[eE][+-]?\d+)?\b").unwrap(),
-            bool_true_re: Regex::new(r"\btrue\b").unwrap(),
-            bool_false_re: Regex::new(r"\bfalse\b").unwrap(),
-            null_re: Regex::new(r"\bnull\b").unwrap(),
-            // Include parentheses in braces (matching Python rich)
-            brace_re: Regex::new(r"[\{\}\[\]\(\)]").unwrap(),
-            // Hex numbers matching Python rich's JSONHighlighter
-            hex_re: Regex::new(r"0x[0-9a-fA-F]+\b").unwrap(),
+            patterns: &JSON_PATTERNS,
             // Styles
             key_style: Style::new().foreground(Color::Blue).bold(),
             string_style: Style::new().foreground(Color::Green),
@@ -217,7 +228,7 @@ impl Highlighter for JsonHighlighter {
         let mut matches: Vec<(usize, usize, Style)> = Vec::new();
 
         // Find all string literals
-        for m in self.string_re.find_iter(text) {
+        for m in self.patterns.string_re.find_iter(text) {
             // Check if this string is a key (followed by ":")
             let rest = &text[m.end()..];
             let is_key = rest.trim_start().starts_with(':');
@@ -230,7 +241,7 @@ impl Highlighter for JsonHighlighter {
         }
 
         // Find numbers (only if not inside a string)
-        for m in self.number_re.find_iter(text) {
+        for m in self.patterns.number_re.find_iter(text) {
             let overlaps = matches
                 .iter()
                 .any(|(s, e, _)| m.start() >= *s && m.end() <= *e);
@@ -240,7 +251,7 @@ impl Highlighter for JsonHighlighter {
         }
 
         // Find true
-        for m in self.bool_true_re.find_iter(text) {
+        for m in self.patterns.bool_true_re.find_iter(text) {
             let overlaps = matches
                 .iter()
                 .any(|(s, e, _)| m.start() >= *s && m.end() <= *e);
@@ -250,7 +261,7 @@ impl Highlighter for JsonHighlighter {
         }
 
         // Find false
-        for m in self.bool_false_re.find_iter(text) {
+        for m in self.patterns.bool_false_re.find_iter(text) {
             let overlaps = matches
                 .iter()
                 .any(|(s, e, _)| m.start() >= *s && m.end() <= *e);
@@ -260,7 +271,7 @@ impl Highlighter for JsonHighlighter {
         }
 
         // Find null
-        for m in self.null_re.find_iter(text) {
+        for m in self.patterns.null_re.find_iter(text) {
             let overlaps = matches
                 .iter()
                 .any(|(s, e, _)| m.start() >= *s && m.end() <= *e);
@@ -270,7 +281,7 @@ impl Highlighter for JsonHighlighter {
         }
 
         // Find hex numbers
-        for m in self.hex_re.find_iter(text) {
+        for m in self.patterns.hex_re.find_iter(text) {
             let overlaps = matches
                 .iter()
                 .any(|(s, e, _)| m.start() >= *s && m.end() <= *e);
@@ -280,7 +291,7 @@ impl Highlighter for JsonHighlighter {
         }
 
         // Find braces
-        for m in self.brace_re.find_iter(text) {
+        for m in self.patterns.brace_re.find_iter(text) {
             let overlaps = matches
                 .iter()
                 .any(|(s, e, _)| m.start() >= *s && m.end() <= *e);

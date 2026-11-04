@@ -31,6 +31,8 @@ use std::path::Path;
 pub enum JsonError {
     /// Failed to parse JSON
     Parse(serde_json::Error),
+    /// Non-UTF-8 serializer output (unreachable for `serde_json::Value`)
+    InvalidUtf8(String),
     /// Failed to serialize data
     Serialize(serde_json::Error),
     /// Failed to read file
@@ -43,6 +45,7 @@ impl fmt::Display for JsonError {
             JsonError::Parse(e) => write!(f, "JSON parse error: {}", e),
             JsonError::Serialize(e) => write!(f, "JSON serialize error: {}", e),
             JsonError::Io(e) => write!(f, "IO error: {}", e),
+            JsonError::InvalidUtf8(e) => write!(f, "JSON produced invalid UTF-8: {}", e),
         }
     }
 }
@@ -224,17 +227,22 @@ impl Json {
 
     /// Render the JSON value to styled Text.
     fn render_value(value: &Value, options: &JsonOptions) -> Text {
-        // Sort keys if requested
-        let value_to_render = if options.sort_keys {
-            sort_json_keys(value)
+        // Sort keys if requested. Without sorting, format directly from a
+        // borrowed value — no deep clone of the tree.
+        let sorted;
+        let value_to_render: &Value = if options.sort_keys {
+            sorted = sort_json_keys(value);
+            &sorted
         } else {
-            value.clone()
+            value
         };
 
-        // Format JSON
-        let formatted = format_json(&value_to_render, &options.indent, options.ensure_ascii);
+        // Format JSON — falls back to compact serialization if the
+        // pretty-formatter errors (cannot happen for `Value` in practice).
+        let formatted = format_json(value_to_render, &options.indent, options.ensure_ascii)
+            .unwrap_or_else(|_| serde_json::to_string(value_to_render).unwrap_or_default());
 
-        // Apply highlighting
+        // Apply highlighting (patterns are compiled once per process)
         let mut text = if options.highlight {
             let highlighter = JsonHighlighter::new();
             let spans = highlighter.highlight(&formatted);
@@ -365,49 +373,52 @@ impl Renderable for Json {
 }
 
 // Error messages for JSON serialization
-const ERR_SERIALIZE_COMPACT: &str = "Failed to serialize JSON value to string";
-const ERR_SERIALIZE_FORMATTED: &str = "Failed to serialize JSON value with custom formatter";
-const ERR_INVALID_UTF8: &str = "JSON serialization produced invalid UTF-8";
 
 /// Format a JSON value with custom indentation and ASCII escaping.
-fn format_json(value: &Value, indent: &JsonIndent, ensure_ascii: bool) -> String {
+fn format_json(
+    value: &Value,
+    indent: &JsonIndent,
+    ensure_ascii: bool,
+) -> Result<String, JsonError> {
     match indent {
         JsonIndent::Compact => {
             // Compact output - no whitespace
-            let result = serde_json::to_string(value).expect(ERR_SERIALIZE_COMPACT);
-            if ensure_ascii {
+            let result = serde_json::to_string(value).map_err(JsonError::Serialize)?;
+            Ok(if ensure_ascii {
                 escape_non_ascii(&result)
             } else {
                 result
-            }
+            })
         }
         JsonIndent::Spaces(n) => {
             let indent_bytes = " ".repeat(*n).into_bytes();
             let formatter = serde_json::ser::PrettyFormatter::with_indent(&indent_bytes);
             let mut buf = Vec::new();
             let mut ser = serde_json::Serializer::with_formatter(&mut buf, formatter);
-            value.serialize(&mut ser).expect(ERR_SERIALIZE_FORMATTED);
-            let result = String::from_utf8(buf).expect(ERR_INVALID_UTF8);
+            value.serialize(&mut ser).map_err(JsonError::Serialize)?;
+            let result =
+                String::from_utf8(buf).map_err(|e| JsonError::InvalidUtf8(e.to_string()))?;
 
-            if ensure_ascii {
+            Ok(if ensure_ascii {
                 escape_non_ascii(&result)
             } else {
                 result
-            }
+            })
         }
         JsonIndent::Custom(s) => {
             let indent_bytes = s.as_bytes().to_vec();
             let formatter = serde_json::ser::PrettyFormatter::with_indent(&indent_bytes);
             let mut buf = Vec::new();
             let mut ser = serde_json::Serializer::with_formatter(&mut buf, formatter);
-            value.serialize(&mut ser).expect(ERR_SERIALIZE_FORMATTED);
-            let result = String::from_utf8(buf).expect(ERR_INVALID_UTF8);
+            value.serialize(&mut ser).map_err(JsonError::Serialize)?;
+            let result =
+                String::from_utf8(buf).map_err(|e| JsonError::InvalidUtf8(e.to_string()))?;
 
-            if ensure_ascii {
+            Ok(if ensure_ascii {
                 escape_non_ascii(&result)
             } else {
                 result
-            }
+            })
         }
     }
 }
@@ -456,7 +467,21 @@ fn sort_json_keys(value: &Value) -> Value {
 mod tests {
     use super::*;
     use std::io::Write;
-    use tempfile::NamedTempFile;
+
+    /// Write a temp file without the tempfile dev-dependency.
+    fn temp_json_file(contents: &str) -> std::path::PathBuf {
+        let path = std::env::temp_dir().join(format!(
+            "fast_rich_test_{}_{}.json",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.subsec_nanos())
+                .unwrap_or(0)
+        ));
+        let mut f = std::fs::File::create(&path).unwrap();
+        f.write_all(contents.as_bytes()).unwrap();
+        path
+    }
 
     #[test]
     fn test_json_from_str() {
@@ -573,11 +598,10 @@ mod tests {
 
     #[test]
     fn test_json_from_file() {
-        // Create a temp file with JSON content
-        let mut temp_file = NamedTempFile::new().unwrap();
-        writeln!(temp_file, r#"{{"name": "test", "value": 42}}"#).unwrap();
+        let path = temp_json_file(r#"{"name": "test", "value": 42}"#);
 
-        let json = Json::from_file(temp_file.path());
+        let json = Json::from_file(&path);
+        let _ = std::fs::remove_file(&path);
         assert!(json.is_ok());
         let text = json.unwrap().plain_text();
         assert!(text.contains("test"));

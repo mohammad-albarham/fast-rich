@@ -12,9 +12,9 @@ fn run(console: &Console, delay: Duration) {
     let progress = Progress::new();
 
     // Add tasks
-    let download_id = progress.add_task("[cyan]Downloading[/]", Some(100));
-    let extract_id = progress.add_task("[green]Extracting[/]", Some(50));
-    let install_id = progress.add_task("[yellow]Installing[/]", Some(20));
+    let download_id = progress.add_task("Downloading", Some(100));
+    let extract_id = progress.add_task("Extracting", Some(50));
+    let install_id = progress.add_task("Installing", Some(20));
 
     // Simulation Loop
     // In a real app you'd run this in a loop or threads.

@@ -112,11 +112,26 @@ impl Renderable for BarChart {
             return vec![Segment::empty_line()];
         }
 
-        // Find max label width
-        let max_label_width = self.bars.iter().map(|b| b.label.len()).max().unwrap_or(0);
+        // Find max label width (display width, not bytes)
+        let max_label_width = self
+            .bars
+            .iter()
+            .map(|b| unicode_width::UnicodeWidthStr::width(b.label.as_str()))
+            .max()
+            .unwrap_or(0);
 
-        // Calculate bar width
-        let value_width = if self.show_values { 12 } else { 0 }; // Space for value display
+        // Value column sized to the widest formatted value (large numbers
+        // don't fit a fixed 12-column slot).
+        let value_width = if self.show_values {
+            self.bars
+                .iter()
+                .map(|b| format!("{:.1}", b.value).len())
+                .max()
+                .unwrap_or(0)
+                + 1
+        } else {
+            0
+        };
         let bar_width = self.width.unwrap_or_else(|| {
             context
                 .width
@@ -136,8 +151,17 @@ impl Renderable for BarChart {
 
             let mut spans = Vec::new();
 
-            // Label (left-aligned, padded)
-            let label_padded = format!("{:<width$}", bar.label, width = max_label_width);
+            // Label (left-aligned, padded by display width)
+            let label_display = unicode_width::UnicodeWidthStr::width(bar.label.as_str());
+            let label_padded = if label_display < max_label_width {
+                format!(
+                    "{}{}",
+                    bar.label,
+                    " ".repeat(max_label_width - label_display)
+                )
+            } else {
+                bar.label.clone()
+            };
             spans.push(Span::styled(label_padded, Style::new().dim()));
             spans.push(Span::raw(" "));
 

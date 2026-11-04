@@ -8,9 +8,9 @@
   [![Crates.io](https://img.shields.io/crates/v/fast-rich.svg)](https://crates.io/crates/fast-rich)
   [![Rust API](https://docs.rs/fast-rich/badge.svg)](https://docs.rs/fast-rich)
   [![Build Status](https://github.com/mohammad-albarham/fast-rich/workflows/CI/badge.svg)](https://github.com/mohammad-albarham/fast-rich/actions)
-  [![codecov](https://codecov.io/gh/mohammad-albarham/fast-rich/branch/main/graph/badge.svg?token=)](https://codecov.io/gh/mohammad-albarham/fast-rich)
+  [![codecov](https://codecov.io/gh/mohammad-albarham/fast-rich/branch/main/graph/badge.svg)](https://codecov.io/gh/mohammad-albarham/fast-rich)
   [![License](https://img.shields.io/crates/l/fast-rich.svg)](https://github.com/mohammad-albarham/fast-rich/blob/main/LICENSE)
-  ![Rust Version](https://img.shields.io/badge/rust-1.70%2B-blue.svg)
+  ![Rust Version](https://img.shields.io/badge/rust-1.81%2B-blue.svg)
 
   <!-- Secondary Badges: Activity and Social -->
   [![Downloads](https://img.shields.io/crates/d/fast-rich.svg)](https://crates.io/crates/fast-rich)
@@ -85,21 +85,21 @@ Add `fast-rich` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fast-rich = "0.3.2"
+fast-rich = "0.3.3"
 ```
 
 To enable all features (including Syntax Highlighting and Markdown, which bring in extra dependencies):
 
 ```toml
 [dependencies]
-fast-rich = { version = "0.3.2", features = ["full"] }
+fast-rich = { version = "0.3.3", features = ["full"] }
 ```
 
 Or pick specific features:
 
 ```toml
 [dependencies]
-fast-rich = { version = "0.3.2", features = ["syntax", "markdown", "logging"] }
+fast-rich = { version = "0.3.3", features = ["syntax", "markdown", "logging", "json"] }
 ```
 
 ## Quick Start

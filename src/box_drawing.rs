@@ -8,7 +8,7 @@
 /// A box is composed of a top, middle (for rows/sections), and bottom part.
 /// Each part has a left, middle, right, and cross/divider character.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Box {
+pub struct BoxStyle {
     /// Top line
     pub top: Line,
     /// Header separator line
@@ -44,7 +44,7 @@ impl Line {
 }
 
 /// Standard ASCII box style.
-pub const ASCII: Box = Box {
+pub const ASCII: BoxStyle = BoxStyle {
     top: Line::new('+', '-', '+', '+'),
     head: Line::new('+', '-', '+', '+'),
     mid: Line::new('+', '-', '+', '+'),
@@ -54,7 +54,7 @@ pub const ASCII: Box = Box {
 };
 
 /// ASCII box style with double-line header separator.
-pub const ASCII_DOUBLE_HEAD: Box = Box {
+pub const ASCII_DOUBLE_HEAD: BoxStyle = BoxStyle {
     top: Line::new('+', '-', '+', '+'),
     head: Line::new('+', '=', '+', '+'),
     mid: Line::new('+', '-', '+', '+'),
@@ -64,7 +64,7 @@ pub const ASCII_DOUBLE_HEAD: Box = Box {
 };
 
 /// Simple square box using standard drawing characters.
-pub const SQUARE: Box = Box {
+pub const SQUARE: BoxStyle = BoxStyle {
     top: Line::new('┌', '─', '┐', '┬'),
     head: Line::new('├', '─', '┤', '┼'),
     mid: Line::new('├', '─', '┤', '┼'),
@@ -74,7 +74,7 @@ pub const SQUARE: Box = Box {
 };
 
 /// Square box with double-line header separator.
-pub const SQUARE_DOUBLE_HEAD: Box = Box {
+pub const SQUARE_DOUBLE_HEAD: BoxStyle = BoxStyle {
     top: Line::new('┌', '─', '┐', '┬'),
     head: Line::new('╞', '═', '╡', '╪'),
     mid: Line::new('├', '─', '┤', '┼'),
@@ -84,7 +84,7 @@ pub const SQUARE_DOUBLE_HEAD: Box = Box {
 };
 
 /// Minimal box (open sides).
-pub const MINIMAL: Box = Box {
+pub const MINIMAL: BoxStyle = BoxStyle {
     top: Line::new(' ', '─', ' ', '─'),
     head: Line::new(' ', '─', ' ', '─'),
     mid: Line::new(' ', '─', ' ', '─'),
@@ -94,7 +94,7 @@ pub const MINIMAL: Box = Box {
 };
 
 /// Minimal box with heavy header separator.
-pub const MINIMAL_HEAVY_HEAD: Box = Box {
+pub const MINIMAL_HEAVY_HEAD: BoxStyle = BoxStyle {
     top: Line::new(' ', '─', ' ', '─'),
     head: Line::new(' ', '━', ' ', '━'),
     mid: Line::new(' ', '─', ' ', '─'),
@@ -104,7 +104,7 @@ pub const MINIMAL_HEAVY_HEAD: Box = Box {
 };
 
 /// Minimal box with double-line header separator.
-pub const MINIMAL_DOUBLE_HEAD: Box = Box {
+pub const MINIMAL_DOUBLE_HEAD: BoxStyle = BoxStyle {
     top: Line::new(' ', '─', ' ', '─'),
     head: Line::new(' ', '═', ' ', '═'),
     mid: Line::new(' ', '─', ' ', '─'),
@@ -114,7 +114,7 @@ pub const MINIMAL_DOUBLE_HEAD: Box = Box {
 };
 
 /// Box with only horizontal lines.
-pub const HORIZONTALS: Box = Box {
+pub const HORIZONTALS: BoxStyle = BoxStyle {
     top: Line::new(' ', '─', ' ', '─'),
     head: Line::new(' ', '─', ' ', '─'),
     mid: Line::new(' ', '─', ' ', '─'),
@@ -124,7 +124,7 @@ pub const HORIZONTALS: Box = Box {
 };
 
 /// Rounded corners (very popular).
-pub const ROUNDED: Box = Box {
+pub const ROUNDED: BoxStyle = BoxStyle {
     top: Line::new('╭', '─', '╮', '┬'),
     head: Line::new('├', '─', '┤', '┼'),
     mid: Line::new('├', '─', '┤', '┼'),
@@ -134,7 +134,7 @@ pub const ROUNDED: Box = Box {
 };
 
 /// Heavy (bold) lines.
-pub const HEAVY: Box = Box {
+pub const HEAVY: BoxStyle = BoxStyle {
     top: Line::new('┏', '━', '┓', '┳'),
     head: Line::new('┣', '━', '┫', '╋'),
     mid: Line::new('┣', '━', '┫', '╋'),
@@ -144,7 +144,7 @@ pub const HEAVY: Box = Box {
 };
 
 /// Heavy edges but light inner lines.
-pub const HEAVY_EDGE: Box = Box {
+pub const HEAVY_EDGE: BoxStyle = BoxStyle {
     top: Line::new('┏', '━', '┓', '┳'),
     head: Line::new('┣', '━', '┫', '╇'),
     mid: Line::new('┣', '━', '┫', '╇'),
@@ -154,7 +154,7 @@ pub const HEAVY_EDGE: Box = Box {
 };
 
 /// Heavy header separator.
-pub const HEAVY_HEAD: Box = Box {
+pub const HEAVY_HEAD: BoxStyle = BoxStyle {
     top: Line::new('┏', '━', '┓', '┳'),
     head: Line::new('┡', '━', '┩', '╇'),
     mid: Line::new('│', '─', '│', '┼'),
@@ -164,7 +164,7 @@ pub const HEAVY_HEAD: Box = Box {
 };
 
 /// Double lines.
-pub const DOUBLE: Box = Box {
+pub const DOUBLE: BoxStyle = BoxStyle {
     top: Line::new('╔', '═', '╗', '╦'),
     head: Line::new('╠', '═', '╣', '╬'),
     mid: Line::new('╠', '═', '╣', '╬'),
@@ -174,7 +174,7 @@ pub const DOUBLE: Box = Box {
 };
 
 /// Double edges but single inner lines.
-pub const DOUBLE_EDGE: Box = Box {
+pub const DOUBLE_EDGE: BoxStyle = BoxStyle {
     top: Line::new('╔', '═', '╗', '╤'),
     head: Line::new('╠', '═', '╣', '╪'),
     mid: Line::new('╟', '─', '╢', '┼'),
@@ -182,3 +182,52 @@ pub const DOUBLE_EDGE: Box = Box {
     header: Line::new('║', ' ', '║', '║'),
     cell: Line::new('║', ' ', '║', '║'),
 };
+
+/// Old name for [`BoxStyle`] (shadows `std::Box` under glob imports).
+#[deprecated(since = "0.3.3", note = "use `BoxStyle` instead")]
+pub type Box = BoxStyle;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_all_box_styles_have_complete_lines() {
+        let styles = [
+            ASCII,
+            ASCII_DOUBLE_HEAD,
+            SQUARE,
+            SQUARE_DOUBLE_HEAD,
+            MINIMAL,
+            MINIMAL_HEAVY_HEAD,
+            MINIMAL_DOUBLE_HEAD,
+            HORIZONTALS,
+            ROUNDED,
+            HEAVY,
+            HEAVY_EDGE,
+            HEAVY_HEAD,
+            DOUBLE,
+            DOUBLE_EDGE,
+        ];
+        for style in styles {
+            // Every line must define all six segments (even if blank).
+            let _ = (
+                style.top.left,
+                style.head.cross,
+                style.mid.right,
+                style.bottom.mid,
+                style.header.left,
+                style.cell.cross,
+            );
+        }
+    }
+
+    #[test]
+    fn test_line_new_builds_all_fields() {
+        let line = Line::new('l', 'm', 'r', 'x');
+        assert_eq!(line.left, 'l');
+        assert_eq!(line.mid, 'm');
+        assert_eq!(line.right, 'r');
+        assert_eq!(line.cross, 'x');
+    }
+}

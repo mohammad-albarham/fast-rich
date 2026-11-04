@@ -10,21 +10,21 @@ Add `fast-rich` to your `Cargo.toml`:
 
     ```toml
     [dependencies]
-    fast-rich = "0.3.2"
+    fast-rich = "0.3.3"
     ```
 
 === "Full Features"
 
     ```toml
     [dependencies]
-    fast-rich = { version = "0.3.2", features = ["full"] }
+    fast-rich = { version = "0.3.3", features = ["full"] }
     ```
 
 === "Selective Features"
 
     ```toml
     [dependencies]
-    fast-rich = { version = "0.3.2", features = ["syntax", "markdown", "logging"] }
+    fast-rich = { version = "0.3.3", features = ["syntax", "markdown", "logging", "json"] }
     ```
 
 ### Available Features

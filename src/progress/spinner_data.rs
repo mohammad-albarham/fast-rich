@@ -716,3 +716,21 @@ pub const LAYER: SpinnerDef = SpinnerDef {
     frames: &["-", "=", "≡"],
     interval_ms: 150,
 };
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_spinner_defs_have_frames_and_intervals() {
+        // Every spinner definition must have at least one frame and a
+        // strictly positive interval (frame math divides by it).
+        let defs = [
+            DOTS, DOTS2, DOTS3, DOTS4, DOTS5, DOTS6, DOTS7, DOTS8, DOTS9, DOTS10, LINE, LINE2, PIPE,
+        ];
+        for (i, def) in defs.iter().enumerate() {
+            assert!(!def.frames.is_empty(), "spinner #{i} has no frames");
+            assert!(def.interval_ms > 0, "spinner #{i} has zero interval");
+        }
+    }
+}

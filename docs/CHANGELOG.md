@@ -5,6 +5,95 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Build**: The `markdown` feature no longer fails to compile without `syntax`;
+  `markdown` now implies `syntax` (matching Rich, where markdown renders code blocks).
+- **Build**: Removed unused `terminal_size` dependency (crossterm is used for
+  terminal size) and unused `insta`/`tempfile` dev-dependencies.
+- **MSRV**: Added `rust-version = "1.81"` to `Cargo.toml`, an MSRV job to CI, and
+  pinned lockfile dependencies to versions compatible with Rust 1.81. The README
+  badge now claims the verified MSRV (1.81+, was 1.70+).
+- **CI**: Added a feature-matrix job (`--no-default-features`, each feature alone,
+  and combinations) so single-feature breakage can never ship again, plus a
+  security-audit job and a `cargo publish --dry-run` job. Fixed token-less codecov
+  upload and the broken empty-token README badge.
+- **Docs**: Deduplicated the "Macro Summary" table in crate documentation.
+- **Text**: Embedded `\n` in printed text is now a hard line break instead of
+  collapsing to a space; wrapping preserves runs of inner spaces and lines no
+  longer exceed the available width by a trailing space.
+- **Text**: `print!`/`println!` now match `std` semantics — `print` adds no
+  trailing newline, `println` exactly one (previously `println` double-spaced).
+- **Markup**: Unknown `:word:` shortcodes keep their colons (`"12:30:45"` no
+  longer renders as `"1230:45"`); `:+1:` resolves; `]]` no longer breaks tag
+  parsing; the emoji-syntax doc was corrected.
+- **Style**: `Color::parse` no longer panics on non-ASCII hex (e.g. `#日本`);
+  `not bold` negates the attribute instead of enabling it.
+- **Layout**: Ratio distribution clamps to the remaining space, fixing a `u16`
+  underflow panic with many flexible children. `Layout` sizes are now `usize`.
+- **Console**: Color detection honors TTY state (piped output is plain text),
+  `NO_COLOR`, `TERM=dumb`, `CLICOLOR_FORCE`, and `FORCE_COLOR` (1/2/3 levels).
+- **Prompt**: EOF on stdin returns the default or an error instead of spinning
+  forever (`Prompt::try_ask` / `PromptError`); `secret()` reads hidden input via
+  raw mode; `case_sensitive` builder wired into choice matching.
+- **Pager**: raw mode is restored on panics via an RAII `RawModeGuard`; the
+  cursor is always re-shown; key release events no longer double-scroll;
+  resize events update the page height.
+- **Traceback**: `RUST_BACKTRACE=1` now delegates to the previous panic hook so
+  backtraces are preserved.
+- **Progress**: `auto_refresh`/`refresh_per_second` spawn a real background
+  refresh thread; `BarColumn::expand(true)` receives its share of the spare
+  width; Live/Progress height tracking counts soft-wrapped terminal lines.
+- **Table**: cells keep their styles and support multi-line content with
+  aligned borders; `ColumnWidth::Fixed/Min/Max` are honored; `Column::wrap`
+  wraps at the column width; `Row::style` is applied; truncated cells are
+  exactly the column width (ellipsis off-by-one).
+- **Markdown**: nested ordered lists keep their numbering after an inner list
+  closes.
+- **Tree**: `from_directory` no longer follows symlink cycles, hides dotfiles
+  by default, and supports `DirectoryTreeOptions` (max depth, hidden files,
+  symlink following).
+- **Width**: rules, SVG export, bar-chart labels/values and panel padding now
+  measure display width (CJK/emoji) instead of bytes.
+- **Panel**: subtitle styling is separate (`subtitle_style`).
+
+### Changed
+- **Features**: `regex`, `serde`, and `serde_json` are now optional, gated behind a
+  new `json` feature (the `Json` and `highlighter` modules require it). `full`
+  includes `json`. The incoherent `std` feature was removed (`Tree::from_directory`
+  is now always available).
+- **API**: `Json` and the highlighter module require the `json` feature.
+- **API**: `Prompt::ask` panics only on EOF without a default; prefer
+  `Prompt::try_ask` which returns `Result<T, PromptError>`.
+- **API**: Deprecated alignment enums `table::ColumnAlign` and `rule::RuleAlign`
+  in favor of `text::Alignment`; `box_drawing::Box` renamed to `BoxStyle` (old
+  name kept as a deprecated alias); `Table::set_title` deprecated in favor of
+  `Table::title`; `Measurement::measure` deprecated in favor of the free
+  function `measure::measure`.
+- **API**: Removed placeholder options that never worked:
+  `InspectConfig::methods`, `TracebackConfig::show_locals`, `Live::refresh_rate`,
+  and the dead `CapturedOutput` type. `NestedProgress` now implements
+  `Renderable` (indented bar tree).
+- **API**: `Panel::new` now fits the content by default (`expand(false)`,
+  matching Rich); `Console` is `Clone` (cheap, Arc-backed) and gained
+  `theme()`/`get_theme()` — theme `custom` colors are usable as markup tags
+  (e.g. `[brand]`). Prelude/root re-exports now cover `Align`, `Padding`,
+  `Theme`, `Span`, `Segment`, `Layout`, `Live`, `Direction`, `BarChart`,
+  `RenderGroup` and `Measurement`.
+- **Performance**: wrapping merges adjacent same-style spans (one span per
+  style run, not per word); console output is queued and flushed once per
+  print; JSON highlighter regexes compile once per process; JSON rendering no
+  longer deep-clones the value tree unless sorting; Markdown and Syntax cache
+  parsed/highlighted output across frames; 256-color mapping is closed-form
+  (proven identical to the brute-force scan by test).
+
+### Added
+- **Testing**: golden-file snapshot tests (`tests/snapshot_golden.rs`,
+  regenerate with `FAST_RICH_UPDATE_SNAPSHOTS=1`); unit tests for all
+  previously uncovered modules (`live`, `inspect`, `progress/columns`, `align`,
+  `theme`, `padding`, `box_drawing`, `progress/mod`, `progress/spinner_data`).
+
 ## [0.3.3] - 2026-08-09
 
 ### Changed

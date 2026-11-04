@@ -257,10 +257,41 @@ impl Renderable for Tree {
     }
 }
 
-/// Create a tree from a directory path (example helper).
-#[cfg(feature = "std")]
+/// Options for [`from_directory_with`].
+#[derive(Debug, Clone, Default)]
+pub struct DirectoryTreeOptions {
+    /// Maximum recursion depth (1 = only the root's entries). `None` means
+    /// unlimited (subject to cycle detection).
+    pub max_depth: Option<usize>,
+    /// Include hidden entries (dotfiles). Default: false.
+    pub include_hidden: bool,
+    /// Follow directory symlinks. Default: false — symlinks are shown as
+    /// entries but never recursed into, which also prevents symlink cycles.
+    pub follow_symlinks: bool,
+}
+
+/// Create a tree from a directory path with default options.
 pub fn from_directory(path: &std::path::Path) -> std::io::Result<Tree> {
-    fn build_node(path: &std::path::Path) -> std::io::Result<TreeNode> {
+    from_directory_with(path, DirectoryTreeOptions::default())
+}
+
+/// Create a tree from a directory path.
+///
+/// Symlinked directories are never followed (unless `follow_symlinks` is
+/// set), so a symlink pointing at an ancestor can no longer recurse until
+/// the stack overflows. Recursion is also capped by `max_depth` when set.
+pub fn from_directory_with(
+    path: &std::path::Path,
+    options: DirectoryTreeOptions,
+) -> std::io::Result<Tree> {
+    use std::collections::HashSet;
+
+    fn build_node(
+        path: &std::path::Path,
+        depth: usize,
+        visited: &mut HashSet<std::path::PathBuf>,
+        options: &DirectoryTreeOptions,
+    ) -> std::io::Result<TreeNode> {
         let name = path
             .file_name()
             .map(|s| s.to_string_lossy().to_string())
@@ -268,26 +299,128 @@ pub fn from_directory(path: &std::path::Path) -> std::io::Result<Tree> {
 
         let mut node = TreeNode::new(name);
 
-        if path.is_dir() {
-            let mut entries: Vec<_> = std::fs::read_dir(path)?.filter_map(|e| e.ok()).collect();
+        let metadata = if options.follow_symlinks {
+            std::fs::metadata(path)
+        } else {
+            std::fs::symlink_metadata(path)
+        }?;
 
+        if metadata.is_dir() {
+            // Depth limit (root itself is depth 0; its children are depth 1).
+            if let Some(max) = options.max_depth {
+                if depth >= max {
+                    return Ok(node);
+                }
+            }
+
+            // Cycle guard: canonical path of a directory must not already be
+            // on the way down.
+            let canonical = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+            if !visited.insert(canonical.clone()) {
+                return Ok(node);
+            }
+
+            let mut entries: Vec<_> = match std::fs::read_dir(path) {
+                Ok(rd) => rd.filter_map(|e| e.ok()).collect(),
+                Err(_) => Vec::new(),
+            };
             entries.sort_by_key(|e| e.file_name());
 
             for entry in entries {
-                let child = build_node(&entry.path())?;
+                let entry_path = entry.path();
+                if !options.include_hidden {
+                    if let Some(name) = entry_path.file_name() {
+                        if name.to_string_lossy().starts_with('.') {
+                            continue;
+                        }
+                    }
+                }
+                let child = build_node(&entry_path, depth + 1, visited, options)?;
                 node.children.push(child);
             }
+
+            visited.remove(&canonical);
         }
 
         Ok(node)
     }
 
-    let root = build_node(path)?;
+    let mut visited = HashSet::new();
+    let root = build_node(path, 0, &mut visited, &options)?;
     Ok(Tree::new(root))
 }
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_from_directory_symlink_cycle_terminates() {
+        let dir = std::env::temp_dir().join(format!("fr_tree_{}", std::process::id()));
+        let inner = dir.join("inner");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&inner).unwrap();
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&dir, inner.join("loop")).unwrap();
+
+        // Must terminate and not blow the stack.
+        let tree = from_directory(&dir);
+        assert!(tree.is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_from_directory_depth_limit() {
+        let dir = std::env::temp_dir().join(format!("fr_treed_{}", std::process::id()));
+        let deep = dir.join("a").join("b").join("c");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&deep).unwrap();
+
+        let tree = from_directory_with(
+            &dir,
+            DirectoryTreeOptions {
+                max_depth: Some(1),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        // Only "a" should appear, not "b"/"c".
+        fn collect(node: &TreeNode, out: &mut Vec<String>) {
+            out.push(node.label.plain_text());
+            for c in &node.children {
+                collect(c, out);
+            }
+        }
+        let mut labels = Vec::new();
+        collect(&tree.root, &mut labels);
+        assert!(labels.iter().any(|l| l == "a"));
+        assert!(
+            !labels.iter().any(|l| l == "b"),
+            "depth limit violated: {labels:?}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_from_directory_hidden_files_excluded() {
+        let dir = std::env::temp_dir().join(format!("fr_treeh_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join(".secret"), "x").unwrap();
+        std::fs::write(dir.join("visible.txt"), "x").unwrap();
+
+        let tree = from_directory(&dir).unwrap();
+        fn collect(node: &TreeNode, out: &mut Vec<String>) {
+            out.push(node.label.plain_text());
+            for c in &node.children {
+                collect(c, out);
+            }
+        }
+        let mut labels = Vec::new();
+        collect(&tree.root, &mut labels);
+        assert!(labels.iter().any(|l| l == "visible.txt"));
+        assert!(!labels.iter().any(|l| l == ".secret"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     use super::*;
 
     #[test]

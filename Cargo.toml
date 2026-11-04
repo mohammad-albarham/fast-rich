@@ -2,6 +2,7 @@
 name = "fast-rich"
 version = "0.3.3"
 edition = "2021"
+rust-version = "1.81"
 license = "MIT OR Apache-2.0"
 description = "A Rust port of Python's Rich library for beautiful terminal formatting"
 repository = "https://github.com/mohammad-albarham/fast-rich"
@@ -15,29 +16,26 @@ exclude = ["docs/**", "logo.png", "Makefile", "scripts/**", "benchmarks/**"]
 # Core dependencies
 unicode-width = "0.2"
 unicode-segmentation = "1.10"
-terminal_size = "0.4"
 crossterm = "0.28"
 
 # Optional dependencies
 pulldown-cmark = { version = "0.12", optional = true }
 syntect = { version = "5.2", optional = true }
 log = { version = "0.4", optional = true }
-regex = "1.12.2"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", features = ["preserve_order"] }
+regex = { version = "1.12.2", optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", features = ["preserve_order"], optional = true }
 
 [features]
 default = []
-markdown = ["dep:pulldown-cmark"]
+markdown = ["dep:pulldown-cmark", "syntax"]
 syntax = ["dep:syntect"]
 logging = ["dep:log"]
-std = []
-full = ["markdown", "syntax", "logging", "std"]
+json = ["dep:regex", "dep:serde", "dep:serde_json"]
+full = ["markdown", "syntax", "logging", "json"]
 
 [dev-dependencies]
-insta = "1.40"  # Snapshot testing
 criterion = "0.5"
-tempfile = "3.10"  # Temporary files for testing
 
 [[example]]
 name = "hello"
@@ -70,6 +68,12 @@ path = "examples/tree.rs"
 [[example]]
 name = "json_demo"
 path = "examples/json_demo.rs"
+required-features = ["json"]
+
+[[example]]
+name = "highlighter_demo"
+path = "examples/highlighter_demo.rs"
+required-features = ["json"]
 
 # Examples requiring optional features
 [[example]]
@@ -85,6 +89,11 @@ required-features = ["logging"]
 [[example]]
 name = "markdown_parity"
 path = "examples/markdown_parity.rs"
+required-features = ["markdown"]
+
+[[example]]
+name = "fixes_showcase"
+path = "examples/fixes_showcase.rs"
 required-features = ["markdown"]
 
 [[example]]

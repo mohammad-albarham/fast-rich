@@ -107,6 +107,15 @@ impl Renderable for Padding {
             result.push(Segment::line(vec![Span::raw(" ".repeat(context.width))]));
         }
 
+        // Lines are padded to the widest child line so the right padding
+        // sits at a consistent column (the "column edge") instead of
+        // following ragged content.
+        let content_width = child_segments
+            .iter()
+            .map(|seg| seg.spans.iter().map(|s| s.width()).sum::<usize>())
+            .max()
+            .unwrap_or(0);
+
         // Add left/right padding to each child segment
         for segment in child_segments {
             let mut padded_spans = Vec::new();
@@ -117,11 +126,13 @@ impl Renderable for Padding {
             }
 
             // Child content
-            padded_spans.extend(segment.spans);
+            padded_spans.extend(segment.spans.clone());
 
-            // Right padding
-            if self.spec.right > 0 {
-                padded_spans.push(Span::raw(" ".repeat(self.spec.right)));
+            // Right padding, filling out to the column edge
+            let line_width: usize = segment.spans.iter().map(|s| s.width()).sum();
+            let right_pad = content_width.saturating_sub(line_width) + self.spec.right;
+            if right_pad > 0 {
+                padded_spans.push(Span::raw(" ".repeat(right_pad)));
             }
 
             if segment.newline {
@@ -137,5 +148,34 @@ impl Renderable for Padding {
         }
 
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::console::RenderContext;
+    use crate::text::Text;
+
+    #[test]
+    fn test_padding_spec_builders() {
+        let spec = PaddingSpec::all(2);
+        assert_eq!((spec.top, spec.right, spec.bottom, spec.left), (2, 2, 2, 2));
+        let sym = PaddingSpec::symmetric(1, 3);
+        assert_eq!((sym.top, sym.left), (1, 3));
+        let none = PaddingSpec::none();
+        assert_eq!(none.top + none.right + none.bottom + none.left, 0);
+    }
+
+    #[test]
+    fn test_padding_render_pads_to_column_edge() {
+        let padded = Padding::all(Text::plain("hi".to_string()), 1);
+        let segments = padded.render(&RenderContext {
+            width: 40,
+            height: None,
+        });
+        assert!(!segments.is_empty());
+        let text: String = segments.iter().map(|s| s.plain_text()).collect();
+        assert!(text.contains(" hi "), "got {text:?}");
     }
 }

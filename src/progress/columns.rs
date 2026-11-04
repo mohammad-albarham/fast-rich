@@ -689,3 +689,114 @@ impl ProgressColumn for DownloadColumn {
         ]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::style::Color;
+
+    fn task(total: u64, done: u64) -> Task {
+        let mut t = Task::new(0, "t", Some(total));
+        t.completed = done;
+        t
+    }
+
+    fn spans_width(spans: &[Span]) -> usize {
+        spans.iter().map(|s| s.width()).sum()
+    }
+
+    #[test]
+    fn test_bar_column_width_respected() {
+        let col = BarColumn::new(20);
+        assert_eq!(spans_width(&col.render(&task(100, 50))), 20);
+        assert_eq!(
+            spans_width(&col.render_with_width(&task(100, 50), None)),
+            20
+        );
+    }
+
+    #[test]
+    fn test_bar_column_expands() {
+        let col = BarColumn::new(10).expand(true);
+        let spans = col.render_with_width(&task(100, 0), Some(30));
+        assert_eq!(spans_width(&spans), 30);
+        assert!(col.is_expandable());
+        assert_eq!(col.min_width(), 10);
+    }
+
+    #[test]
+    fn test_bar_column_indeterminate_pulse() {
+        let mut t = Task::new(0, "t", None);
+        let col = BarColumn::new(16);
+        let width = spans_width(&col.render(&t));
+        assert_eq!(width, 16);
+        t.finished = true;
+        let _ = col.render(&t);
+    }
+
+    #[test]
+    fn test_percentage_column_format() {
+        let col = PercentageColumn::new();
+        let spans = col.render(&task(100, 25));
+        assert_eq!(spans[0].text, " 25%");
+    }
+
+    #[test]
+    fn test_mofn_column() {
+        let col = MofNColumn::new();
+        let spans = col.render(&task(10, 4));
+        assert_eq!(spans[0].text, "4/10");
+    }
+
+    #[test]
+    fn test_format_duration() {
+        assert_eq!(format_duration(Duration::from_secs(59)), "00:59");
+        assert_eq!(format_duration(Duration::from_secs(3661)), "01:01:01");
+    }
+
+    #[test]
+    fn test_file_size_columns() {
+        let col = FileSizeColumn::new();
+        let mut t = Task::new(0, "t", None);
+        t.completed = 2048;
+        assert_eq!(col.render(&t)[0].text, "2.0 KB");
+
+        let total = TotalFileSizeColumn::new();
+        t.total = Some(4096);
+        let spans = total.render(&t);
+        assert!(spans.iter().any(|s| s.text == "2.0 KB"));
+        assert!(spans.iter().any(|s| s.text == "4.0 KB"));
+    }
+
+    #[test]
+    fn test_spinner_column_stateless_frame() {
+        let col = SpinnerColumn::new();
+        let t = Task::new(0, "t", None);
+        let first = col.render(&t);
+        assert_eq!(first.len(), 1);
+        assert!(!first[0].text.is_empty());
+    }
+
+    #[test]
+    fn test_download_column_parts() {
+        let col = DownloadColumn::new();
+        let mut t = Task::new(0, "t", None);
+        t.completed = 1024;
+        let spans = col.render(&t);
+        assert!(spans.iter().any(|s| s.text.contains("1.0 KB")));
+        // Fresh task: no elapsed time yet, speed renders as 0 B/s.
+        assert!(spans.iter().any(|s| s.text.contains("B/s")));
+    }
+
+    #[test]
+    fn test_style_builder_methods() {
+        let col = BarColumn::new(5)
+            .complete_char('#')
+            .incomplete_char('-')
+            .edge_char(None)
+            .complete_style(Style::new().foreground(Color::Red))
+            .finished_style(None);
+        let spans = col.render(&task(100, 100));
+        assert!(spans.iter().all(|s| !s.text.contains('\u{2578}')));
+    }
+}

@@ -98,14 +98,6 @@
 //! | `print!` / `println!` | ✅ Smart | Styled output & most debug data |
 //! | `print_raw!` / `println_raw!` | ❌ Skipped | Strict raw data output |
 //! | `rprint!` / `rprintln!` | ✅ Smart | Alias (when you need both std and rich) |
-//!
-//! ### Macro Summary
-//!
-//! | Macro | Markup | Use Case |
-//! |-------|--------|----------|
-//! | `print!` / `println!` | ✅ Parsed | Styled output you control |
-//! | `print_raw!` / `println_raw!` | ❌ Skipped | Data output, debug values |
-//! | `rprint!` / `rprintln!` | ✅ Parsed | Alias (when you need both std and rich) |
 
 use std::cell::RefCell;
 
@@ -116,6 +108,7 @@ pub mod box_drawing;
 pub mod console;
 pub mod emoji;
 pub mod group;
+#[cfg(feature = "json")]
 pub mod highlighter;
 pub mod markup;
 pub mod measure;
@@ -144,6 +137,7 @@ pub mod progress;
 
 // Utilities
 pub mod inspect;
+#[cfg(feature = "json")]
 pub mod json;
 pub mod prompt;
 pub mod traceback;
@@ -156,15 +150,21 @@ pub mod markdown;
 pub mod syntax;
 
 // Re-exports for convenience
+pub use align::{Align, VerticalAlignment};
+pub use bar::BarChart;
 pub use console::Console;
-pub use layout::Layout;
+pub use group::RenderGroup;
+pub use layout::{Direction, Layout};
 pub use live::Live;
+pub use measure::Measurement;
+pub use padding::Padding;
 pub use panel::{BorderStyle, Panel};
-pub use renderable::Renderable;
+pub use renderable::{Renderable, Segment};
 pub use rule::Rule;
 pub use style::{Color, Style};
-pub use table::{Column, ColumnAlign, Table};
-pub use text::{Alignment, Text};
+pub use table::{Column, Table};
+pub use text::{Alignment, Span, Text};
+pub use theme::Theme;
 pub use tree::{Tree, TreeNode};
 
 // ============================================================================
@@ -450,18 +450,26 @@ pub mod prelude {
     // Raw print macros for data output (no markup parsing, no std conflicts)
     pub use crate::{eprint_raw, eprintln_raw, print_raw, println_raw};
 
+    pub use crate::align::{Align, VerticalAlignment};
+    pub use crate::bar::BarChart;
     pub use crate::columns::Columns;
     pub use crate::console::Console;
+    pub use crate::group::RenderGroup;
     pub use crate::inspect::{inspect, InspectConfig};
+    #[cfg(feature = "json")]
     pub use crate::json::Json;
+    pub use crate::layout::{Direction, Layout};
+    pub use crate::live::Live;
     pub use crate::log::ConsoleLog;
+    pub use crate::padding::Padding;
     pub use crate::panel::{BorderStyle, Panel};
     pub use crate::progress::{track, Progress, ProgressBar, Spinner, SpinnerStyle, Status};
-    pub use crate::renderable::Renderable;
+    pub use crate::renderable::{Renderable, Segment};
     pub use crate::rule::Rule;
     pub use crate::style::{Color, Style};
-    pub use crate::table::{Column, ColumnAlign, Table};
-    pub use crate::text::{Alignment, Text};
+    pub use crate::table::{Column, Table};
+    pub use crate::text::{Alignment, Span, Text};
+    pub use crate::theme::Theme;
     pub use crate::traceback::install_panic_hook;
     pub use crate::tree::{GuideStyle, Tree, TreeNode};
 }

@@ -1,4 +1,5 @@
 use fast_rich::prelude::*;
+use fast_rich::text::Alignment;
 
 fn run(console: &Console) {
     console.rule("[bold cyan]Table Features Demo[/]");
@@ -24,17 +25,17 @@ fn run(console: &Console) {
     table2
         .add_column(
             Column::new("Region")
-                .align(ColumnAlign::Left)
+                .align(Alignment::Left)
                 .width(fast_rich::table::ColumnWidth::Fixed(10)),
         )
         .add_column(
             Column::new("Status")
-                .align(ColumnAlign::Center)
+                .align(Alignment::Center)
                 .width(fast_rich::table::ColumnWidth::Fixed(10)),
         )
         .add_column(
             Column::new("Uptime")
-                .align(ColumnAlign::Right)
+                .align(Alignment::Right)
                 .width(fast_rich::table::ColumnWidth::Fixed(10)),
         );
 

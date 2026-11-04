@@ -104,7 +104,42 @@ impl Theme {
 }
 
 impl Default for Theme {
+    /// `default` and `new` return the same palette; use
+    /// [`Theme::default_theme`] for the Rich-like bright variant.
     fn default() -> Self {
-        Theme::default_theme()
+        Theme::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_and_default_theme_are_consistent() {
+        // `new` and `default` must agree — they historically returned
+        // different palettes (dim vs bright variants), a footgun.
+        assert_eq!(Theme::new().primary, Theme::default().primary);
+    }
+
+    #[test]
+    fn test_monokai_differs_from_default() {
+        assert_ne!(Theme::monokai().primary, Theme::default().primary);
+    }
+
+    #[test]
+    fn test_custom_color_lookup() {
+        let mut theme = Theme::new();
+        theme
+            .custom
+            .insert("brand".to_string(), Color::rgb(1, 2, 3));
+        let style = theme.get_style("brand");
+        assert_eq!(style.foreground, Some(Color::rgb(1, 2, 3)));
+    }
+
+    #[test]
+    fn test_unknown_style_name_falls_back() {
+        let theme = Theme::new();
+        let _ = theme.get_style("does-not-exist");
     }
 }

@@ -10,7 +10,7 @@ use crate::style::{Color, Style};
 use crate::text::{Span, Text};
 use std::sync::OnceLock;
 use syntect::easy::HighlightLines;
-use syntect::highlighting::{Style as SyntectStyle, ThemeSet};
+use syntect::highlighting::{Style as SyntectStyle, Theme as SyntectTheme, ThemeSet};
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
@@ -76,6 +76,10 @@ impl Default for SyntaxConfig {
 }
 
 /// Syntax-highlighted source code.
+///
+/// The expensive syntect highlighting pass runs once and is cached; later
+/// renders (e.g. inside a `Live` display) reuse it until the language or
+/// theme changes.
 #[derive(Debug)]
 pub struct Syntax {
     /// Source code
@@ -84,7 +88,12 @@ pub struct Syntax {
     language: String,
     /// Configuration
     config: SyntaxConfig,
+    /// Cached raw highlighting: (language, theme, per-line styled segments).
+    highlight_cache: std::sync::Mutex<Option<HighlightCacheKey>>,
 }
+
+/// Cached raw syntect output: (language, theme, per-line styled segments).
+type HighlightCacheKey = (String, Theme, Vec<Vec<(SyntectStyle, String)>>);
 
 impl Syntax {
     /// Create a new Syntax instance for highlighting code.
@@ -93,6 +102,7 @@ impl Syntax {
             code: code.to_string(),
             language: language.to_string(),
             config: SyntaxConfig::default(),
+            highlight_cache: std::sync::Mutex::new(None),
         }
     }
 
@@ -171,6 +181,9 @@ impl Syntax {
     }
 
     /// Highlight the code and return styled lines.
+    ///
+    /// The raw syntect highlighting is cached; per-render work is limited to
+    /// style conversion and gutter construction.
     fn highlight(&self) -> (Vec<Vec<Span>>, Option<Color>) {
         let syntax_set = SYNTAX_SET.get_or_init(SyntaxSet::load_defaults_newlines);
         let theme_set = THEME_SET.get_or_init(ThemeSet::load_defaults);
@@ -183,29 +196,46 @@ impl Syntax {
         let theme = theme_set
             .themes
             .get(self.config.theme.name())
-            .unwrap_or_else(|| theme_set.themes.values().next().unwrap());
+            .unwrap_or_else(|| {
+                theme_set
+                    .themes
+                    .values()
+                    .next()
+                    .expect("default themes present")
+            });
 
         // Extract global theme background
         let theme_bg = theme.settings.background.map(|c| Color::rgb(c.r, c.g, c.b));
 
-        let mut highlighter = HighlightLines::new(syntax, theme);
-        let mut lines = Vec::new();
-        let line_count = self.code.lines().count();
-        // If code ends with newline, lines() might undercount for rendering purposes depending on requirement,
-        // but for line numbers usually standard lines() is fine.
+        // Get (cached) raw highlighting for the current language + theme.
+        let raw: Vec<Vec<(SyntectStyle, String)>> = {
+            let mut cache = self
+                .highlight_cache
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            if let Some((lang, theme_name, lines)) = cache.as_ref() {
+                if lang == &self.language && *theme_name == self.config.theme {
+                    lines.clone()
+                } else {
+                    let computed = self.highlight_raw(syntax, theme, syntax_set);
+                    *cache = Some((self.language.clone(), self.config.theme, computed.clone()));
+                    computed
+                }
+            } else {
+                let computed = self.highlight_raw(syntax, theme, syntax_set);
+                *cache = Some((self.language.clone(), self.config.theme, computed.clone()));
+                computed
+            }
+        };
 
+        let line_count = self.code.lines().count();
         let line_number_width = (line_count + self.config.start_line).to_string().len();
 
-        for (i, line) in LinesWithEndings::from(&self.code).enumerate() {
-            // Syntect handles syntax by line, but doesn't expand tabs.
-            // We expand tabs to spaces here to ensure width calculations are consistent
-            // for Panel rendering. Standardizing on 4 spaces for now.
-            let line = line.replace('\t', "    ");
-
+        let mut lines = Vec::with_capacity(raw.len());
+        for (i, segments) in raw.iter().enumerate() {
             let line_num = i + self.config.start_line;
             let mut spans = Vec::new();
 
-            // Add line number if enabled
             if self.config.line_numbers {
                 let is_highlighted = self.config.highlight_lines.contains(&line_num);
                 let line_color = if is_highlighted {
@@ -213,29 +243,18 @@ impl Syntax {
                 } else {
                     Color::BrightBlack
                 };
-
                 let line_style = Style::new().foreground(line_color);
-                // Also apply theme background to line numbers if we want them to blend in,
-                // but usually line numbers might be in a "gutter".
-                // For now, let's keep them simple.
-
-                let marker = if is_highlighted { "→ " } else { "  " };
+                let marker = if is_highlighted { "\u{2192} " } else { "  " };
                 spans.push(Span::styled(marker.to_string(), line_style));
                 spans.push(Span::styled(
-                    format!("{:>width$} │ ", line_num, width = line_number_width),
+                    format!("{:>width$} \u{2502} ", line_num, width = line_number_width),
                     line_style,
                 ));
             }
 
-            // Highlight the line content
-            let highlighted = highlighter
-                .highlight_line(&line, syntax_set)
-                .unwrap_or_default();
-
-            for (style, text) in highlighted {
-                let text = text.trim_end_matches('\n').to_string();
+            for (style, text) in segments {
                 if !text.is_empty() {
-                    spans.push(Span::styled(text, Self::convert_style(style)));
+                    spans.push(Span::styled(text.clone(), Self::convert_style(*style)));
                 }
             }
 
@@ -243,6 +262,35 @@ impl Syntax {
         }
 
         (lines, theme_bg)
+    }
+
+    /// Run syntect over the source once and collect raw styled segments.
+    fn highlight_raw(
+        &self,
+        syntax: &syntect::parsing::SyntaxReference,
+        theme: &SyntectTheme,
+        syntax_set: &SyntaxSet,
+    ) -> Vec<Vec<(SyntectStyle, String)>> {
+        let mut highlighter = HighlightLines::new(syntax, theme);
+        let mut lines = Vec::new();
+
+        for line in LinesWithEndings::from(&self.code) {
+            // Syntect handles syntax by line, but doesn't expand tabs.
+            // We expand tabs to spaces to keep width calculations consistent.
+            let line = line.replace('\t', "    ");
+            let highlighted = highlighter
+                .highlight_line(&line, syntax_set)
+                .unwrap_or_default();
+
+            lines.push(
+                highlighted
+                    .into_iter()
+                    .map(|(style, text)| (style, text.trim_end_matches('\n').to_string()))
+                    .collect(),
+            );
+        }
+
+        lines
     }
 }
 

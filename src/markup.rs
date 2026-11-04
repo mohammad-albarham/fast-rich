@@ -7,11 +7,11 @@
 //! - `[style]text[/]` - Apply style to text
 //! - `[style]text[/style]` - Explicit close tag
 //! - `[bold red on blue]` - Multiple styles
-//! - `[@emoji_name]` - Emoji shortcode (handled separately)
+//! - `:emoji_name:` - Emoji shortcode (only known shortcodes are replaced)
 //! - `[[` - Escaped `[`
 //! - `]]` - Escaped `]`
 
-use crate::style::Style;
+use crate::style::{Color, Style};
 use crate::text::{Span, Text};
 
 /// A parsed token from markup text.
@@ -27,8 +27,54 @@ pub enum MarkupToken {
     Emoji(String),
 }
 
+/// Whether a markup word is not a known attribute/color and may be a
+/// theme-custom color name.
+fn style_is_unknown_word(word: &str) -> bool {
+    !matches!(
+        word,
+        "bold"
+            | "b"
+            | "dim"
+            | "italic"
+            | "i"
+            | "underline"
+            | "u"
+            | "blink"
+            | "reverse"
+            | "hidden"
+            | "strike"
+            | "strikethrough"
+            | "s"
+            | "on"
+            | "not"
+    ) && Color::parse(word).is_none()
+        && crate::style::Style::parse(word) == crate::style::Style::new()
+}
+
 /// Parse markup text into tokens.
 pub fn tokenize(input: &str) -> Vec<MarkupToken> {
+    tokenize_with(input, true)
+}
+
+/// Parse markup text into tokens, optionally translating emoji shortcodes.
+pub fn tokenize_with(input: &str, translate_emoji: bool) -> Vec<MarkupToken> {
+    tokenize_with_theme(input, translate_emoji, &crate::theme::Theme::new())
+}
+
+/// Parse markup text into tokens with theme-aware style resolution.
+pub fn tokenize_with_theme(
+    input: &str,
+    translate_emoji: bool,
+    theme: &crate::theme::Theme,
+) -> Vec<MarkupToken> {
+    tokenize_impl(input, translate_emoji, theme)
+}
+
+fn tokenize_impl(
+    input: &str,
+    translate_emoji: bool,
+    theme: &crate::theme::Theme,
+) -> Vec<MarkupToken> {
     let mut tokens = Vec::new();
     let mut chars = input.chars().peekable();
     let mut current_text = String::new();
@@ -54,15 +100,11 @@ pub fn tokenize(input: &str) -> Vec<MarkupToken> {
 
                 while let Some(&c) = chars.peek() {
                     if c == ']' {
-                        // Check for escape sequence ]]
+                        // First ']' closes the tag; `]]` escapes are handled
+                        // outside tags.
                         chars.next();
-                        if chars.peek() == Some(&']') {
-                            chars.next();
-                            tag_content.push(']');
-                        } else {
-                            found_close = true;
-                            break;
-                        }
+                        found_close = true;
+                        break;
                     } else {
                         tag_content.push(chars.next().unwrap());
                     }
@@ -97,27 +139,36 @@ pub fn tokenize(input: &str) -> Vec<MarkupToken> {
                         }
                     }
 
-                    let style = Style::parse(&style_parts.join(" "));
+                    let mut style = Style::parse(&style_parts.join(" "));
+                    // Resolve words that aren't built-in styles/colors against
+                    // the theme's custom colors (e.g. a color named "brand"
+                    // enables `[brand]text[/]`).
+                    let mut unknown_words = 0;
+                    for part in &style_parts {
+                        let lower = part.to_lowercase();
+                        if style_is_unknown_word(&lower) {
+                            if let Some(color) = theme.custom.get(&lower) {
+                                style = style.combine(&Style::new().foreground(*color));
+                            } else {
+                                unknown_words += 1;
+                            }
+                        }
+                    }
 
                     // Heuristic: If we parsed no style and no link, it's likely not a tag
                     // (e.g. "[1, 2, 3]" from debug output). Treat it as literal text.
                     if style.is_empty() && link.is_none() {
                         // Reconstruct the original text
-                        let original = if tag_content.contains(']') {
-                            // If we had unescaped brackets inside, we might lose fidelity here
-                            // but for standard debug output it's usually fine.
-                            format!("[{}]", tag_content)
-                        } else {
-                            format!("[{}]", tag_content)
-                        };
+                        let original = format!("[{}]", tag_content);
                         tokens.push(MarkupToken::Text(original));
                     } else {
+                        let _ = unknown_words;
                         tokens.push(MarkupToken::OpenTag(style, link));
                     }
                 }
             }
             ':' => {
-                // Check for emoji
+                // Scan a candidate emoji shortcode: :name:
                 let mut emoji_name = String::new();
                 let mut found_close = false;
 
@@ -126,21 +177,27 @@ pub fn tokenize(input: &str) -> Vec<MarkupToken> {
                         chars.next();
                         found_close = true;
                         break;
-                    } else if c.is_alphanumeric() || c == '_' || c == '-' {
+                    } else if c.is_alphanumeric() || c == '_' || c == '-' || c == '+' {
                         emoji_name.push(chars.next().unwrap());
                     } else {
                         break;
                     }
                 }
 
-                if found_close && !emoji_name.is_empty() {
+                // Only treat it as an emoji when enabled and the shortcode is
+                // known; otherwise keep the text verbatim (so "12:30:45"
+                // survives).
+                if translate_emoji
+                    && found_close
+                    && !emoji_name.is_empty()
+                    && crate::emoji::get_emoji(&emoji_name).is_some()
+                {
                     // Flush current text
                     if !current_text.is_empty() {
                         tokens.push(MarkupToken::Text(std::mem::take(&mut current_text)));
                     }
                     tokens.push(MarkupToken::Emoji(emoji_name));
                 } else {
-                    // Not an emoji, treat as regular text
                     current_text.push(':');
                     current_text.push_str(&emoji_name);
                     if found_close {
@@ -149,13 +206,12 @@ pub fn tokenize(input: &str) -> Vec<MarkupToken> {
                 }
             }
             ']' => {
-                // Check for escape sequence ]]
+                // Consume one following ']' as part of the `]]` escape; either
+                // way a single ']' lands in the text.
                 if chars.peek() == Some(&']') {
                     chars.next();
-                    current_text.push(']');
-                } else {
-                    current_text.push(']');
                 }
+                current_text.push(']');
             }
             _ => {
                 current_text.push(c);
@@ -173,7 +229,22 @@ pub fn tokenize(input: &str) -> Vec<MarkupToken> {
 
 /// Parse markup text into styled Text.
 pub fn parse(input: &str) -> Text {
-    let tokens = tokenize(input);
+    parse_with(input, true)
+}
+
+/// Parse markup text into styled Text, optionally translating emoji
+/// shortcodes (`:name:`).
+pub fn parse_with(input: &str, translate_emoji: bool) -> Text {
+    parse_with_theme(input, translate_emoji, &crate::theme::Theme::new())
+}
+
+/// Parse markup text into styled Text, resolving custom theme colors.
+///
+/// Style words that aren't built-in colors are looked up in
+/// [`Theme::custom`](crate::theme::Theme::custom), so a theme color named
+/// `"brand"` enables `[brand]text[/]`.
+pub fn parse_with_theme(input: &str, translate_emoji: bool, theme: &crate::theme::Theme) -> Text {
+    let tokens = tokenize_with_theme(input, translate_emoji, theme);
     let mut spans = Vec::new();
     let mut style_stack: Vec<Style> = Vec::new();
     let mut link_stack: Vec<Option<String>> = Vec::new();
@@ -254,6 +325,33 @@ mod tests {
     fn test_tokenize_emoji() {
         let tokens = tokenize(":smile:");
         assert_eq!(tokens, vec![MarkupToken::Emoji("smile".to_string())]);
+    }
+
+    #[test]
+    fn test_unknown_shortcode_keeps_colons() {
+        // Unknown shortcodes must stay verbatim — no dropped colons.
+        assert_eq!(render_plain("12:30:45"), "12:30:45");
+        assert_eq!(render_plain("ratio a:b:c"), "ratio a:b:c");
+        assert_eq!(render_plain("see http://x:8080/"), "see http://x:8080/");
+    }
+
+    #[test]
+    fn test_known_shortcode_replaced() {
+        assert_ne!(render_plain("hi :smile:"), "hi :smile:");
+    }
+
+    #[test]
+    fn test_plus_one_shortcode() {
+        let tokens = tokenize(":+1:");
+        assert_eq!(tokens, vec![MarkupToken::Emoji("+1".to_string())]);
+    }
+
+    #[test]
+    fn test_tag_close_not_broken_by_double_bracket() {
+        // "[bold]]" should be a bold tag followed by a literal ']'
+        let text = parse("[bold]]x[/]");
+        assert!(text.spans[0].style.bold);
+        assert_eq!(text.plain_text(), "]x");
     }
 
     #[test]

@@ -2,9 +2,10 @@
 //!
 //! Provides a less-like paging interface for large outputs.
 
+use crate::screen::RawModeGuard;
 use crossterm::{
     cursor,
-    event::{self, Event, KeyCode, KeyEvent},
+    event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     execute,
     terminal::{self, ClearType},
 };
@@ -34,23 +35,34 @@ impl Pager {
     }
 
     /// Show the pager and handle user interaction.
+    ///
+    /// Raw mode is held by a [`RawModeGuard`], so the terminal is restored
+    /// even if rendering or event handling panics. The cursor is made
+    /// visible again regardless of whether raw mode disabling succeeded.
     pub fn show(&mut self) -> io::Result<()> {
-        terminal::enable_raw_mode()?;
+        let _guard = RawModeGuard::new()?;
 
         let result = self.run();
 
-        terminal::disable_raw_mode()?;
-        execute!(io::stdout(), cursor::Show)?;
-
-        result
+        // Always restore the cursor, even if `run` failed.
+        let cursor_result = execute!(io::stdout(), cursor::Show);
+        result.and(cursor_result)
+        // `_guard` drops here and always disables raw mode.
     }
 
     fn run(&mut self) -> io::Result<()> {
         loop {
             self.render()?;
 
-            if let Event::Key(KeyEvent { code, .. }) = event::read()? {
-                match code {
+            match event::read()? {
+                // Only react to key presses (crossterm also delivers
+                // Release/Repeat events on some platforms, which would
+                // double-scroll).
+                Event::Key(KeyEvent {
+                    code,
+                    kind: KeyEventKind::Press,
+                    ..
+                }) => match code {
                     KeyCode::Char('q') | KeyCode::Esc => break,
                     KeyCode::Down | KeyCode::Char('j') => self.scroll_down(1),
                     KeyCode::Up | KeyCode::Char('k') => self.scroll_up(1),
@@ -63,7 +75,13 @@ impl Pager {
                         self.current_line = self.lines.len().saturating_sub(self.terminal_height);
                     }
                     _ => {}
+                },
+                // Window resizes: re-read the terminal height so the page
+                // layout follows the new size.
+                Event::Resize(_, height) => {
+                    self.terminal_height = (height as usize).saturating_sub(1).max(1);
                 }
+                _ => {}
             }
         }
 

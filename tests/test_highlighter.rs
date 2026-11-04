@@ -1,4 +1,5 @@
 //! Integration tests for highlighter system
+#![cfg(feature = "json")]
 
 use fast_rich::highlighter::{highlight_text, Highlighter, RegexHighlighter};
 use fast_rich::style::{Color, Style};

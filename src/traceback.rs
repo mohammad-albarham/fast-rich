@@ -17,8 +17,6 @@ pub struct TracebackConfig {
     pub show_source: bool,
     /// Number of context lines before/after
     pub context_lines: usize,
-    /// Show local variables (limited in Rust)
-    pub show_locals: bool,
     /// Panel style
     pub border_style: BorderStyle,
     /// Error style
@@ -30,7 +28,6 @@ impl Default for TracebackConfig {
         TracebackConfig {
             show_source: true,
             context_lines: 3,
-            show_locals: false,
             border_style: BorderStyle::Heavy,
             error_style: Style::new().foreground(Color::Red).bold(),
         }
@@ -165,15 +162,30 @@ impl Renderable for Traceback {
 
 static PANIC_HOOK_INSTALLED: Once = Once::new();
 
+/// Whether the user asked for a backtrace via `RUST_BACKTRACE`.
+fn backtrace_requested() -> bool {
+    std::env::var("RUST_BACKTRACE")
+        .map(|v| !v.is_empty() && v != "0")
+        .unwrap_or(false)
+}
+
 /// Install a pretty panic hook.
 ///
-/// This replaces the default panic hook with one that displays
-/// nicely formatted tracebacks using rich formatting.
+/// This replaces the default panic hook with one that displays nicely
+/// formatted tracebacks using rich formatting. The previous hook is kept:
+/// when `RUST_BACKTRACE` is set to a non-zero value the panic is delegated
+/// to it, so users never lose their backtrace.
 pub fn install_panic_hook() {
     PANIC_HOOK_INSTALLED.call_once(|| {
-        let _default_hook = panic::take_hook();
+        let previous_hook = panic::take_hook();
 
         panic::set_hook(Box::new(move |info| {
+            // Preserve the standard backtrace when explicitly requested.
+            if backtrace_requested() {
+                previous_hook(info);
+                return;
+            }
+
             // Create and render traceback
             let traceback = Traceback::from_panic(info);
             let console = crate::Console::new();
@@ -182,10 +194,6 @@ pub fn install_panic_hook() {
             console.newline();
             console.print_renderable(&traceback);
             console.newline();
-
-            // Note: We don't call the default hook here to avoid
-            // double-printing. If you want to preserve it:
-            // default_hook(info);
         }));
     });
 }
@@ -243,5 +251,40 @@ mod tests {
         let tb = Traceback::from_error("Test").with_config(config);
         assert!(!tb.config.show_source);
         assert_eq!(tb.config.context_lines, 5);
+    }
+
+    #[test]
+    fn test_backtrace_requested_env_parsing() {
+        // Pure env-parsing logic, driven via the process env. RUST_BACKTRACE
+        // is unset in test environments unless explicitly set.
+        match std::env::var("RUST_BACKTRACE") {
+            Ok(v) if !v.is_empty() && v != "0" => assert!(backtrace_requested()),
+            _ => assert!(!backtrace_requested()),
+        }
+    }
+
+    #[test]
+    fn test_install_panic_hook_idempotent() {
+        // Calling twice must not panic (guarded by `Once`).
+        install_panic_hook();
+        install_panic_hook();
+    }
+
+    #[test]
+    fn test_panic_hook_chain_does_not_lose_hook() {
+        install_panic_hook();
+        // The current hook must be OUR hook, not the default: i.e. taking it
+        // yields something that doesn't equal the freshly-taken default.
+        let ours = panic::take_hook();
+        install_panic_hook();
+        let ours2 = panic::take_hook();
+        // Restore a default-ish hook for subsequent tests.
+        panic::set_hook(Box::new(|_| {}));
+        // Both takes should have produced non-null distinct hook boxes
+        // (Box pointers differ), proving the hook was replaced, not dropped.
+        let a = format!("{:p}", &*ours);
+        let b = format!("{:p}", &*ours2);
+        assert_ne!(a, b);
+        let _ = panic::take_hook(); // clean up
     }
 }

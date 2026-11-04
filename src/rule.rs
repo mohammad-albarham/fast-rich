@@ -20,20 +20,15 @@ pub struct Rule {
     /// Style for the title
     title_style: Style,
     /// Alignment of the title
-    align: RuleAlign,
+    align: crate::text::Alignment,
 }
 
-/// Alignment for rule title.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum RuleAlign {
-    /// Left-aligned title
-    Left,
-    /// Center-aligned title (default)
-    #[default]
-    Center,
-    /// Right-aligned title
-    Right,
-}
+/// Alignment for the rule title.
+///
+/// Deprecated alias of [`Alignment`](crate::text::Alignment) — use that
+/// instead; the four alignment enums are being consolidated.
+#[deprecated(since = "0.3.3", note = "use `fast_rich::text::Alignment` instead")]
+pub type RuleAlign = crate::text::Alignment;
 
 impl Rule {
     /// Create a new rule with optional title.
@@ -47,7 +42,7 @@ impl Rule {
             character: '─',
             style: Style::new(),
             title_style: Style::new(),
-            align: RuleAlign::Center,
+            align: crate::text::Alignment::Center,
         }
     }
 
@@ -58,7 +53,7 @@ impl Rule {
             character: '─',
             style: Style::new(),
             title_style: Style::new(),
-            align: RuleAlign::Center,
+            align: crate::text::Alignment::Center,
         }
     }
 
@@ -81,7 +76,7 @@ impl Rule {
     }
 
     /// Set the title alignment.
-    pub fn align(mut self, align: RuleAlign) -> Self {
+    pub fn align(mut self, align: crate::text::Alignment) -> Self {
         self.align = align;
         self
     }
@@ -99,8 +94,14 @@ impl Renderable for Rule {
 
         match &self.title {
             None => {
-                // Simple line
-                let line = self.character.to_string().repeat(width);
+                // Simple line. `repeat` counts chars, not columns — divide by
+                // the character's display width so wide characters don't
+                // overflow the terminal.
+                let char_width = unicode_width::UnicodeWidthChar::width(self.character)
+                    .unwrap_or(1)
+                    .max(1);
+                let count = width / char_width;
+                let line = self.character.to_string().repeat(count);
                 vec![Segment::new(vec![Span::styled(line, self.style)])]
             }
             Some(title) => {
@@ -122,12 +123,14 @@ impl Renderable for Rule {
                 let remaining = width - title_width;
 
                 let (left_len, right_len) = match self.align {
-                    RuleAlign::Left => (4.min(remaining), remaining.saturating_sub(4)),
-                    RuleAlign::Center => {
+                    crate::text::Alignment::Left => (4.min(remaining), remaining.saturating_sub(4)),
+                    crate::text::Alignment::Center => {
                         let left = remaining / 2;
                         (left, remaining - left)
                     }
-                    RuleAlign::Right => (remaining.saturating_sub(4), 4.min(remaining)),
+                    crate::text::Alignment::Right => {
+                        (remaining.saturating_sub(4), 4.min(remaining))
+                    }
                 };
 
                 let left_line = self.character.to_string().repeat(left_len);

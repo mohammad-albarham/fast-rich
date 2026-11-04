@@ -57,10 +57,6 @@ fn run(console: &Console) {
 
     // Columns (if supported)
     // The current codebase has 'columns' module
-    #[cfg(feature = "std")]
-    {
-        // If Columns implemented
-    }
 
     console.print_renderable(&left);
     console.print_renderable(&right);

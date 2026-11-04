@@ -2,56 +2,113 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, dev-branch ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, dev-branch ]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   test:
-    name: Test Suite
+    name: Test Suite (${{ matrix.os }}, ${{ matrix.rust }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         rust: [stable, beta]
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ matrix.rust }}
-    
-    - name: Cache cargo registry
+
+    - name: Cache cargo
       uses: actions/cache@v4
       with:
-        path: ~/.cargo/registry
-        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: Cache cargo index
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/git
-        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: Cache cargo build
-      uses: actions/cache@v4
-      with:
-        path: target
-        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-    
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-${{ matrix.rust }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
     - name: Run tests
       run: cargo test --verbose --all-features
-    
+
     - name: Run doc tests
-      run: cargo test --doc
-    
+      run: cargo test --doc --all-features
+
     - name: Check examples compile
-      run: cargo build --examples --verbose
+      run: cargo build --examples --verbose --all-features
+
+  # Every feature combination must build and pass tests on its own.
+  # (This is the job that would have caught markdown-without-syntax.)
+  features:
+    name: Feature Matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features:
+          - --no-default-features
+          - --no-default-features --features markdown
+          - --no-default-features --features syntax
+          - --no-default-features --features logging
+          - --no-default-features --features json
+          - --no-default-features --features markdown,syntax
+          - --no-default-features --features logging,json
+          - --all-features
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache cargo
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ubuntu-features-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Check (${{ matrix.features }})
+      run: cargo check ${{ matrix.features }} --all-targets
+
+    - name: Test (${{ matrix.features }})
+      run: cargo test ${{ matrix.features }}
+
+  msrv:
+    name: MSRV (1.81)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust ${{ env.MSRV }}
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: 1.81
+
+    - name: Cache cargo
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ubuntu-msrv-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Check MSRV build
+      run: cargo check --all-features --all-targets
+
+    - name: Test MSRV
+      run: cargo test --all-features
 
   fmt:
     name: Rustfmt
@@ -73,20 +130,40 @@ jobs:
         components: clippy
     - run: cargo clippy --all-targets --all-features -- -D warnings
 
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-audit
+    - run: cargo audit
+
+  publish-dry-run:
+    name: Publish Dry Run
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+    - name: Package (dry run)
+      run: cargo publish --dry-run --all-features
+
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
-    
+
     - name: Install tarpaulin
       run: cargo install cargo-tarpaulin
-    
+
     - name: Generate coverage
       run: cargo tarpaulin --out Xml --all-features
-    
+
     - name: Upload to codecov
       uses: codecov/codecov-action@v4
       with:
+        token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: false

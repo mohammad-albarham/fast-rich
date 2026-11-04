@@ -27,7 +27,16 @@ impl Measurement {
     }
 
     /// Measure a renderable at a given width.
+    #[deprecated(
+        since = "0.3.3",
+        note = "use the free function `measure::measure` (avoids the name clash with `Measurable::measure`)"
+    )]
     pub fn measure(renderable: &impl Renderable, width: usize) -> Self {
+        Measurement::of(renderable, width)
+    }
+
+    /// Measure a renderable at a given width.
+    pub fn of(renderable: &impl Renderable, width: usize) -> Self {
         let context = RenderContext {
             width,
             height: None,
@@ -73,7 +82,7 @@ pub trait Measurable {
 
 impl<T: Renderable> Measurable for T {
     fn measure(&self, width: usize) -> Measurement {
-        Measurement::measure(self, width)
+        Measurement::of(self, width)
     }
 }
 
@@ -93,7 +102,7 @@ mod tests {
     #[test]
     fn test_measure_text() {
         let text = Text::plain("Hello, World!");
-        let m = Measurement::measure(&text, 80);
+        let m = Measurement::of(&text, 80);
 
         assert!(m.minimum > 0);
         assert!(m.lines > 0);

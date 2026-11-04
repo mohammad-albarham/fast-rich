@@ -9,6 +9,7 @@ use crossterm::{
 use std::io::{self, Write};
 
 /// Guard that automatically exits alternate screen when dropped.
+#[derive(Debug)]
 pub struct AlternateScreen {
     active: bool,
 }
@@ -58,6 +59,46 @@ impl AlternateScreen {
 impl Drop for AlternateScreen {
     fn drop(&mut self) {
         let _ = self.exit();
+    }
+}
+
+/// Guard that enables terminal raw mode and always disables it on drop —
+/// including on panics and early returns.
+///
+/// Use this instead of calling `enable_raw_mode`/`disable_raw_mode`
+/// sequentially so an error or panic can never leave the user's terminal
+/// in raw mode.
+#[derive(Debug)]
+pub struct RawModeGuard {
+    active: bool,
+}
+
+impl RawModeGuard {
+    /// Enable raw mode.
+    pub fn new() -> io::Result<Self> {
+        terminal::enable_raw_mode()?;
+        Ok(RawModeGuard { active: true })
+    }
+
+    /// Manually disable raw mode (also happens on drop).
+    pub fn release(&mut self) -> io::Result<()> {
+        if self.active {
+            terminal::disable_raw_mode()?;
+            self.active = false;
+        }
+        Ok(())
+    }
+
+    /// Whether raw mode is still active.
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
+}
+
+impl Drop for RawModeGuard {
+    fn drop(&mut self) {
+        let _ = terminal::disable_raw_mode();
+        self.active = false;
     }
 }
 

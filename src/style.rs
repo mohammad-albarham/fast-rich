@@ -140,6 +140,11 @@ impl Color {
                 Some(Color::Rgb { r, g, b })
             }
             6 => {
+                // Validate before byte slicing — slicing non-ASCII input
+                // (e.g. "#日本", 6 bytes) mid-char would panic.
+                if !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+                    return None;
+                }
                 let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
                 let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
                 let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
@@ -209,29 +214,82 @@ impl Color {
             Color::Default => Color::Default,
             Color::Ansi256(_) => *self,
             Color::Rgb { r, g, b } => {
-                // Find nearest color in the 256-color palette using Euclidean distance
-                let mut min_dist = u32::MAX;
-                let mut best_idx = 0;
+                // The 256-color palette is exactly: base 16 (0-15), the
+                // 6x6x6 cube (16-231) and the grayscale ramp (232-255).
+                // Squared Euclidean distance is separable per channel, so
+                // the nearest cube and gray entries have closed forms; only
+                // the 16 base colors need a scan. The result is identical to
+                // a full 256-entry scan, in O(1).
+                let (r, g, b) = (i32::from(*r), i32::from(*g), i32::from(*b));
 
-                // Standard colors (0-15)
-                // 6x6x6 Color Cube (16-231)
-                // Grayscale (232-255)
-                // We'll iterate through all generated RGB values for 0-255
-                for i in 0..=255 {
+                let dist2 = |pr: i32, pg: i32, pb: i32| {
+                    let dr = r - pr;
+                    let dg = g - pg;
+                    let db = b - pb;
+                    (dr * dr + dg * dg + db * db) as u64
+                };
+
+                // The full scan prefers the LOWEST palette index on equal
+                // distance, so candidates are evaluated in index order:
+                // base 16 first, then cube, then grayscale. Within each
+                // group ties also resolve to the lower index.
+                let mut best_idx: u8 = 0;
+                let mut min_dist = u64::MAX;
+
+                // --- nearest of the 16 base colors (indices 0-15)
+                for i in 0..16u8 {
                     let (pr, pg, pb) = Self::ansi256_to_rgb_values(i);
-                    let dr = i32::from(*r) - i32::from(pr);
-                    let dg = i32::from(*g) - i32::from(pg);
-                    let db = i32::from(*b) - i32::from(pb);
-                    let dist = (dr * dr + dg * dg + db * db) as u32;
-
-                    if dist < min_dist {
-                        min_dist = dist;
+                    let d = dist2(i32::from(pr), i32::from(pg), i32::from(pb));
+                    if d < min_dist {
+                        min_dist = d;
                         best_idx = i;
-                        if dist == 0 {
+                        if d == 0 {
                             break;
-                        } // Exact match
+                        }
                     }
                 }
+
+                // --- nearest cube entry (levels: 0, 95, 135, 175, 215, 255)
+                // Midpoint values tie to the LOWER level, matching the
+                // scan's lowest-index preference.
+                let level = |v: i32| -> (i32, i32) {
+                    if v < 48 {
+                        (0, 0)
+                    } else if v <= 115 {
+                        (1, 95)
+                    } else if v <= 155 {
+                        (2, 135)
+                    } else if v <= 195 {
+                        (3, 175)
+                    } else if v <= 235 {
+                        (4, 215)
+                    } else {
+                        (5, 255)
+                    }
+                };
+                let (ci, cr) = level(r);
+                let (cg_i, cg) = level(g);
+                let (cb, cb_v) = level(b);
+                let cube_idx = 16 + 36 * ci + 6 * cg_i + cb;
+                let cube_dist = dist2(cr, cg, cb_v);
+                if cube_dist < min_dist {
+                    min_dist = cube_dist;
+                    best_idx = cube_idx as u8;
+                }
+
+                // --- nearest grayscale entry (values: 8 + 10i, i in 0..=23)
+                let mean = (r + g + b) / 3;
+                let gi_floor = (((mean - 8) as f64) / 10.0).floor().clamp(0.0, 23.0) as i32;
+                for gi in [gi_floor, (gi_floor + 1).min(23)] {
+                    let gray_idx = 232 + gi as u8;
+                    let gray_value = 8 + 10 * gi;
+                    let gray_dist = dist2(gray_value, gray_value, gray_value);
+                    if gray_dist < min_dist {
+                        min_dist = gray_dist;
+                        best_idx = gray_idx;
+                    }
+                }
+
                 Color::Ansi256(best_idx)
             }
             // Map named colors to their specific ANSI codes
@@ -585,10 +643,13 @@ impl Style {
 
     /// Parse a style from a string.
     ///
-    /// Supports space-separated attributes: "bold red on blue"
+    /// Supports space-separated attributes: "bold red on blue". The `not`
+    /// modifier removes the following attribute ("not bold"), and unknown
+    /// words are ignored (matching Rich's lenient markup).
     pub fn parse(s: &str) -> Self {
         let mut style = Style::new();
         let mut on_background = false;
+        let mut negate_next = false;
 
         for part in s.split_whitespace() {
             let part_lower = part.to_lowercase();
@@ -598,23 +659,27 @@ impl Style {
                 continue;
             }
 
+            if part_lower == "not" {
+                negate_next = true;
+                continue;
+            }
+
             // Check for attributes
+            let mut matched = true;
             match part_lower.as_str() {
-                "bold" | "b" => style.bold = true,
-                "dim" => style.dim = true,
-                "italic" | "i" => style.italic = true,
-                "underline" | "u" => style.underline = true,
-                "blink" => style.blink = true,
-                "reverse" => style.reverse = true,
-                "hidden" => style.hidden = true,
-                "strike" | "strikethrough" | "s" => style.strikethrough = true,
-                "not" => {
-                    // "not bold" etc. - skip for now, just consume
-                    continue;
-                }
+                "bold" | "b" => style.bold = !negate_next,
+                "dim" => style.dim = !negate_next,
+                "italic" | "i" => style.italic = !negate_next,
+                "underline" | "u" => style.underline = !negate_next,
+                "blink" => style.blink = !negate_next,
+                "reverse" => style.reverse = !negate_next,
+                "hidden" => style.hidden = !negate_next,
+                "strike" | "strikethrough" | "s" => style.strikethrough = !negate_next,
                 _ => {
+                    matched = false;
                     // Try to parse as color
                     if let Some(color) = Color::parse(&part_lower) {
+                        matched = true;
                         if on_background {
                             style.background = Some(color);
                             on_background = false;
@@ -623,6 +688,9 @@ impl Style {
                         }
                     }
                 }
+            }
+            if matched {
+                negate_next = false;
             }
         }
 
@@ -720,6 +788,87 @@ impl fmt::Display for Style {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_ansi256_matches_bruteforce() {
+        // The closed-form to_ansi256 must equal a full 256-entry scan.
+        let nearest_brute = |r: u8, g: u8, b: u8| -> u8 {
+            let mut best = 0u8;
+            let mut best_d = i64::MAX;
+            for i in 0..=255u16 {
+                let (pr, pg, pb) = Color::ansi256_to_rgb_values(i as u8);
+                let dr = i32::from(r) - i32::from(pr);
+                let dg = i32::from(g) - i32::from(pg);
+                let db = i32::from(b) - i32::from(pb);
+                let d = (dr * dr + dg * dg + db * db) as i64;
+                if d < best_d {
+                    best_d = d;
+                    best = i as u8;
+                }
+            }
+            best
+        };
+
+        // Landmark values plus a wide sweep (~40k colors) covering all
+        // boundary conditions of the cube/gray quantizers.
+        let mut samples: Vec<(u8, u8, u8)> = vec![
+            (0, 0, 0),
+            (255, 255, 255),
+            (128, 128, 128),
+            (8, 8, 8),
+            (238, 238, 238),
+            (255, 0, 0),
+            (0, 255, 0),
+            (0, 0, 255),
+            (205, 0, 0),
+            (0, 205, 0),
+            (95, 95, 95),
+            (135, 175, 215),
+            (215, 135, 95),
+            (1, 2, 3),
+            (47, 47, 47),
+            (48, 48, 48),
+            (114, 114, 114),
+            (115, 115, 115),
+            (155, 155, 155),
+            (195, 195, 195),
+            (235, 235, 235),
+            (116, 0, 0),
+            (250, 240, 230),
+            (12, 34, 56),
+            (13, 13, 13),
+            (23, 23, 23),
+            (237, 237, 237),
+            (239, 239, 239),
+        ];
+        for r in (0..=255u8).step_by(5) {
+            for g in (0..=255u8).step_by(7) {
+                for b in (0..=255u8).step_by(9) {
+                    samples.push((r, g, b));
+                }
+            }
+        }
+        for (r, g, b) in samples {
+            let got = match (Color::Rgb { r, g, b }).to_ansi256() {
+                Color::Ansi256(idx) => idx,
+                other => panic!("expected Ansi256, got {other:?}"),
+            };
+            let want = nearest_brute(r, g, b);
+            assert_eq!(
+                got, want,
+                "rgb({r},{g},{b}): closed form {got} != brute {want}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_not_negates_attribute() {
+        let s = Style::parse("not bold");
+        assert!(!s.bold, "'not bold' must not enable bold");
+        let s2 = Style::parse("not italic bold");
+        assert!(!s2.italic);
+        assert!(s2.bold, "bold after 'not italic' applies normally");
+    }
+
     use super::*;
 
     #[test]
@@ -746,6 +895,23 @@ mod tests {
                 r: 170,
                 g: 187,
                 b: 204
+            })
+        );
+    }
+
+    #[test]
+    fn test_color_parse_hex_non_ascii_no_panic() {
+        // 6 bytes of non-ASCII must not panic (previously sliced mid-char)
+        assert_eq!(Color::parse("#日本"), None);
+        assert_eq!(Color::parse("#日"), None);
+        assert_eq!(Color::parse("#gggggg"), None);
+        // Valid ASCII hex still parses
+        assert_eq!(
+            Color::parse("#ff8800"),
+            Some(Color::Rgb {
+                r: 255,
+                g: 136,
+                b: 0
             })
         );
     }

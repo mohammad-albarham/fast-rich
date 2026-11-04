@@ -66,12 +66,31 @@ impl Default for MarkdownConfig {
 }
 
 /// Rendered markdown content.
-#[derive(Debug, Clone)]
+///
+/// The parsed element tree is cached after the first render and reused until
+/// the configuration changes, so re-rendering inside a `Live` display no
+/// longer re-parses the document every frame.
+#[derive(Debug)]
 pub struct Markdown {
     /// The markdown source
     source: String,
     /// Configuration
     config: MarkdownConfig,
+    /// Bumped whenever the config changes; invalidates the parse cache.
+    generation: u64,
+    /// Cached parse output: (generation it was produced with, elements).
+    cache: std::sync::Mutex<Option<(u64, Vec<MarkdownElement>)>>,
+}
+
+impl Clone for Markdown {
+    fn clone(&self) -> Self {
+        Markdown {
+            source: self.source.clone(),
+            config: self.config.clone(),
+            generation: self.generation,
+            cache: std::sync::Mutex::new(self.cache.lock().ok().and_then(|g| g.clone())),
+        }
+    }
 }
 
 impl Markdown {
@@ -80,13 +99,25 @@ impl Markdown {
         Markdown {
             source: source.to_string(),
             config: MarkdownConfig::default(),
+            generation: 0,
+            cache: std::sync::Mutex::new(None),
         }
     }
 
     /// Set the rendering configuration.
     pub fn config(mut self, config: MarkdownConfig) -> Self {
         self.config = config;
+        self.generation += 1;
         self
+    }
+
+    /// Parse the markdown and return rendering elements (cached).
+    fn parse_cached(&self) -> std::sync::MutexGuard<'_, Option<(u64, Vec<MarkdownElement>)>> {
+        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
+        if cache.as_ref().map(|(g, _)| *g) != Some(self.generation) {
+            *cache = Some((self.generation, self.parse_internal()));
+        }
+        cache
     }
 
     /// Parse the markdown and return rendering elements.
@@ -98,8 +129,12 @@ impl Markdown {
         let mut in_code_block = false;
         let mut code_block_content = String::new();
         let mut code_block_lang = String::new();
-        let mut list_depth = 0;
+        let mut list_depth = 0usize;
         let mut ordered_list_num: Option<u64> = None;
+        // Stack of outer list counters: entering a list saves the current
+        // counter and restores it when that list closes, so nested lists
+        // don't clobber the outer numbering.
+        let mut list_counter_stack: Vec<Option<u64>> = Vec::new();
 
         let mut in_table = false;
         let mut in_table_head = false;
@@ -145,6 +180,7 @@ impl Markdown {
                     }
                     Tag::List(start) => {
                         list_depth += 1;
+                        list_counter_stack.push(ordered_list_num.take());
                         ordered_list_num = start;
                     }
                     Tag::Item => {
@@ -207,8 +243,8 @@ impl Markdown {
                         elements.push(MarkdownElement::EndLink);
                     }
                     TagEnd::List(_) => {
-                        list_depth -= 1;
-                        ordered_list_num = None;
+                        list_depth = list_depth.saturating_sub(1);
+                        ordered_list_num = list_counter_stack.pop().flatten();
                     }
                     TagEnd::Item => {}
                     TagEnd::BlockQuote(_) => {
@@ -334,7 +370,10 @@ impl Renderable for Markdown {
         let mut heading_level = 0;
         let mut blockquote_depth = 0;
 
-        for element in self.parse_internal() {
+        let elements = self.parse_cached();
+        let elements: &[MarkdownElement] =
+            elements.as_ref().map(|(_, e)| e.as_slice()).unwrap_or(&[]);
+        for element in elements.iter().cloned() {
             // Pre-process for blockquotes
             match element {
                 MarkdownElement::StartHeading(level) => {
@@ -446,7 +485,7 @@ impl Renderable for Markdown {
                     if !current_line.is_empty() {
                         self.flush_line(&mut segments, &mut current_line, blockquote_depth);
                     }
-                    blockquote_depth -= 1;
+                    blockquote_depth = blockquote_depth.saturating_sub(1);
                     self.add_blank_line(&mut segments, blockquote_depth);
                 }
                 MarkdownElement::SoftBreak => {
@@ -487,12 +526,10 @@ impl Renderable for Markdown {
                     for (i, header) in headers.iter().enumerate() {
                         let align = match alignments.get(i) {
                             Some(pulldown_cmark::Alignment::Center) => {
-                                crate::table::ColumnAlign::Center
+                                crate::text::Alignment::Center
                             }
-                            Some(pulldown_cmark::Alignment::Right) => {
-                                crate::table::ColumnAlign::Right
-                            }
-                            _ => crate::table::ColumnAlign::Left,
+                            Some(pulldown_cmark::Alignment::Right) => crate::text::Alignment::Right,
+                            _ => crate::text::Alignment::Left,
                         };
                         table.add_column(
                             crate::table::Column::new(header)
@@ -564,6 +601,7 @@ impl Markdown {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::console::Console;
 
     #[test]
     fn test_markdown_basic() {
@@ -586,6 +624,24 @@ mod tests {
         };
         let segments = md.render(&context);
         assert!(!segments.is_empty());
+    }
+
+    #[test]
+    fn test_nested_ordered_list_numbering() {
+        let md = "1. outer one\n2. outer two\n   1. inner a\n   2. inner b\n3. outer three\n";
+        let md_obj = Markdown::new(md);
+        let console = Console::capture();
+        let out = console.export_text(&md_obj);
+        assert!(
+            out.contains("3. outer three"),
+            "outer numbering must survive inner list: {out:?}"
+        );
+        assert!(
+            out.contains("1. inner a"),
+            "inner list starts at 1: {out:?}"
+        );
+        assert!(out.contains("2. inner b"));
+        assert!(out.contains("2. outer two"));
     }
 
     #[test]

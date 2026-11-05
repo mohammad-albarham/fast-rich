@@ -939,10 +939,17 @@ def run_feature(spec: dict, timeout: float, have_rich: bool) -> dict:
     out = dict(id=spec["id"], group=spec["group"], name=spec["name"], status=status, detail=detail,
                rich=None, same_as_rich=None)
     if have_rich and not spec.get("native"):
-        rr = run(code.replace("PKG", "rich"), spec.get("stdin", ""), timeout)
+        rich_code = code.replace("PKG", "rich")
+        if sys.platform == "win32":
+            # A piped stdout on Windows makes Rich fall back to legacy-console mode
+            # (no ANSI, ASCII-safe boxes, width-1). Emulate a modern VT terminal
+            # (Windows Terminal) for the reference instead.
+            rich_code = "import rich.console as _rc\n_rc.detect_legacy_windows = lambda: False\n" + rich_code
+        rr = run(rich_code, spec.get("stdin", ""), timeout)
         rstatus, rdetail = evaluate(spec, rr, timeout)
         out["rich"] = rstatus if rstatus == "PASS" else f"{rstatus}: {rdetail}"
         if rstatus != "PASS":
+            out["fast_status"], out["fast_detail"] = status, detail
             out["status"], out["detail"] = "INVALID", f"reference Rich fails this test ({rstatus}: {rdetail})"
         elif fr["rc"] is not None:
             norm = lambda r: "\n".join(l.rstrip() for l in strip_ansi(r["out"] + r["err"]).strip("\n").split("\n"))

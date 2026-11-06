@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import os.path
 import textwrap
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional, Set, Tuple, Union
 
 from .jupyter import JupyterMixin
 from .padding import Padding, PaddingDimensions
@@ -34,8 +34,9 @@ class Syntax(JupyterMixin):
     """Construct a Syntax object to render syntax highlighted code.
 
     Same constructor as ``rich.syntax.Syntax``. ``theme`` accepts the theme
-    names the Rust core ships ("monokai", "github", "solarized-dark",
-    "solarized-light", "ocean"); other names fall back to monokai.
+    names the Rust core ships ("monokai", "ansi_dark", "ansi_light",
+    "github", "solarized-dark", "solarized-light", "ocean"); other names
+    fall back to monokai.
     """
 
     def __init__(
@@ -70,6 +71,7 @@ class Syntax(JupyterMixin):
         self.indent_guides = indent_guides
         self.padding = padding
         self.theme = theme if isinstance(theme, str) else "monokai"
+        self._stylized_ranges: list = []
 
     @property
     def lexer(self) -> Optional[str]:
@@ -130,22 +132,33 @@ class Syntax(JupyterMixin):
                     return "javascript" if name == "node" else name
         return "default"
 
-    def _code(self) -> Tuple[str, int]:
+    def stylize_range(
+        self,
+        style: Any,
+        start: Tuple[int, int],
+        end: Tuple[int, int],
+        style_before: bool = False,
+    ) -> None:
+        """Apply a style over ``start`` to ``end`` (``(line, column)``, lines
+        1-based, columns 0-based), like ``rich.syntax.Syntax.stylize_range``."""
+        self._stylized_ranges.append((style, start, end))
+
+    def _code(self) -> str:
         code = self.code
         if self.dedent:
             code = textwrap.dedent(code)
-        code = code.expandtabs(self.tab_size)
-        start_line = self.start_line
-        if self.line_range:
-            start, end = self.line_range
-            lines = code.splitlines(keepends=True)
-            first = max(0, (start or 1) - 1)
-            code = "".join(lines[first:end])
-            start_line = first + 1
-        return code, start_line
+        return code.expandtabs(self.tab_size)
 
     def __fast_rich__(self, console: "Console", options: "ConsoleOptions") -> tuple:
-        code, start_line = self._code()
+        code = self._code()
+        ranges = []
+        for style, (line1, col1), (line2, col2) in self._stylized_ranges:
+            native = _native.native_style(console.get_style(style))
+            for line in range(line1, line2 + 1):
+                start = col1 if line == line1 else 0
+                end = col2 if line == line2 else 1 << 30
+                if start < end:
+                    ranges.append((line, start, end, native))
         spec = (
             "syntax",
             code,
@@ -153,12 +166,19 @@ class Syntax(JupyterMixin):
             dict(
                 line_numbers=self.line_numbers,
                 theme=self.theme.lower(),
-                start_line=start_line,
+                start_line=self.start_line,
+                line_range=(
+                    (max(1, self.line_range[0] or 1), self.line_range[1] or (1 << 30))
+                    if self.line_range
+                    else None
+                ),
+                code_width=self.code_width,
                 highlight_lines=sorted(self.highlight_lines),
+                indent_guides=self.indent_guides and not options.ascii_only,
+                tab_size=self.tab_size,
+                ranges=ranges,
             ),
         )
-        if self.code_width is not None:
-            spec = ("constrain", spec, self.code_width + (7 if self.line_numbers else 0))
         if self.padding:
             spec = (
                 "padding",

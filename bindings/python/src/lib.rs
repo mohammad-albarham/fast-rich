@@ -59,6 +59,7 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Functions
     m.add_function(wrap_pyfunction!(render::render, m)?)?;
     m.add_function(wrap_pyfunction!(render::measure, m)?)?;
+    m.add_function(wrap_pyfunction!(bridge::syntax_theme_styles, m)?)?;
     m.add_function(wrap_pyfunction!(filesize::decimal, m)?)?;
     m.add_function(wrap_pyfunction!(filesize::binary, m)?)?;
     m.add_function(wrap_pyfunction!(inspect::inspect, m)?)?;

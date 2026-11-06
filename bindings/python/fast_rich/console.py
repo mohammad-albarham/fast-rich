@@ -1349,16 +1349,20 @@ class Console:
             else:
                 yield from self.render(render_output, _options)
 
-    def _render_callback(self, renderable: Any, width: int) -> Tuple[Any, ...]:
+    def _render_callback(
+        self, renderable: Any, width: int, options: Optional[ConsoleOptions] = None
+    ) -> Tuple[Any, ...]:
         """Called by the Rust renderer for objects with ``__rich_console__``
         nested inside native renderables: render them at ``width``."""
-        options = (_native.current_options() or self.options).update_width(width)
-        return _native.segments_spec(self.render(renderable, options))
+        base = options or _native.current_options() or self.options
+        return _native.segments_spec(self.render(renderable, base.update_width(width)))
 
-    def _measure_callback(self, renderable: Any) -> Tuple[int, int]:
+    def _measure_callback(
+        self, renderable: Any, options: Optional[ConsoleOptions] = None
+    ) -> Tuple[int, int]:
         """Called by the Rust renderer to measure a protocol object."""
-        options = _native.current_options() or self.options
-        measurement = Measurement.get(self, options, renderable)
+        base = options or _native.current_options() or self.options
+        measurement = Measurement.get(self, base, renderable)
         return (measurement.minimum, measurement.maximum)
 
     def render_lines(

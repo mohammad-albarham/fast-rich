@@ -109,6 +109,36 @@ pub fn style_to_string(st: &Style) -> String {
     parts.join(" ")
 }
 
+/// Background and token styles of a syntax theme, keyed by Pygments token
+/// names (what Rich's Traceback maps into its console theme).
+#[pyfunction]
+pub fn syntax_theme_styles(name: &str) -> std::collections::HashMap<String, String> {
+    let theme = syntax_theme(name);
+    let mut out = std::collections::HashMap::new();
+    for (token, scope) in [
+        ("Token", "source"),
+        ("Text", "source"),
+        ("String", "string"),
+        ("Name.Function", "entity.name.function"),
+        ("Number", "constant.numeric"),
+        ("Comment", "comment"),
+        ("Keyword.Constant", "constant.language"),
+        ("Operator", "keyword.operator"),
+        ("Name", "variable"),
+        ("Name.Constant", "constant.language"),
+        ("String.Delimiter", "string"),
+    ] {
+        out.insert(token.to_string(), style_to_string(&theme.style_for_scope(scope)));
+    }
+    if let Some(bg) = theme.background() {
+        out.insert(
+            "background".to_string(),
+            style_to_string(&Style::new().background(bg)),
+        );
+    }
+    out
+}
+
 /// Theme name (Rich/Pygments style) -> one of the bundled themes.
 fn syntax_theme(name: &str) -> SyntaxTheme {
     match name.to_lowercase().as_str() {
@@ -116,6 +146,8 @@ fn syntax_theme(name: &str) -> SyntaxTheme {
         "solarized-dark" => SyntaxTheme::SolarizedDark,
         "solarized-light" => SyntaxTheme::SolarizedLight,
         "ocean" | "base16-ocean.dark" => SyntaxTheme::Base16OceanDark,
+        "ansi_dark" => SyntaxTheme::AnsiDark,
+        "ansi_light" => SyntaxTheme::AnsiLight,
         _ => SyntaxTheme::Monokai,
     }
 }
@@ -231,15 +263,18 @@ fn build_text(t: &Bound<'_, PyTuple>) -> PyResult<Text> {
 pub struct PyCallback {
     obj: Py<PyAny>,
     console: Py<PyAny>,
+    /// Rich ConsoleOptions the object was given (e.g. a table column's
+    /// justify/overflow), or None for the current ones.
+    options: Py<PyAny>,
     measure: (usize, usize),
 }
 
 impl PyCallback {
-    fn new(py: Python<'_>, obj: Py<PyAny>, console: Py<PyAny>) -> Self {
+    fn new(py: Python<'_>, obj: Py<PyAny>, console: Py<PyAny>, options: Py<PyAny>) -> Self {
         // (min, max) from `__rich_measure__` when the object defines it.
         let measure = console
             .bind(py)
-            .call_method1("_measure_callback", (obj.bind(py),))
+            .call_method1("_measure_callback", (obj.bind(py), options.bind(py)))
             .and_then(|m| m.extract::<(usize, usize)>())
             .unwrap_or_else(|e| {
                 set_error(e);
@@ -248,6 +283,7 @@ impl PyCallback {
         PyCallback {
             obj,
             console,
+            options,
             measure,
         }
     }
@@ -259,7 +295,10 @@ impl Renderable for PyCallback {
             let result = self
                 .console
                 .bind(py)
-                .call_method1("_render_callback", (self.obj.bind(py), context.width))
+                .call_method1(
+                    "_render_callback",
+                    (self.obj.bind(py), context.width, self.options.bind(py)),
+                )
                 .and_then(|spec| build(py, &spec, &self.console));
             match result {
                 Ok(native) => native.render(context),
@@ -391,7 +430,14 @@ pub fn build(py: Python<'_>, spec: &Bound<'_, PyAny>, console: &Py<PyAny>) -> Py
             let st: String = t.get_item(2)?.extract()?;
             Arc::new(Styled(child, style(&st)))
         }
-        "callback" => Arc::new(PyCallback::new(py, t.get_item(1)?.unbind(), console.clone_ref(py))),
+        "callback" => {
+            let options = if t.len() > 2 {
+                t.get_item(2)?.unbind()
+            } else {
+                py.None()
+            };
+            Arc::new(PyCallback::new(py, t.get_item(1)?.unbind(), console.clone_ref(py), options))
+        }
         "panel" => {
             let child = build(py, &t.get_item(1)?, console)?;
             let opts = t.get_item(2)?;
@@ -593,6 +639,7 @@ pub fn build(py: Python<'_>, spec: &Bound<'_, PyAny>, console: &Py<PyAny>) -> Py
                 .expand(get(opts, "expand", false)?)
                 .column_first(get(opts, "column_first", false)?)
                 .right_to_left(get(opts, "right_to_left", false)?)
+                .row_gap(get(opts, "row_gap", 0)?)
                 .mode(if get(opts, "equal", false)? {
                     ColumnMode::Equal
                 } else {
@@ -624,12 +671,21 @@ pub fn build(py: Python<'_>, spec: &Bound<'_, PyAny>, console: &Py<PyAny>) -> Py
             let opts = t.get_item(3)?;
             let opts = opts.downcast::<PyDict>()?;
             let theme = syntax_theme(&get::<String>(opts, "theme", "monokai".into())?);
+            let ranges: Vec<(usize, usize, usize, String)> = get(opts, "ranges", Vec::new())?;
             let config = SyntaxConfig {
                 line_numbers: get(opts, "line_numbers", false)?,
                 panel: false,
                 theme,
                 start_line: get(opts, "start_line", 1)?,
                 highlight_lines: get(opts, "highlight_lines", Vec::new())?,
+                indent_guides: get(opts, "indent_guides", false)?,
+                tab_size: get(opts, "tab_size", 4)?,
+                line_range: get_opt(opts, "line_range")?,
+                code_width: get_opt(opts, "code_width")?,
+                ranges: ranges
+                    .into_iter()
+                    .map(|(line, from, to, st)| (line, from, to, style(&st)))
+                    .collect(),
                 ..SyntaxConfig::default()
             };
             Arc::new(Syntax::new(&code, &lexer).config(config))

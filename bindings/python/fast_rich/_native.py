@@ -159,7 +159,9 @@ def to_spec(console: "Console", options: "ConsoleOptions", renderable: Any) -> S
     if hasattr(type(renderable), "__fast_rich__") and not isinstance(renderable, type):
         return renderable.__fast_rich__(console, options)
     if hasattr(renderable, "__rich_console__") and not isinstance(renderable, type):
-        return ("callback", renderable)
+        # Keep the options (justify/overflow/no_wrap/highlight of e.g. a
+        # table column); Rust passes them back with the real width.
+        return ("callback", renderable, options)
     from . import errors
 
     raise errors.NotRenderableError(

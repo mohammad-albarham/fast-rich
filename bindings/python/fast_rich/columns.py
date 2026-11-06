@@ -74,7 +74,7 @@ def _native_measure(self, console, options):  # type: ignore[no-untyped-def]
 
 
 def _columns_spec(self: Columns, console: "Console", options: "ConsoleOptions") -> tuple:
-    _top, right, _bottom, left = Padding.unpack(self.padding)
+    top, right, _bottom, left = Padding.unpack(self.padding)
     items = [_native.to_spec(console, options, r) for r in self.renderables]
     spec = (
         "columns",
@@ -87,6 +87,7 @@ def _columns_spec(self: Columns, console: "Console", options: "ConsoleOptions") 
             right_to_left=self.right_to_left,
             align=self.align,
             width=self.width,
+            row_gap=top,
         ),
     )
     if self.title:

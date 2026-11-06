@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Text**: wrapping keeps trailing whitespace that fits the width, like
   Rich (`"Q? "` keeps its space; `"hello world"` at width 6 wraps to
   `"hello "` / `"world"`), instead of always dropping it.
+- **Syntax**: `Theme::Monokai` named a theme syntect doesn't ship, so it fell
+  back to a light theme (white background). Monokai is now built in with
+  Pygments' monokai colours; across Python/Rust/JS/JSON samples only
+  `self` differs in colour from Rich (a tokenizer difference).
+- **Syntax**: layout follows Rich — gutter `  1 code` / `❱ 2 code` (was
+  `→ 1 │ code`), line numbers blended into the background, code area padded
+  with the theme background to the width, a final empty line when the code
+  ends with a newline, and `Syntax` reports its natural width.
 - **Syntax**: language names are matched case-insensitively
   (`Syntax::new(code, "python")` now highlights; previously only `"py"` or
   `"Python"` did).

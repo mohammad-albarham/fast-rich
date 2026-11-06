@@ -35,6 +35,7 @@ pub struct Columns {
     right_to_left: bool,
     align: Option<Alignment>,
     width: Option<usize>,
+    row_gap: usize,
 }
 
 impl std::fmt::Debug for Columns {
@@ -79,6 +80,7 @@ impl Columns {
             right_to_left: false,
             align: None,
             width: None,
+            row_gap: 0,
         }
     }
 
@@ -128,6 +130,12 @@ impl Columns {
     /// Align each item within its column.
     pub fn align(mut self, align: Alignment) -> Self {
         self.align = Some(align);
+        self
+    }
+
+    /// Blank lines between rows (the vertical part of Rich's `padding`).
+    pub fn row_gap(mut self, gap: usize) -> Self {
+        self.row_gap = gap;
         self
     }
 
@@ -269,7 +277,10 @@ impl Renderable for Columns {
         }
 
         let mut segments = Vec::new();
-        for row in order.chunks(count) {
+        for (row_index, row) in order.chunks(count).enumerate() {
+            if row_index > 0 {
+                segments.extend((0..self.row_gap).map(|_| Segment::line(Vec::new())));
+            }
             let mut cells: Vec<(usize, Vec<Vec<Span>>)> = row
                 .iter()
                 .enumerate()

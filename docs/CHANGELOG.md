@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Text**: wrapping keeps trailing whitespace that fits the width, like
   Rich (`"Q? "` keeps its space; `"hello world"` at width 6 wraps to
   `"hello "` / `"world"`), instead of always dropping it.
+- **Syntax**: `Theme::AnsiDark` / `Theme::AnsiLight` use the terminal's own
+  16 colours with no background (Rich's `ansi_dark`/`ansi_light`, the
+  default for tracebacks); `indent_guides`, `stylize_range`, `line_range`
+  (the whole file is highlighted, a window is shown) and `code_width`, all
+  as in Rich; `Theme::background` and `Theme::style_for_scope` expose a
+  theme's colours. The line-number column width follows Rich
+  (`start_line + newline count`).
+- **Columns**: `row_gap` adds blank lines between rows (the vertical part
+  of Rich's `padding`).
+- **Text**: a word whose parts have different styles now wraps as one word
+  (it used to be split at the style change); the `…` of an ellipsis takes
+  the style of the text it ends, like Rich.
 - **Markdown (breaking layout change)**: rendering is a port of Rich's
   `rich.markdown` — centred `h1`, ` • ` bullets and right-aligned ` 1 `
   numbers, `▌ ` quotes, code blocks highlighted with one cell of

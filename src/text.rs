@@ -408,7 +408,14 @@ fn truncate_line(line: &[Span], width: usize, ellipsis: bool) -> Vec<Span> {
     }
 
     if ellipsis && line_width > width {
-        result.push(Span::raw("…"));
+        // Like Rich, the ellipsis keeps the style of the text it ends.
+        let (style, link) = result
+            .last()
+            .map(|s| (s.style, s.link.clone()))
+            .unwrap_or_default();
+        let mut span = Span::styled("…", style);
+        span.link = link;
+        result.push(span);
     }
 
     result
@@ -419,22 +426,118 @@ fn truncate_line(line: &[Span], width: usize, ellipsis: bool) -> Vec<Span> {
 /// Words are kept intact when possible, whitespace runs between words are
 /// preserved, and a line never exceeds `max_width` display columns. Adjacent
 /// fragments sharing the same style are merged into one span.
-/// Append as many of the whitespace characters `s` as fit in `max_width`.
-fn push_fitting_spaces(line: &mut Vec<Span>, s: &str, style: Style, used: usize, max_width: usize) {
-    let room = max_width.saturating_sub(used);
-    let mut kept = String::new();
-    let mut width = 0;
-    for c in s.chars() {
-        let w = unicode_width::UnicodeWidthChar::width(c).unwrap_or(0);
-        if width + w > room {
+/// A piece of a word or space run, with the style of the span it came from.
+#[derive(Debug, Clone)]
+struct Piece<'a> {
+    text: &'a str,
+    style: Style,
+    link: Option<&'a str>,
+}
+
+/// A word or a run of spaces; it may cross span boundaries (a word whose
+/// halves are styled differently is still one word, as in Rich).
+#[derive(Debug, Clone)]
+enum Tok<'a> {
+    Word(Vec<Piece<'a>>),
+    Spaces(Vec<Piece<'a>>),
+}
+
+fn pieces_width(pieces: &[Piece<'_>]) -> usize {
+    pieces.iter().map(|p| UnicodeWidthStr::width(p.text)).sum()
+}
+
+/// Split a line's spans into words and space runs, joining pieces of the
+/// same kind across span boundaries.
+fn line_tokens(line: &[Span]) -> Vec<Tok<'_>> {
+    let mut out: Vec<Tok<'_>> = Vec::new();
+    for span in line {
+        for token in tokenize(&span.text) {
+            let (is_word, text) = match token {
+                Token::Word(w) => (true, w),
+                Token::Spaces(s) => (false, s),
+                Token::Newline => continue,
+            };
+            let piece = Piece {
+                text,
+                style: span.style,
+                link: span.link.as_deref(),
+            };
+            match (out.last_mut(), is_word) {
+                (Some(Tok::Word(pieces)), true) | (Some(Tok::Spaces(pieces)), false) => {
+                    pieces.push(piece);
+                }
+                _ => out.push(if is_word {
+                    Tok::Word(vec![piece])
+                } else {
+                    Tok::Spaces(vec![piece])
+                }),
+            }
+        }
+    }
+    out
+}
+
+fn push_pieces(line: &mut Vec<Span>, pieces: &[Piece<'_>]) {
+    for p in pieces {
+        push_fragment(line, p.text, p.style, p.link);
+    }
+}
+
+/// Append as many of the space pieces as fit in `max_width`.
+fn push_fitting_spaces(line: &mut Vec<Span>, pieces: &[Piece<'_>], used: usize, max_width: usize) {
+    let mut room = max_width.saturating_sub(used);
+    for p in pieces {
+        let mut end = 0;
+        for (i, c) in p.text.char_indices() {
+            let w = unicode_width::UnicodeWidthChar::width(c).unwrap_or(0);
+            if w > room {
+                break;
+            }
+            room -= w;
+            end = i + c.len_utf8();
+        }
+        if end > 0 {
+            push_fragment(line, &p.text[..end], p.style, None);
+        }
+        if end < p.text.len() {
             break;
         }
-        width += w;
-        kept.push(c);
     }
-    if !kept.is_empty() {
-        push_fragment(line, &kept, style, None);
+}
+
+/// Break a word into parts no wider than `max_width` (by graphemes).
+fn break_pieces<'a>(pieces: &[Piece<'a>], max_width: usize) -> Vec<Vec<Piece<'a>>> {
+    let mut parts: Vec<Vec<Piece<'a>>> = Vec::new();
+    let mut current: Vec<Piece<'a>> = Vec::new();
+    let mut width = 0;
+    for p in pieces {
+        let mut start = 0;
+        for (i, g) in p.text.grapheme_indices(true) {
+            let w = UnicodeWidthStr::width(g);
+            if width + w > max_width && width > 0 {
+                if i > start {
+                    current.push(Piece {
+                        text: &p.text[start..i],
+                        ..p.clone()
+                    });
+                }
+                parts.push(std::mem::take(&mut current));
+                start = i;
+                width = 0;
+            }
+            width += w;
+        }
+        if start < p.text.len() {
+            current.push(Piece {
+                text: &p.text[start..],
+                ..p.clone()
+            });
+        }
     }
+    if !current.is_empty() {
+        parts.push(current);
+    }
+    parts
 }
 
 /// Word-wrap one logical line. With `fold`, words wider than `max_width`
@@ -444,109 +547,84 @@ fn wrap_line(line: &[Span], max_width: usize, fold: bool) -> Vec<Vec<Span>> {
     let mut lines: Vec<Vec<Span>> = Vec::new();
     let mut current_line: Vec<Span> = Vec::new();
     let mut current_width = 0usize;
-    // Whitespace run awaiting the next word; emitted (and counted) only if
-    // a word actually follows on the same line, so lines never end up one
-    // column over max_width from a trailing space. The spaces keep the style
-    // of the span they came from (matches Rich: separators are not styled by
-    // the following word).
-    let mut pending_spaces: Option<(&str, Style)> = None;
+    // Space run awaiting the next word. Like Rich, it stays on the line
+    // being closed (as far as it fits) when the next word wraps.
+    let mut pending_spaces: Option<Vec<Piece<'_>>> = None;
 
-    for span in line {
-        for token in tokenize(&span.text) {
-            match token {
-                Token::Newline => { /* unreachable: handled by split_on_newlines */ }
-                Token::Spaces(s) => {
-                    if current_width > 0 {
-                        pending_spaces = Some((s, span.style));
-                    }
-                    // Spaces at the start of a line are dropped (except the
-                    // very first fragment, which is kept below via current_width == 0
-                    // only when the line is brand new and nothing flushed yet).
-                    if current_width == 0 && lines.is_empty() && current_line.is_empty() {
-                        // Preserve leading indentation of the first line.
-                        push_fragment(&mut current_line, s, span.style, span.link.as_deref());
-                        current_width += UnicodeWidthStr::width(s);
-                    }
+    for token in line_tokens(line) {
+        match token {
+            Tok::Spaces(pieces) => {
+                if current_width == 0 && lines.is_empty() && current_line.is_empty() {
+                    // Preserve leading indentation of the first line.
+                    current_width += pieces_width(&pieces);
+                    push_pieces(&mut current_line, &pieces);
+                } else if current_width > 0 {
+                    pending_spaces = Some(pieces);
                 }
-                Token::Word(word) => {
-                    let word_width = UnicodeWidthStr::width(word);
-
-                    if word_width > max_width && !fold {
-                        // Too long for any line: give it a line of its own.
-                        if current_width > 0 {
-                            lines.push(std::mem::take(&mut current_line));
-                        }
-                        pending_spaces = None;
-                        push_fragment(&mut current_line, word, span.style, span.link.as_deref());
+            }
+            Tok::Word(pieces) => {
+                let word_width = pieces_width(&pieces);
+                if word_width > max_width && !fold {
+                    // Too long for any line: give it a line of its own.
+                    if current_width > 0 {
+                        lines.push(std::mem::take(&mut current_line));
+                    }
+                    pending_spaces = None;
+                    push_pieces(&mut current_line, &pieces);
+                    lines.push(std::mem::take(&mut current_line));
+                    current_width = 0;
+                } else if word_width > max_width {
+                    // Too long for any line: start fresh, then break it.
+                    if current_width > 0 {
                         lines.push(std::mem::take(&mut current_line));
                         current_width = 0;
-                    } else if word_width > max_width {
-                        // Word is too long for any line: start fresh, then break it.
-                        if current_width > 0 {
-                            lines.push(std::mem::take(&mut current_line));
-                            current_width = 0;
-                        }
-                        pending_spaces = None;
-
-                        let broken = break_word(word, max_width);
-                        for part in broken.iter() {
-                            if current_width + UnicodeWidthStr::width(part.as_str()) > max_width {
-                                lines.push(std::mem::take(&mut current_line));
-                                current_width = 0;
-                            }
-                            push_fragment(
-                                &mut current_line,
-                                part,
-                                span.style,
-                                span.link.as_deref(),
-                            );
-                            current_width += UnicodeWidthStr::width(part.as_str());
-                        }
-                    } else {
-                        let spaces_width = pending_spaces
-                            .map(|(s, _)| UnicodeWidthStr::width(s))
-                            .unwrap_or(0);
-                        if current_width + spaces_width + word_width > max_width
-                            && current_width > 0
-                        {
-                            // Wrap. Like Rich, the separating spaces stay on
-                            // the line being closed as far as they fit.
-                            if let Some((s, style)) = pending_spaces.take() {
-                                push_fitting_spaces(
-                                    &mut current_line,
-                                    s,
-                                    style,
-                                    current_width,
-                                    max_width,
-                                );
-                            }
-                            lines.push(std::mem::take(&mut current_line));
-                            current_width = 0;
-                        } else if let Some((s, style)) = pending_spaces.take() {
-                            push_fragment(&mut current_line, s, style, None);
-                            current_width += spaces_width;
-                        }
-
-                        push_fragment(&mut current_line, word, span.style, span.link.as_deref());
-                        current_width += word_width;
                     }
+                    pending_spaces = None;
+                    for part in break_pieces(&pieces, max_width) {
+                        let part_width = pieces_width(&part);
+                        if current_width + part_width > max_width && current_width > 0 {
+                            lines.push(std::mem::take(&mut current_line));
+                            current_width = 0;
+                        }
+                        push_pieces(&mut current_line, &part);
+                        current_width += part_width;
+                    }
+                } else {
+                    let spaces_width = pending_spaces.as_deref().map_or(0, pieces_width);
+                    if current_width + spaces_width + word_width > max_width && current_width > 0 {
+                        if let Some(spaces) = pending_spaces.take() {
+                            push_fitting_spaces(
+                                &mut current_line,
+                                &spaces,
+                                current_width,
+                                max_width,
+                            );
+                        }
+                        lines.push(std::mem::take(&mut current_line));
+                        current_width = 0;
+                    } else if let Some(spaces) = pending_spaces.take() {
+                        for p in &spaces {
+                            push_fragment(&mut current_line, p.text, p.style, None);
+                        }
+                        current_width += spaces_width;
+                    }
+                    push_pieces(&mut current_line, &pieces);
+                    current_width += word_width;
                 }
             }
         }
     }
 
     // Trailing whitespace is kept as far as it fits (Rich's rstrip_end).
-    if let Some((s, style)) = pending_spaces.take() {
-        push_fitting_spaces(&mut current_line, s, style, current_width, max_width);
+    if let Some(spaces) = pending_spaces.take() {
+        push_fitting_spaces(&mut current_line, &spaces, current_width, max_width);
     }
     if !current_line.is_empty() {
         lines.push(current_line);
     }
-
     if lines.is_empty() {
         lines.push(Vec::new());
     }
-
     lines
 }
 
@@ -563,31 +641,6 @@ fn push_fragment(line: &mut Vec<Span>, fragment: &str, style: Style, link: Optio
     let mut span = Span::styled(fragment.to_string(), style);
     span.link = link.map(|s| s.to_string());
     line.push(span);
-}
-
-/// Break a long word into parts that fit within max_width.
-fn break_word(word: &str, max_width: usize) -> Vec<String> {
-    let mut parts = Vec::new();
-    let mut current = String::new();
-    let mut current_width = 0;
-
-    for grapheme in word.graphemes(true) {
-        let grapheme_width = UnicodeWidthStr::width(grapheme);
-
-        if current_width + grapheme_width > max_width && !current.is_empty() {
-            parts.push(std::mem::take(&mut current));
-            current_width = 0;
-        }
-
-        current.push_str(grapheme);
-        current_width += grapheme_width;
-    }
-
-    if !current.is_empty() {
-        parts.push(current);
-    }
-
-    parts
 }
 
 #[cfg(test)]
@@ -737,5 +790,30 @@ mod tests {
         let aligned = text.align_line(lines[0].clone(), 10);
         let plain: String = aligned.iter().map(|s| s.text.as_ref()).collect();
         assert_eq!(plain, "    hi    ");
+    }
+
+    #[test]
+    fn test_word_spanning_two_styles_wraps_as_one_word() {
+        use crate::style::Color;
+        // "abc" + "def" (different styles) is one word: it must move to
+        // the next line as a whole, not leave "def" behind.
+        let mut text = Text::plain("xx ".to_string());
+        text.push_styled("abc", Style::new().foreground(Color::Red));
+        text.push_styled("def", Style::new().foreground(Color::Blue));
+        let lines: Vec<String> = text
+            .wrap(6)
+            .iter()
+            .map(|l| l.iter().map(|s| s.text.as_ref()).collect())
+            .collect();
+        assert_eq!(lines, ["xx ", "abcdef"]);
+        // Folding a too-long two-style word keeps both styles.
+        let folded = text.wrap(4);
+        let flat: Vec<&Span> = folded.iter().flatten().collect();
+        assert!(flat
+            .iter()
+            .any(|s| s.text.contains('c') && s.style.foreground == Some(Color::Red)));
+        assert!(flat
+            .iter()
+            .any(|s| s.text.contains('d') && s.style.foreground == Some(Color::Blue)));
     }
 }

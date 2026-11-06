@@ -8,8 +8,8 @@
 //! - `[style]text[/style]` - Explicit close tag
 //! - `[bold red on blue]` - Multiple styles
 //! - `:emoji_name:` - Emoji shortcode (only known shortcodes are replaced)
-//! - `[[` - Escaped `[`
-//! - `]]` - Escaped `]`
+//! - `\[` - Escaped `[` (see [`escape`]); like Rich, only `[` followed by
+//!   `a-z`, `#`, `/` or `@` starts a tag, so `[1, 2]` and `[INFO]` print as-is
 
 use crate::style::{Color, Style};
 use crate::text::{Span, Text};
@@ -70,119 +70,124 @@ pub fn tokenize_with_theme(
     tokenize_impl(input, translate_emoji, theme)
 }
 
+/// Length in bytes of the markup tag starting at `input[at..]`, if any.
+///
+/// Follows Rich's tag grammar: `[` + a first character in `a-z#/@` + any
+/// characters except `[` up to the first `]`. So `[bold]`, `[/]` and
+/// `[#ff0000]` are tags, while `[1, 2]`, `[]` and `[INFO]` are plain text.
+fn tag_len_at(input: &str, at: usize) -> Option<usize> {
+    let rest = input.get(at..)?;
+    let mut chars = rest.char_indices();
+    match chars.next() {
+        Some((_, '[')) => {}
+        _ => return None,
+    }
+    match chars.next() {
+        Some((_, c)) if c.is_ascii_lowercase() || matches!(c, '#' | '/' | '@') => {}
+        _ => return None,
+    }
+    for (i, c) in chars {
+        match c {
+            ']' => return Some(i + 1),
+            '[' => return None,
+            _ => {}
+        }
+    }
+    None
+}
+
+/// Convert the inside of a tag (between the brackets) into a token.
+fn tag_token(tag_content: &str, theme: &crate::theme::Theme) -> MarkupToken {
+    if tag_content.starts_with('/') {
+        return MarkupToken::CloseTag;
+    }
+
+    let mut link: Option<String> = None;
+    let mut style_parts = Vec::new();
+    for part in tag_content.split_whitespace() {
+        if let Some(url) = part.strip_prefix("link=") {
+            link = Some(url.to_string());
+        } else {
+            style_parts.push(part);
+        }
+    }
+
+    // A theme style name (e.g. `[warning]`) is looked up as a whole first.
+    if link.is_none() {
+        if let Some(style) = theme.lookup_style(tag_content.trim()) {
+            return MarkupToken::OpenTag(style, None);
+        }
+    }
+
+    let mut style = Style::parse(&style_parts.join(" "));
+    // Resolve words that aren't built-in styles/colors against the theme:
+    // named styles first, then custom colors (e.g. a color named "brand"
+    // enables `[brand]text[/]`).
+    for part in &style_parts {
+        let lower = part.to_lowercase();
+        if style_is_unknown_word(&lower) {
+            if let Some(named) = theme.lookup_style(&lower) {
+                style = style.combine(&named);
+            } else if let Some(color) = theme.custom.get(&lower) {
+                style = style.combine(&Style::new().foreground(*color));
+            }
+        }
+    }
+    // Like Rich, a tag with an unknown style is consumed (it renders
+    // unstyled) rather than printed.
+    MarkupToken::OpenTag(style, link)
+}
+
 fn tokenize_impl(
     input: &str,
     translate_emoji: bool,
     theme: &crate::theme::Theme,
 ) -> Vec<MarkupToken> {
     let mut tokens = Vec::new();
-    let mut chars = input.chars().peekable();
     let mut current_text = String::new();
+    let mut i = 0;
 
-    while let Some(c) = chars.next() {
+    while let Some(c) = input[i..].chars().next() {
         match c {
-            '[' => {
-                // Check for escape sequence [[
-                if chars.peek() == Some(&'[') {
-                    chars.next();
-                    current_text.push('[');
-                    continue;
+            '\\' => {
+                // A run of backslashes before a tag: each `\\` pair is one
+                // literal backslash; an odd one escapes the tag (Rich's
+                // `\[bold]`). Backslashes elsewhere are kept verbatim.
+                let run_start = i;
+                while input[i..].starts_with('\\') {
+                    i += 1;
                 }
-
-                // Flush current text
-                if !current_text.is_empty() {
-                    tokens.push(MarkupToken::Text(std::mem::take(&mut current_text)));
-                }
-
-                // Parse tag content
-                let mut tag_content = String::new();
-                let mut found_close = false;
-
-                while let Some(&c) = chars.peek() {
-                    if c == ']' {
-                        // First ']' closes the tag; `]]` escapes are handled
-                        // outside tags.
-                        chars.next();
-                        found_close = true;
-                        break;
-                    } else {
-                        tag_content.push(chars.next().unwrap());
+                let run = i - run_start;
+                if let Some(len) = tag_len_at(input, i) {
+                    current_text.push_str(&"\\".repeat(run / 2));
+                    if run % 2 == 1 {
+                        current_text.push_str(&input[i..i + len]);
+                        i += len;
                     }
-                }
-
-                if !found_close {
-                    // Unterminated tag, treat as text
-                    current_text.push('[');
-                    current_text.push_str(&tag_content);
-                    continue;
-                }
-
-                // Parse the tag content
-                let tag_content = tag_content.trim();
-
-                if tag_content.is_empty() || tag_content == "/" {
-                    // Close tag
-                    tokens.push(MarkupToken::CloseTag);
-                } else if tag_content.starts_with('/') {
-                    // Explicit close tag like [/bold]
-                    tokens.push(MarkupToken::CloseTag);
                 } else {
-                    // Check for link=URL attribute
-                    let mut link: Option<String> = None;
-                    let mut style_parts = Vec::new();
-
-                    for part in tag_content.split_whitespace() {
-                        if let Some(url) = part.strip_prefix("link=") {
-                            link = Some(url.to_string());
-                        } else {
-                            style_parts.push(part);
-                        }
+                    current_text.push_str(&input[run_start..i]);
+                }
+            }
+            '[' => {
+                if let Some(len) = tag_len_at(input, i) {
+                    if !current_text.is_empty() {
+                        tokens.push(MarkupToken::Text(std::mem::take(&mut current_text)));
                     }
-
-                    let mut style = Style::parse(&style_parts.join(" "));
-                    // Resolve words that aren't built-in styles/colors against
-                    // the theme's custom colors (e.g. a color named "brand"
-                    // enables `[brand]text[/]`).
-                    let mut unknown_words = 0;
-                    for part in &style_parts {
-                        let lower = part.to_lowercase();
-                        if style_is_unknown_word(&lower) {
-                            if let Some(color) = theme.custom.get(&lower) {
-                                style = style.combine(&Style::new().foreground(*color));
-                            } else {
-                                unknown_words += 1;
-                            }
-                        }
-                    }
-
-                    // Heuristic: If we parsed no style and no link, it's likely not a tag
-                    // (e.g. "[1, 2, 3]" from debug output). Treat it as literal text.
-                    if style.is_empty() && link.is_none() {
-                        // Reconstruct the original text
-                        let original = format!("[{}]", tag_content);
-                        tokens.push(MarkupToken::Text(original));
-                    } else {
-                        let _ = unknown_words;
-                        tokens.push(MarkupToken::OpenTag(style, link));
-                    }
+                    tokens.push(tag_token(&input[i + 1..i + len - 1], theme));
+                    i += len;
+                } else {
+                    current_text.push('[');
+                    i += 1;
                 }
             }
             ':' => {
                 // Scan a candidate emoji shortcode: :name:
-                let mut emoji_name = String::new();
-                let mut found_close = false;
-
-                while let Some(&c) = chars.peek() {
-                    if c == ':' {
-                        chars.next();
-                        found_close = true;
-                        break;
-                    } else if c.is_alphanumeric() || c == '_' || c == '-' || c == '+' {
-                        emoji_name.push(chars.next().unwrap());
-                    } else {
-                        break;
-                    }
-                }
+                i += 1;
+                let name_len = input[i..]
+                    .find(|ch: char| !(ch.is_alphanumeric() || matches!(ch, '_' | '-' | '+')))
+                    .unwrap_or(input.len() - i);
+                let emoji_name = &input[i..i + name_len];
+                let found_close = input[i + name_len..].starts_with(':');
 
                 // Only treat it as an emoji when enabled and the shortcode is
                 // known; otherwise keep the text verbatim (so "12:30:45"
@@ -190,31 +195,24 @@ fn tokenize_impl(
                 if translate_emoji
                     && found_close
                     && !emoji_name.is_empty()
-                    && crate::emoji::get_emoji(&emoji_name).is_some()
+                    && crate::emoji::get_emoji(emoji_name).is_some()
                 {
-                    // Flush current text
                     if !current_text.is_empty() {
                         tokens.push(MarkupToken::Text(std::mem::take(&mut current_text)));
                     }
-                    tokens.push(MarkupToken::Emoji(emoji_name));
+                    tokens.push(MarkupToken::Emoji(emoji_name.to_string()));
+                    i += name_len + 1;
                 } else {
+                    // Keep ':' and the name; a closing ':' is re-scanned as
+                    // the possible start of the next shortcode.
                     current_text.push(':');
-                    current_text.push_str(&emoji_name);
-                    if found_close {
-                        current_text.push(':');
-                    }
+                    current_text.push_str(emoji_name);
+                    i += name_len;
                 }
-            }
-            ']' => {
-                // Consume one following ']' as part of the `]]` escape; either
-                // way a single ']' lands in the text.
-                if chars.peek() == Some(&']') {
-                    chars.next();
-                }
-                current_text.push(']');
             }
             _ => {
                 current_text.push(c);
+                i += c.len_utf8();
             }
         }
     }
@@ -225,6 +223,50 @@ fn tokenize_impl(
     }
 
     tokens
+}
+
+/// Escape text so it prints literally when parsed as markup.
+///
+/// Mirrors Rich's `rich.markup.escape`: every `[` that would start a tag
+/// gets a backslash (and backslashes right before it are doubled).
+///
+/// ```
+/// use fast_rich::markup::{escape, render_plain};
+/// assert_eq!(escape("[bold]x[/bold]"), "\\[bold]x\\[/bold]");
+/// assert_eq!(render_plain(&escape("[bold]x[/bold]")), "[bold]x[/bold]");
+/// ```
+pub fn escape(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0;
+    while let Some(c) = text[i..].chars().next() {
+        if c == '\\' || c == '[' {
+            let run_start = i;
+            while text[i..].starts_with('\\') {
+                i += 1;
+            }
+            if tag_len_at(text, i).is_some() {
+                // Double the backslashes, then escape the bracket.
+                out.push_str(&text[run_start..i]);
+                out.push_str(&text[run_start..i]);
+                out.push('\\');
+                out.push('[');
+                i += 1;
+            } else if i > run_start {
+                out.push_str(&text[run_start..i]);
+            } else {
+                out.push('[');
+                i += 1;
+            }
+        } else {
+            out.push(c);
+            i += c.len_utf8();
+        }
+    }
+    // A trailing single backslash would escape whatever follows; double it.
+    if out.ends_with('\\') && !out.ends_with("\\\\") {
+        out.push('\\');
+    }
+    out
 }
 
 /// Parse markup text into styled Text.
@@ -316,9 +358,49 @@ mod tests {
     }
 
     #[test]
-    fn test_tokenize_escape_brackets() {
-        let tokens = tokenize("[[escaped]]");
-        assert_eq!(tokens, vec![MarkupToken::Text("[escaped]".to_string())]);
+    fn test_backslash_escapes_tag() {
+        // Rich: `\[bold]` prints the tag literally.
+        assert_eq!(render_plain("\\[bold]x[/bold]"), "[bold]x");
+        // `\\[bold]` is a literal backslash followed by a real tag.
+        let text = parse("\\\\[bold]x[/]");
+        assert_eq!(text.plain_text(), "\\x");
+        assert!(text.spans.iter().any(|s| s.style.bold));
+        // Backslashes not before a tag are kept.
+        assert_eq!(render_plain("C:\\dir\\file"), "C:\\dir\\file");
+    }
+
+    #[test]
+    fn test_only_rich_tags_are_parsed() {
+        // A tag must start with a-z, '#', '/' or '@' (Rich's grammar).
+        assert_eq!(render_plain("[1, 2, 3]"), "[1, 2, 3]");
+        assert_eq!(render_plain("[INFO] ok"), "[INFO] ok");
+        assert_eq!(render_plain("list[]"), "list[]");
+        assert_eq!(render_plain("[[1, 2], [3]]"), "[[1, 2], [3]]");
+        // Unknown lowercase tags are consumed, like Rich.
+        assert_eq!(render_plain("[nostyle]x[/nostyle]"), "x");
+        assert!(parse("[#ff0000]red").spans[0].style.foreground.is_some());
+    }
+
+    #[test]
+    fn test_escape_round_trips() {
+        for s in ["[bold]literal[/bold]", "a\\[b]", "[1] [x]", "plain"] {
+            assert_eq!(render_plain(&escape(s)), s, "escape({s:?})");
+        }
+        assert_eq!(escape("[bold]x"), "\\[bold]x");
+        assert_eq!(escape("[1]"), "[1]");
+        // Like Rich, a trailing backslash is doubled so concatenating
+        // markup after it can't be escaped by accident.
+        assert_eq!(escape("x\\"), "x\\\\");
+    }
+
+    #[test]
+    fn test_theme_style_names() {
+        let mut theme = crate::theme::Theme::new();
+        theme.add_style("alert", Style::parse("bold red"));
+        let text = parse_with_theme("[alert]x[/] [italic alert]y", true, &theme);
+        assert!(text.spans[0].style.bold);
+        let y = text.spans.iter().find(|s| s.text == "y").unwrap();
+        assert!(y.style.bold && y.style.italic);
     }
 
     #[test]

@@ -53,17 +53,17 @@
 //! - `[bold]text[/]` - Bold text
 //! - `[red]text[/]` - Colored text
 //! - `[bold red on blue]text[/]` - Combined styles
-//! - `[[` and `]]` - Escaped brackets (literal `[` and `]`)
+//! - `\[` - Escaped `[` (literal tag text); see [`markup::escape`]
 //!
 //! ## Important: Bracket Handling
 //!
-//! The markup parser uses a smart heuristic to distinguish between style tags
-//! and data brackets:
+//! Tags follow Rich's grammar: `[` followed by `a-z`, `#`, `/` or `@`, up to
+//! the first `]`. Anything else is printed literally:
 //!
-//! - **Valid Tags**: `[bold]`, `[red]`, `[link=url]` -> Parsed as style
-//! - **Data**: `[1, 2, 3]`, `[Unknown]` -> Printed literally as text
+//! - **Tags**: `[bold]`, `[red]`, `[#ff0000]`, `[link=url]`, `[/]`
+//! - **Data**: `[1, 2, 3]`, `["red", "blue"]`, `[INFO]`, `list[]`
 //!
-//! This means standard debug output usually works out of the box:
+//! So standard debug output works out of the box:
 //!
 //! ```no_run
 //! use fast_rich::println;
@@ -72,15 +72,9 @@
 //! println!("Data: {:?}", data); // Prints: Data: [1, 2, 3]
 //! ```
 //!
-//! However, there is a **Known Limitation**: if your data looks exactly like a style tag,
-//! the parser will consume it.
-//!
-//! ```no_run
-//! // ⚠️ Unintended Tag Collision
-//! let colors = vec!["red", "blue"];
-//! // Parser sees "[red", parses it as color tag!
-//! // println!("Colors: {:?}", colors);
-//! ```
+//! **Known limitation**: text that looks exactly like a lowercase tag, such as
+//! `[red]` or `[x]`, is consumed. Escape it with
+//! [`markup::escape`] (`\[x]`).
 //!
 //! For untrusted input or strict correctness, always use the `_raw` macros:
 //!

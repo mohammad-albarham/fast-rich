@@ -24,6 +24,9 @@ pub struct Theme {
     pub muted: Color,
     /// Custom named colors
     pub custom: HashMap<String, Color>,
+    /// Named styles (like Rich's `Theme({"warning": "bold red"})`), used by
+    /// markup tags such as `[warning]`. Takes precedence over colors.
+    pub styles: HashMap<String, Style>,
 }
 
 impl Theme {
@@ -38,6 +41,7 @@ impl Theme {
             info: Color::Cyan,
             muted: Color::BrightBlack,
             custom: HashMap::new(),
+            styles: HashMap::new(),
         }
     }
 
@@ -65,6 +69,7 @@ impl Theme {
             info: Color::rgb(174, 129, 255),     // Purple
             muted: Color::rgb(117, 113, 94),     // Gray
             custom: HashMap::new(),
+            styles: HashMap::new(),
         }
     }
 
@@ -79,6 +84,7 @@ impl Theme {
             info: Color::rgb(128, 203, 196),      // Teal
             muted: Color::rgb(99, 119, 119),      // Gray
             custom: HashMap::new(),
+            styles: HashMap::new(),
         }
     }
 
@@ -95,6 +101,41 @@ impl Theme {
             _ => self.custom.get(name).copied().unwrap_or(Color::Default),
         };
         Style::new().foreground(color)
+    }
+
+    /// Look up a named style: [`styles`](Self::styles) first, then the
+    /// semantic colors (`primary`, `warning`, ...) and custom colors.
+    /// Returns `None` for names the theme doesn't define.
+    ///
+    /// ```
+    /// use fast_rich::style::Style;
+    /// use fast_rich::theme::Theme;
+    /// let mut theme = Theme::new();
+    /// theme.add_style("alert", Style::parse("bold red"));
+    /// assert!(theme.lookup_style("alert").unwrap().bold);
+    /// assert!(theme.lookup_style("warning").is_some());
+    /// assert!(theme.lookup_style("nope").is_none());
+    /// ```
+    pub fn lookup_style(&self, name: &str) -> Option<Style> {
+        if let Some(style) = self.styles.get(name) {
+            return Some(*style);
+        }
+        let color = match name {
+            "primary" => self.primary,
+            "secondary" => self.secondary,
+            "success" => self.success,
+            "warning" => self.warning,
+            "error" => self.error,
+            "info" => self.info,
+            "muted" => self.muted,
+            _ => *self.custom.get(name)?,
+        };
+        Some(Style::new().foreground(color))
+    }
+
+    /// Add a named style to the theme (used by markup like `[name]`).
+    pub fn add_style(&mut self, name: impl Into<String>, style: Style) {
+        self.styles.insert(name.into(), style);
     }
 
     /// Add a custom color to the theme.

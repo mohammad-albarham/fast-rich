@@ -88,7 +88,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parsed/highlighted output across frames; 256-color mapping is closed-form
   (proven identical to the brute-force scan by test).
 
+- **Markup (breaking)**: tag grammar now matches Rich. A tag is `[` followed by
+  `a-z`, `#`, `/` or `@`, so `[1, 2]`, `[INFO]` and `list[]` print literally;
+  unknown lowercase tags are consumed like in Rich. The escape is now `\[`
+  (Rich's) instead of `[[`/`]]`, which no longer have special meaning.
+- **Theme**: markup tags resolve theme style names (`[warning]`), including
+  the semantic colors (`primary`, `success`, ...).
+
 ### Added
+- **Markup**: `markup::escape()`, the counterpart of Rich's `rich.markup.escape`.
+- **Theme**: named styles — `Theme::styles`, `Theme::add_style`,
+  `Theme::lookup_style` (like Rich's `Theme({"warning": "bold red"})`).
 - **Testing**: golden-file snapshot tests (`tests/snapshot_golden.rs`,
   regenerate with `FAST_RICH_UPDATE_SNAPSHOTS=1`); unit tests for all
   previously uncovered modules (`live`, `inspect`, `progress/columns`, `align`,

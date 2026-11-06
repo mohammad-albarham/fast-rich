@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from fast_rich.text import Text
 from fast_rich.style import Style
@@ -13,16 +13,23 @@ from fast_rich.style import Style
 TAG_PATTERN = re.compile(r"\[(/?)([^\[\]]*?)\]")
 
 
-def escape(text: str) -> str:
-    """Escape markup characters in text.
-    
-    Args:
-        text: Text with potential markup.
-        
-    Returns:
-        Escaped text.
+def escape(
+    markup: str,
+    _escape: Any = re.compile(r"(\\*)(\[[a-z#/@][^[]*?])").sub,
+) -> str:
+    """Escape text so that it won't be interpreted as markup.
+
+    Same algorithm as ``rich.markup.escape``.
     """
-    return text.replace("[", r"\[").replace("]", r"\]")
+
+    def escape_backslashes(match: "re.Match[str]") -> str:
+        backslashes, text = match.groups()
+        return f"{backslashes}{backslashes}\\{text}"
+
+    markup = _escape(escape_backslashes, markup)
+    if markup.endswith("\\") and not markup.endswith("\\\\"):
+        return markup + "\\"
+    return markup
 
 
 def _parse_tag(tag: str) -> Tuple[bool, str]:

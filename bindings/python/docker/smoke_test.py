@@ -77,17 +77,24 @@ def native_core() -> None:
 
 def python_api() -> None:
     import fast_rich
+    from fast_rich import _native
     from fast_rich.console import Console
+    from fast_rich.panel import Panel
     from fast_rich.table import Table
 
+    table = Table("a", "b")
+    table.add_row("1", "2")
+    assert _native.is_native(table), "Table is not rendered by the native core"
+    console = Console(file=io.StringIO(), width=30, color_system=None)
+    console.print(Panel(table, title="t"))
+    lines = console.file.getvalue().splitlines()
+    assert lines[0].startswith("╭") and " t " in lines[0], lines
+    assert "┃ a ┃ b ┃" in lines[2], lines
+    assert all(len(line) == 30 for line in lines), [len(l) for l in lines]
     buf = io.StringIO()
     with redirect_stdout(buf):
-        console = Console()
-        table = Table("a", "b")
-        table.add_row("1", "2")
-        console.print(table)
         fast_rich.print("[green]hello[/] world")
-    assert getattr(table, "_use_rust", False), "Table fell back to pure Python (native core not used)"
+    assert buf.getvalue() == "hello world\n", repr(buf.getvalue())
 
 
 def main() -> int:

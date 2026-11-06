@@ -932,6 +932,12 @@ def run_feature(spec: dict, timeout: float, have_rich: bool) -> dict:
     if not spec.get("native"):
         code = PRELUDE + code
     fast_code = code.replace("PKG", "fast_rich") + "\nimport sys as _s; assert 'rich' not in _s.modules, 'real rich imported'\n"
+    if sys.platform == "win32" and not spec.get("native"):
+        # A piped stdout on Windows makes the console (Rich's code, in both
+        # packages) fall back to legacy-console mode: no ANSI, ASCII-safe
+        # boxes, width-1. Emulate a modern VT terminal (Windows Terminal), the
+        # same way as for the Rich reference below.
+        fast_code = "import fast_rich.console as _fc\n_fc.detect_legacy_windows = lambda: False\n" + fast_code
     fr = run(fast_code, spec.get("stdin", ""), timeout)
     status, detail = evaluate(spec, fr, timeout)
     if SHOW:

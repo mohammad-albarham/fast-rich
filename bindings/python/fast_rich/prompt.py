@@ -17,15 +17,23 @@ class PromptError(Exception):
 
 
 class InvalidResponse(PromptError):
-    """Exception for invalid responses."""
-    pass
+    """Raised by process_response when the answer is not valid."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
 
 
 class PromptBase:
-    """Base class for prompts."""
+    """Base class for prompts.
+
+    Matches rich.prompt.PromptBase: ``Prompt.ask(...)`` is a classmethod that
+    builds an instance and calls it; calling the instance runs the input loop.
+    """
 
     prompt_suffix: str = ": "
-    illegal_choice_message: str = "Please select one of the available options"
+    illegal_choice_message: str = "[prompt.invalid.choice]Please select one of the available options"
+    validate_error_message: str = "[prompt.invalid]Please enter a valid value"
     response_type: Type = str
 
     def __init__(
@@ -35,80 +43,20 @@ class PromptBase:
         console: Optional[Console] = None,
         password: bool = False,
         choices: Optional[List[str]] = None,
+        case_sensitive: bool = True,
         show_default: bool = True,
         show_choices: bool = True,
     ) -> None:
         self.prompt = prompt
         self.console = console or Console()
         self.password = password
-        self.choices = choices
+        if choices is not None:
+            self.choices = choices
+        elif not hasattr(self, "choices"):
+            self.choices = None
+        self.case_sensitive = case_sensitive
         self.show_default = show_default
         self.show_choices = show_choices
-
-    def render_default(self, default: Any) -> Text:
-        """Render the default value."""
-        return Text(f"({default})")
-
-    def make_prompt(self, default: Any) -> str:
-        """Build prompt string."""
-        parts = [self.prompt]
-        
-        if self.choices and self.show_choices:
-            choice_str = "/".join(self.choices)
-            parts.append(f" [{choice_str}]")
-        
-        if default is not None and self.show_default:
-            parts.append(f" ({default})")
-        
-        parts.append(self.prompt_suffix)
-        return "".join(parts)
-
-    def check_choice(self, value: str) -> bool:
-        """Check if value is valid choice."""
-        if self.choices is None:
-            return True
-        return value in self.choices
-
-    def process_response(self, value: str) -> Any:
-        """Process the response."""
-        return self.response_type(value)
-
-    def __call__(self, *, default: Any = None) -> Any:
-        """Run the prompt."""
-        return self.ask(default=default)
-
-    def ask(self, *, default: Any = None) -> Any:
-        """Ask for input."""
-        prompt_str = self.make_prompt(default)
-        
-        while True:
-            self.console.print(prompt_str, end="")
-            
-            if self.password:
-                import getpass
-                response = getpass.getpass("")
-            else:
-                response = input()
-            
-            if not response and default is not None:
-                return default
-            
-            if not self.check_choice(response):
-                self.console.print(self.illegal_choice_message)
-                continue
-            
-            try:
-                return self.process_response(response)
-            except ValueError:
-                self.console.print("Invalid input")
-                continue
-
-
-class Prompt(PromptBase):
-    """A prompt for text input.
-    
-    Matches rich.prompt.Prompt API.
-    """
 
     @classmethod
     def ask(
@@ -118,132 +66,134 @@ class Prompt(PromptBase):
         console: Optional[Console] = None,
         password: bool = False,
         choices: Optional[List[str]] = None,
+        case_sensitive: bool = True,
         show_default: bool = True,
         show_choices: bool = True,
-        default: Any = None,
+        default: Any = ...,
         stream: Optional[Any] = None,
-    ) -> str:
-        """Ask for input.
-        
-        Args:
-            prompt: Prompt text.
-            console: Console to use.
-            password: Hide input.
-            choices: Valid choices.
-            show_default: Show default value.
-            show_choices: Show choices.
-            default: Default value.
-            stream: Input stream.
-            
-        Returns:
-            User input.
+    ) -> Any:
+        """Shortcut to construct a prompt and run it.
+
+        Raises:
+            EOFError: stdin was closed before an answer was given.
         """
         instance = cls(
             prompt,
             console=console,
             password=password,
             choices=choices,
+            case_sensitive=case_sensitive,
             show_default=show_default,
             show_choices=show_choices,
         )
-        return instance(default=default)
+        return instance(default=default, stream=stream)
 
+    def render_default(self, default: Any) -> str:
+        """Render the default value as markup."""
+        return f"[prompt.default]({default})"
 
-class Confirm(PromptBase):
-    """A yes/no confirmation prompt.
-    
-    Matches rich.prompt.Confirm API.
-    """
+    def make_prompt(self, default: Any) -> str:
+        """Build the prompt markup string."""
+        from fast_rich.markup import escape
 
-    response_type = bool
+        parts = [self.prompt]
+        if self.choices and self.show_choices:
+            parts.append(" [prompt.choices]" + escape("[" + "/".join(self.choices) + "]") + "[/]")
+        if default is not ... and self.show_default and isinstance(default, (str, self.response_type)):
+            parts.append(" " + self.render_default(default) + "[/]")
+        parts.append(self.prompt_suffix)
+        return "".join(parts)
 
-    @classmethod
-    def ask(
-        cls,
-        prompt: str = "",
-        *,
-        console: Optional[Console] = None,
-        password: bool = False,
-        show_default: bool = True,
-        default: bool = False,
-        stream: Optional[Any] = None,
-    ) -> bool:
-        """Ask for confirmation.
-        
-        Args:
-            prompt: Prompt text.
-            console: Console to use.
-            password: Hide input.
-            show_default: Show default.
-            default: Default value.
-            stream: Input stream.
-            
-        Returns:
-            True for yes, False for no.
+    def check_choice(self, value: str) -> bool:
+        """Check if value is a valid choice."""
+        if self.choices is None:
+            return True
+        if self.case_sensitive:
+            return value.strip() in self.choices
+        return value.strip().lower() in [c.lower() for c in self.choices]
+
+    def process_response(self, value: str) -> Any:
+        """Convert and validate the response.
+
+        Raises:
+            InvalidResponse: the value is not valid.
         """
-        instance = cls(
-            prompt,
-            console=console,
-            password=password,
-            choices=["y", "n"],
-            show_default=show_default,
-            show_choices=True,
-        )
-        
+        value = value.strip()
+        try:
+            return_value = self.response_type(value)
+        except ValueError:
+            raise InvalidResponse(self.validate_error_message)
+        if self.choices is not None:
+            if not self.check_choice(value):
+                raise InvalidResponse(self.illegal_choice_message)
+            if not self.case_sensitive:
+                return_value = self.response_type(
+                    self.choices[[c.lower() for c in self.choices].index(value.lower())]
+                )
+        return return_value
+
+    def on_validate_error(self, value: str, error: "InvalidResponse") -> None:
+        """Print the validation error."""
+        self.console.print(error.message)
+
+    def get_input(self, prompt: str, password: bool, stream: Optional[Any] = None) -> str:
+        """Read one line of input (raises EOFError when stdin is closed)."""
+        return self.console.input(prompt, password=password, stream=stream)
+
+    def pre_prompt(self) -> None:
+        """Hook called before each prompt."""
+
+    def __call__(self, *, default: Any = ..., stream: Optional[Any] = None) -> Any:
+        """Run the prompt loop until a valid answer is given."""
         while True:
-            result = instance(default="y" if default else "n")
-            if result.lower() in ("y", "yes"):
-                return True
-            if result.lower() in ("n", "no"):
-                return False
+            self.pre_prompt()
+            prompt = self.make_prompt(default)
+            value = self.get_input(prompt, self.password, stream=stream)
+            if value == "" and default is not ...:
+                return default
+            try:
+                return self.process_response(value)
+            except InvalidResponse as error:
+                self.on_validate_error(value, error)
+                continue
+
+
+class Prompt(PromptBase):
+    """A prompt for text input. Matches rich.prompt.Prompt."""
+
+    response_type = str
 
 
 class IntPrompt(PromptBase):
-    """Prompt for integer input."""
+    """A prompt that returns an integer. Matches rich.prompt.IntPrompt."""
 
     response_type = int
-
-    @classmethod
-    def ask(
-        cls,
-        prompt: str = "",
-        *,
-        console: Optional[Console] = None,
-        show_default: bool = True,
-        default: Optional[int] = None,
-        stream: Optional[Any] = None,
-    ) -> int:
-        """Ask for integer input."""
-        instance = cls(
-            prompt,
-            console=console,
-            show_default=show_default,
-        )
-        return instance(default=default)
+    validate_error_message = "[prompt.invalid]Please enter a valid integer number"
 
 
 class FloatPrompt(PromptBase):
-    """Prompt for float input."""
+    """A prompt that returns a float. Matches rich.prompt.FloatPrompt."""
 
     response_type = float
+    validate_error_message = "[prompt.invalid]Please enter a number"
 
-    @classmethod
-    def ask(
-        cls,
-        prompt: str = "",
-        *,
-        console: Optional[Console] = None,
-        show_default: bool = True,
-        default: Optional[float] = None,
-        stream: Optional[Any] = None,
-    ) -> float:
-        """Ask for float input."""
-        instance = cls(
-            prompt,
-            console=console,
-            show_default=show_default,
-        )
-        return instance(default=default)
+
+class Confirm(PromptBase):
+    """A yes/no confirmation prompt. Matches rich.prompt.Confirm."""
+
+    response_type = bool
+    validate_error_message = "[prompt.invalid]Please enter Y or N"
+    choices: Optional[List[str]] = ["y", "n"]
+
+    def render_default(self, default: Any) -> str:
+        yes, no = self.choices
+        return f"[prompt.default]({yes if default else no})"
+
+    def process_response(self, value: str) -> bool:
+        value = value.strip().lower()
+        if value not in self.choices:
+            raise InvalidResponse(self.validate_error_message)
+        return value == self.choices[0]
 
 
 __all__ = [

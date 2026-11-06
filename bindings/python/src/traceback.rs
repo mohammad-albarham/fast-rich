@@ -9,16 +9,11 @@ pub struct PyTraceback {
 #[pymethods]
 impl PyTraceback {
     #[new]
-    #[pyo3(signature = (message, show_locals=false, _width=None))]
-    fn new(message: String, show_locals: bool, _width: Option<usize>) -> Self {
-        // Simple wrapper to create a traceback from a message string.
-        // In full parity we might want to parse Python tracebacks, but for now this enables the visual component.
-        let config = TracebackConfig {
-            show_locals,
-            ..Default::default()
-        };
-
-        let tb = Traceback::from_error(&message).with_config(config);
+    #[pyo3(signature = (message))]
+    fn new(message: String) -> Self {
+        // Wraps a message string; the Python layer (fast_rich.traceback) renders
+        // real Python frames itself.
+        let tb = Traceback::from_error(&message).with_config(TracebackConfig::default());
 
         PyTraceback { inner: tb }
     }

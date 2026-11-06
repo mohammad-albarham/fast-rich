@@ -45,3 +45,6 @@ site/
 
 # Rich
 rich/*
+
+# Python bindings build output
+bindings/python/target/

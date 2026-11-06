@@ -1,136 +1,134 @@
-"""Tree class - matches rich.tree API."""
+# Adapted from Rich (https://github.com/Textualize/rich), Copyright (c) 2020
+# Will McGugan, MIT License (see LICENSE.rich). fast_rich change: rendering
+# and measuring are done by the Rust core (see _native.py).
+from typing import Iterator, List, Optional, Tuple
 
-from __future__ import annotations
+from ._loop import loop_first, loop_last
+from .console import Console, ConsoleOptions, RenderableType, RenderResult
+from .jupyter import JupyterMixin
+from .measure import Measurement
+from .segment import Segment
+from .style import Style, StyleStack, StyleType
+from .styled import Styled
 
-from typing import Iterator, List, Optional, Union
-
-from fast_rich.style import Style
-from fast_rich.text import Text
+GuideType = Tuple[str, str, str, str]
 
 
-class Tree:
-    """A tree view.
-    
-    Matches rich.tree.Tree API.
+class Tree(JupyterMixin):
+    """A renderable for a tree structure.
+
+    Attributes:
+        ASCII_GUIDES (GuideType): Guide lines used when Console.ascii_only is True.
+        TREE_GUIDES (List[GuideType, GuideType, GuideType]): Default guide lines.
+
+    Args:
+        label (RenderableType): The renderable or str for the tree label.
+        style (StyleType, optional): Style of this tree. Defaults to "tree".
+        guide_style (StyleType, optional): Style of the guide lines. Defaults to "tree.line".
+        expanded (bool, optional): Also display children. Defaults to True.
+        highlight (bool, optional): Highlight renderable (if str). Defaults to False.
+        hide_root (bool, optional): Hide the root node. Defaults to False.
     """
 
-    GUIDE_CHARS = {
-        "space": "    ",
-        "continue": "│   ",
-        "branch": "├── ",
-        "last": "└── ",
-    }
+    ASCII_GUIDES = ("    ", "|   ", "+-- ", "`-- ")
+    TREE_GUIDES = [
+        ("    ", "│   ", "├── ", "└── "),
+        ("    ", "┃   ", "┣━━ ", "┗━━ "),
+        ("    ", "║   ", "╠══ ", "╚══ "),
+    ]
 
     def __init__(
         self,
-        label: Union[str, Text],
+        label: RenderableType,
         *,
-        style: Optional[Union[str, Style]] = None,
-        guide_style: Optional[Union[str, Style]] = None,
+        style: StyleType = "tree",
+        guide_style: StyleType = "tree.line",
         expanded: bool = True,
         highlight: bool = False,
         hide_root: bool = False,
     ) -> None:
-        """Create a Tree.
-        
-        Args:
-            label: Root label.
-            style: Style for labels.
-            guide_style: Style for guide lines.
-            expanded: Expand by default.
-            highlight: Highlight labels.
-            hide_root: Hide root node.
-        """
-        self.label = label if isinstance(label, Text) else Text(str(label))
+        self.label = label
         self.style = style
         self.guide_style = guide_style
+        self.children: List[Tree] = []
         self.expanded = expanded
         self.highlight = highlight
         self.hide_root = hide_root
-        self._children: List[Tree] = []
 
     def add(
         self,
-        label: Union[str, Text, "Tree"],
+        label: RenderableType,
         *,
-        style: Optional[Union[str, Style]] = None,
-        guide_style: Optional[Union[str, Style]] = None,
+        style: Optional[StyleType] = None,
+        guide_style: Optional[StyleType] = None,
         expanded: bool = True,
-        highlight: bool = False,
+        highlight: Optional[bool] = False,
     ) -> "Tree":
-        """Add a child node.
-        
+        """Add a child tree.
+
         Args:
-            label: Child label or Tree.
-            style: Style for label.
-            guide_style: Style for guides.
-            expanded: Expand node.
-            highlight: Highlight label.
-            
+            label (RenderableType): The renderable or str for the tree label.
+            style (StyleType, optional): Style of this tree. Defaults to "tree".
+            guide_style (StyleType, optional): Style of the guide lines. Defaults to "tree.line".
+            expanded (bool, optional): Also display children. Defaults to True.
+            highlight (Optional[bool], optional): Highlight renderable (if str). Defaults to False.
+
         Returns:
-            The added Tree node.
+            Tree: A new child Tree, which may be further modified.
         """
-        if isinstance(label, Tree):
-            child = label
-        else:
-            child = Tree(
-                label,
-                style=style or self.style,
-                guide_style=guide_style or self.guide_style,
-                expanded=expanded,
-                highlight=highlight,
-            )
-        self._children.append(child)
-        return child
-
-    def __iter__(self) -> Iterator["Tree"]:
-        """Iterate over children."""
-        return iter(self._children)
-
-    def __str__(self) -> str:
-        """Render tree as string."""
-        lines = []
-        self._render(lines, "", True)
-        return "\n".join(lines)
-
-    def _render(
-        self,
-        lines: List[str],
-        prefix: str,
-        is_last: bool,
-    ) -> None:
-        """Render tree recursively."""
-        if not self.hide_root:
-            label_str = str(self.label)
-            lines.append(f"{prefix}{label_str}")
-
-        child_prefix = prefix
-        if not self.hide_root:
-            child_prefix = prefix + (
-                self.GUIDE_CHARS["space"] if is_last else self.GUIDE_CHARS["continue"]
-            )
-
-        if self.expanded:
-            for i, child in enumerate(self._children):
-                is_last_child = i == len(self._children) - 1
-                guide = self.GUIDE_CHARS["last" if is_last_child else "branch"]
-                
-                child_lines: List[str] = []
-                child._render(
-                    child_lines,
-                    child_prefix + guide,
-                    is_last_child,
-                )
-                
-                for j, line in enumerate(child_lines):
-                    if j == 0:
-                        lines.append(f"{child_prefix}{guide}{str(child.label)}")
-                    else:
-                        lines.append(line)
-
-    def __rich_console__(self, console, options):
-        """Rich console protocol."""
-        yield str(self)
+        node = Tree(
+            label,
+            style=self.style if style is None else style,
+            guide_style=self.guide_style if guide_style is None else guide_style,
+            expanded=expanded,
+            highlight=self.highlight if highlight is None else highlight,
+        )
+        self.children.append(node)
+        return node
 
 
-__all__ = ["Tree"]
+from . import _native  # noqa: E402
+
+def _native_console(self, console, options):  # type: ignore[no-untyped-def]
+    yield from console.render(self, options)
+
+
+def _native_measure(self, console, options):  # type: ignore[no-untyped-def]
+    return _native.measure(console, options, self)
+
+
+def _tree_spec(self: Tree, console: "Console", options: "ConsoleOptions") -> tuple:
+    get_style = console.get_style
+    label_options = options.update(highlight=self.highlight, justify=None)
+
+    def node(tree: Tree) -> tuple:
+        return (
+            _native.to_spec(console, label_options, tree.label),
+            _native.native_style(get_style(tree.style, default="")),
+            tree.expanded,
+            [node(child) for child in tree.children],
+        )
+
+    guide_style = get_style(self.guide_style, default="") or Style.null()
+    if options.ascii_only:
+        guide = "ascii"
+    elif guide_style.bold:
+        guide = "bold"
+    elif guide_style.underline2:
+        guide = "double"
+    else:
+        guide = "unicode"
+    return (
+        "tree",
+        node(self),
+        dict(
+            guide=guide,
+            guide_style=_native.native_style(guide_style),
+            hide_root=self.hide_root,
+        ),
+    )
+
+
+Tree.__fast_rich__ = _tree_spec  # type: ignore[attr-defined]
+Tree.__rich_console__ = _native_console  # type: ignore[attr-defined]
+Tree.__rich_measure__ = _native_measure  # type: ignore[attr-defined]

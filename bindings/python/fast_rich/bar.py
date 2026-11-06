@@ -1,67 +1,93 @@
-"""Bar renderable - matches rich.bar API."""
-
-from __future__ import annotations
-
 from typing import Optional, Union
 
-from fast_rich.style import Style
+from .color import Color
+from .console import Console, ConsoleOptions, RenderResult
+from .jupyter import JupyterMixin
+from .measure import Measurement
+from .segment import Segment
+from .style import Style
+
+# There are left-aligned characters for 1/8 to 7/8, but
+# the right-aligned characters exist only for 1/8 and 4/8.
+BEGIN_BLOCK_ELEMENTS = ["█", "█", "█", "▐", "▐", "▐", "▕", "▕"]
+END_BLOCK_ELEMENTS = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"]
+FULL_BLOCK = "█"
 
 
-class Bar:
-    """A horizontal bar with customizable fill.
-    
-    Matches rich.bar.Bar API.
+class Bar(JupyterMixin):
+    """Renders a solid block bar.
+
+    Args:
+        size (float): Value for the end of the bar.
+        begin (float): Begin point (between 0 and size, inclusive).
+        end (float): End point (between 0 and size, inclusive).
+        width (int, optional): Width of the bar, or ``None`` for maximum width. Defaults to None.
+        color (Union[Color, str], optional): Color of the bar. Defaults to "default".
+        bgcolor (Union[Color, str], optional): Color of bar background. Defaults to "default".
     """
 
     def __init__(
         self,
-        size: float = 1.0,
-        begin: float = 0.0,
-        end: float = 1.0,
+        size: float,
+        begin: float,
+        end: float,
         *,
         width: Optional[int] = None,
-        color: Optional[str] = "default",
-        bgcolor: Optional[str] = None,
-    ) -> None:
-        """Create a Bar.
-        
-        Args:
-            size: Size of the bar (0.0-1.0).
-            begin: Start position (0.0-1.0).
-            end: End position (0.0-1.0).
-            width: Width of the bar.
-            color: Bar color.
-            bgcolor: Background color.
-        """
-        self.size = max(0.0, min(1.0, size))
-        self.begin = max(0.0, min(1.0, begin))
-        self.end = max(0.0, min(1.0, end))
+        color: Union[Color, str] = "default",
+        bgcolor: Union[Color, str] = "default",
+    ):
+        self.size = size
+        self.begin = max(begin, 0)
+        self.end = min(end, size)
         self.width = width
-        self.color = color
-        self.bgcolor = bgcolor
-
-    def __str__(self) -> str:
-        """Render as string."""
-        import shutil
-        width = self.width or shutil.get_terminal_size().columns
-        
-        filled_start = int(width * self.begin)
-        filled_end = int(width * self.end * self.size)
-        
-        bar = " " * filled_start + "█" * (filled_end - filled_start) + " " * (width - filled_end)
-        return bar[:width]
+        self.style = Style(color=color, bgcolor=bgcolor)
 
     def __repr__(self) -> str:
-        return f"Bar(size={self.size}, begin={self.begin}, end={self.end})"
+        return f"Bar({self.size}, {self.begin}, {self.end})"
 
-    def __rich_console__(self, console, options):
-        """Rich console protocol."""
-        from fast_rich.segment import Segment
-        text = str(self)
-        style = Style()
-        if self.color:
-            style = Style.parse(self.color)
-        yield Segment(text, style)
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        width = min(
+            self.width if self.width is not None else options.max_width,
+            options.max_width,
+        )
 
+        if self.begin >= self.end:
+            yield Segment(" " * width, self.style)
+            yield Segment.line()
+            return
 
-__all__ = ["Bar"]
+        prefix_complete_eights = int(width * 8 * self.begin / self.size)
+        prefix_bar_count = prefix_complete_eights // 8
+        prefix_eights_count = prefix_complete_eights % 8
+
+        body_complete_eights = int(width * 8 * self.end / self.size)
+        body_bar_count = body_complete_eights // 8
+        body_eights_count = body_complete_eights % 8
+
+        # When start and end fall into the same cell, we ideally should render
+        # a symbol that's "center-aligned", but there is no good symbol in Unicode.
+        # In this case, we fall back to right-aligned block symbol for simplicity.
+
+        prefix = " " * prefix_bar_count
+        if prefix_eights_count:
+            prefix += BEGIN_BLOCK_ELEMENTS[prefix_eights_count]
+
+        body = FULL_BLOCK * body_bar_count
+        if body_eights_count:
+            body += END_BLOCK_ELEMENTS[body_eights_count]
+
+        suffix = " " * (width - len(body))
+
+        yield Segment(prefix + body[len(prefix) :] + suffix, self.style)
+        yield Segment.line()
+
+    def __rich_measure__(
+        self, console: Console, options: ConsoleOptions
+    ) -> Measurement:
+        return (
+            Measurement(self.width, self.width)
+            if self.width is not None
+            else Measurement(4, options.max_width)
+        )

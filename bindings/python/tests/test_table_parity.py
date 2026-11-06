@@ -5,6 +5,8 @@ from __future__ import annotations
 import io
 import pytest
 
+from _render import render
+
 
 def normalize_output(s: str) -> str:
     """Normalize output for comparison."""
@@ -47,7 +49,7 @@ class TestTableParity:
         table.add_column("Col1")
         table.add_row("Value1")
 
-        output = str(table)
+        output = render(table)
         assert "My Table" in output
 
     def test_table_constructor_params(self):
@@ -113,7 +115,7 @@ class TestTableRendering:
         table.add_column("Value")
         table.add_row("foo", "bar")
 
-        output = str(table)
+        output = render(table)
         assert "Name" in output
         assert "Value" in output
         assert "foo" in output
@@ -124,5 +126,5 @@ class TestTableRendering:
         from fast_rich.table import Table
 
         table = Table()
-        output = str(table)
+        output = render(table)
         assert output == ""  # No columns = empty output

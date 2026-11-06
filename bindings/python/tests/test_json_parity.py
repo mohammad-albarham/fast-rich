@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import pytest
+
+from _render import render
 import json
 
 
@@ -26,7 +28,7 @@ class TestJSONParity:
 
         data = {"items": [1, 2, 3], "active": True}
         j = JSON.from_data(data)
-        output = str(j)
+        output = render(j)
         assert "items" in output or "1" in output
 
     def test_json_nested(self):
@@ -35,7 +37,7 @@ class TestJSONParity:
 
         data = '{"user": {"name": "Bob", "settings": {"theme": "dark"}}}'
         j = JSON(data)
-        output = str(j)
+        output = render(j)
         assert len(output) > 0
 
 
@@ -47,7 +49,7 @@ class TestJSONRendering:
         from fast_rich.json import JSON
 
         j = JSON('{"key": "value"}')
-        output = str(j)
+        output = render(j)
         assert "key" in output or "value" in output
 
     def test_json_with_indent(self):
@@ -55,7 +57,7 @@ class TestJSONRendering:
         from fast_rich.json import JSON
 
         j = JSON('{"a": 1}', indent=4)
-        output = str(j)
+        output = render(j)
         assert len(output) > 0
 
     def test_json_array(self):
@@ -63,7 +65,7 @@ class TestJSONRendering:
         from fast_rich.json import JSON
 
         j = JSON('[1, 2, 3, "four"]')
-        output = str(j)
+        output = render(j)
         assert "1" in output or "four" in output
 
     def test_json_boolean_null(self):
@@ -71,7 +73,7 @@ class TestJSONRendering:
         from fast_rich.json import JSON
 
         j = JSON('{"active": true, "data": null}')
-        output = str(j)
+        output = render(j)
         assert len(output) > 0
 
     def test_json_constructor_params(self):

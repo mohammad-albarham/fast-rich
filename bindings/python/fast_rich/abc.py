@@ -1,37 +1,33 @@
-"""Abstract base classes - matches rich.abc API."""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from fast_rich.console import Console
-    from fast_rich.console_options import ConsoleOptions
+from abc import ABC
 
 
 class RichRenderable(ABC):
-    """Abstract base class for Rich renderables.
-    
-    Matches rich.abc.RichRenderable.
+    """An abstract base class for Rich renderables.
+
+    Note that there is no need to extend this class, the intended use is to check if an
+    object supports the Rich renderable protocol. For example::
+
+        if isinstance(my_object, RichRenderable):
+            console.print(my_object)
+
     """
 
-    @abstractmethod
-    def __rich_console__(
-        self,
-        console: "Console",
-        options: "ConsoleOptions",
-    ):
-        """Required method for Rich console protocol.
-        
-        Args:
-            console: Console instance.
-            options: Console options.
-            
-        Yields:
-            Renderables or strings.
-        """
+    @classmethod
+    def __subclasshook__(cls, other: type) -> bool:
+        """Check if this class supports the rich render protocol."""
+        return hasattr(other, "__rich_console__") or hasattr(other, "__rich__")
+
+
+if __name__ == "__main__":  # pragma: no cover
+    from fast_rich.text import Text
+
+    t = Text()
+    print(isinstance(Text, RichRenderable))
+    print(isinstance(t, RichRenderable))
+
+    class Foo:
         pass
 
-
-__all__ = ["RichRenderable"]
+    f = Foo()
+    print(isinstance(f, RichRenderable))
+    print(isinstance("", RichRenderable))

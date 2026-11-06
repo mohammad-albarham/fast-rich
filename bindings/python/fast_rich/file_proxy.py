@@ -1,77 +1,60 @@
-"""File proxy - matches rich.file_proxy API."""
+import io
+from typing import IO, TYPE_CHECKING, Any, List
 
-from __future__ import annotations
+from .ansi import AnsiDecoder
+from .text import Text
 
-import sys
-from typing import IO, Any, Optional
+if TYPE_CHECKING:
+    from .console import Console
 
 
-class FileProxy:
-    """Proxy for file-like objects.
-    
-    Matches rich.file_proxy.FileProxy API.
-    """
+class FileProxy(io.TextIOBase):
+    """Wraps a file (e.g. sys.stdout) and redirects writes to a console."""
 
-    def __init__(
-        self,
-        file: IO[str],
-        *,
-        console: Optional[Any] = None,
-    ) -> None:
-        """Create FileProxy.
-        
-        Args:
-            file: File to proxy.
-            console: Console for output.
-        """
-        self._file = file
-        self._console = console
+    def __init__(self, console: "Console", file: IO[str]) -> None:
+        self.__console = console
+        self.__file = file
+        self.__buffer: List[str] = []
+        self.__ansi_decoder = AnsiDecoder()
 
     @property
     def rich_proxied_file(self) -> IO[str]:
-        """Get the proxied file."""
-        return self._file
+        """Get proxied file."""
+        return self.__file
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.__file, name)
 
     def write(self, text: str) -> int:
-        """Write text to file.
-        
-        Args:
-            text: Text to write.
-            
-        Returns:
-            Number of characters written.
-        """
-        if self._console is not None:
-            self._console.print(text, end="")
-            return len(text)
-        return self._file.write(text)
+        if not isinstance(text, str):
+            raise TypeError(f"write() argument must be str, not {type(text).__name__}")
+        buffer = self.__buffer
+        lines: List[str] = []
+        while text:
+            line, new_line, text = text.partition("\n")
+            if new_line:
+                lines.append("".join(buffer) + line)
+                buffer.clear()
+            else:
+                buffer.append(line)
+                break
+        if lines:
+            console = self.__console
+            with console:
+                output = Text("\n").join(
+                    self.__ansi_decoder.decode_line(line) for line in lines
+                )
+                console.print(output)
+        return len(text)
 
     def flush(self) -> None:
-        """Flush the file."""
-        self._file.flush()
+        output = "".join(self.__buffer)
+        if output:
+            self.__console.print(output)
+        del self.__buffer[:]
 
     def fileno(self) -> int:
-        """Get file descriptor."""
-        return self._file.fileno()
-
-    @property
-    def mode(self) -> str:
-        """Get file mode."""
-        return getattr(self._file, "mode", "w")
-
-    @property
-    def name(self) -> str:
-        """Get file name."""
-        return getattr(self._file, "name", "<unknown>")
-
-    @property
-    def encoding(self) -> str:
-        """Get encoding."""
-        return getattr(self._file, "encoding", "utf-8")
+        return self.__file.fileno()
 
     def isatty(self) -> bool:
-        """Check if file is a TTY."""
-        return hasattr(self._file, "isatty") and self._file.isatty()
-
-
-__all__ = ["FileProxy"]
+        return self.__file.isatty()

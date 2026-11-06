@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+from _render import render
+
 
 def normalize_output(s: str) -> str:
     """Normalize output for comparison."""
@@ -41,7 +43,7 @@ class TestTreeParity:
         child.add("Grandchild 1")
         child.add("Grandchild 2")
 
-        output = str(tree)
+        output = render(tree)
         assert "Root" in output
         assert "Child" in output
 
@@ -52,7 +54,7 @@ class TestTreeParity:
         tree = Tree("[bold]Root[/]")
         tree.add("[red]Child[/]")
 
-        output = str(tree)
+        output = render(tree)
         assert "Root" in output
 
 
@@ -65,7 +67,7 @@ class TestTreeRendering:
 
         tree = Tree("Root")
         tree.add("Leaf")
-        output = str(tree)
+        output = render(tree)
 
         assert "Root" in output
         assert "Leaf" in output
@@ -76,7 +78,7 @@ class TestTreeRendering:
 
         tree = Tree("Root", guide_style="bold bright_blue")
         tree.add("Child")
-        output = str(tree)
+        output = render(tree)
         assert "Root" in output
 
     def test_tree_hide_root(self):
@@ -85,7 +87,7 @@ class TestTreeRendering:
 
         tree = Tree("Hidden Root", hide_root=True)
         tree.add("Visible Child")
-        output = str(tree)
+        output = render(tree)
         # Root might be hidden, child should be visible
         assert "Child" in output
 
@@ -98,6 +100,6 @@ class TestTreeRendering:
         for i in range(1, 5):
             current = current.add(f"Level {i}")
 
-        output = str(tree)
+        output = render(tree)
         assert "Level 0" in output
         assert "Level 4" in output

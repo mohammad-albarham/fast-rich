@@ -1,55 +1,34 @@
-"""Error classes - matches rich.errors API."""
-
-from __future__ import annotations
-
-
 class ConsoleError(Exception):
-    """Base class for console errors."""
-    pass
+    """An error in console operation."""
 
 
 class StyleError(Exception):
-    """Error raised for invalid styles."""
-    pass
+    """An error in styles."""
 
 
-class StyleSyntaxError(StyleError):
-    """Error raised for style syntax errors."""
-    pass
+class StyleSyntaxError(ConsoleError):
+    """Style was badly formatted."""
 
 
 class MissingStyle(StyleError):
-    """Error raised for missing styles."""
-    pass
+    """No such style."""
 
 
-class MarkupError(Exception):
-    """Error raised for markup errors."""
-    pass
+class StyleStackError(ConsoleError):
+    """Style stack is invalid."""
 
 
-class LiveError(Exception):
-    """Error raised for live display errors."""
-    pass
+class NotRenderableError(ConsoleError):
+    """Object is not renderable."""
 
 
-class NoAltScreen(Exception):
-    """Error raised when alt screen is not available."""
-    pass
+class MarkupError(ConsoleError):
+    """Markup was badly formatted."""
 
 
-class NotRenderableError(Exception):
-    """Error raised when object is not renderable."""
-    pass
+class LiveError(ConsoleError):
+    """Error related to Live display."""
 
 
-__all__ = [
-    "ConsoleError",
-    "StyleError",
-    "StyleSyntaxError",
-    "MissingStyle",
-    "MarkupError",
-    "LiveError",
-    "NoAltScreen",
-    "NotRenderableError",
-]
+class NoAltScreen(ConsoleError):
+    """Alt screen mode was required."""

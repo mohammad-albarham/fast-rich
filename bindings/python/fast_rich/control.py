@@ -1,129 +1,219 @@
-"""Control codes - matches rich.control API."""
+import time
+from typing import TYPE_CHECKING, Callable, Dict, Iterable, List, Union, Final
 
-from __future__ import annotations
-
-from typing import List, Tuple, TYPE_CHECKING
+from .segment import ControlCode, ControlType, Segment
 
 if TYPE_CHECKING:
-    from fast_rich.segment import Segment
+    from .console import Console, ConsoleOptions, RenderResult
+
+STRIP_CONTROL_CODES: Final = [
+    7,  # Bell
+    8,  # Backspace
+    11,  # Vertical tab
+    12,  # Form feed
+    13,  # Carriage return
+]
+_CONTROL_STRIP_TRANSLATE: Final = {
+    _codepoint: None for _codepoint in STRIP_CONTROL_CODES
+}
+
+CONTROL_ESCAPE: Final = {
+    7: "\\a",
+    8: "\\b",
+    11: "\\v",
+    12: "\\f",
+    13: "\\r",
+}
+
+CONTROL_CODES_FORMAT: Dict[int, Callable[..., str]] = {
+    ControlType.BELL: lambda: "\x07",
+    ControlType.CARRIAGE_RETURN: lambda: "\r",
+    ControlType.HOME: lambda: "\x1b[H",
+    ControlType.CLEAR: lambda: "\x1b[2J",
+    ControlType.ENABLE_ALT_SCREEN: lambda: "\x1b[?1049h",
+    ControlType.DISABLE_ALT_SCREEN: lambda: "\x1b[?1049l",
+    ControlType.SHOW_CURSOR: lambda: "\x1b[?25h",
+    ControlType.HIDE_CURSOR: lambda: "\x1b[?25l",
+    ControlType.CURSOR_UP: lambda param: f"\x1b[{param}A",
+    ControlType.CURSOR_DOWN: lambda param: f"\x1b[{param}B",
+    ControlType.CURSOR_FORWARD: lambda param: f"\x1b[{param}C",
+    ControlType.CURSOR_BACKWARD: lambda param: f"\x1b[{param}D",
+    ControlType.CURSOR_MOVE_TO_COLUMN: lambda param: f"\x1b[{param+1}G",
+    ControlType.ERASE_IN_LINE: lambda param: f"\x1b[{param}K",
+    ControlType.CURSOR_MOVE_TO: lambda x, y: f"\x1b[{y+1};{x+1}H",
+    ControlType.SET_WINDOW_TITLE: lambda title: f"\x1b]0;{title}\x07",
+}
 
 
 class Control:
-    """A renderable that generates control codes.
-    
-    Matches rich.control.Control API.
+    """A renderable that inserts a control code (non printable but may move cursor).
+
+    Args:
+        *codes (str): Positional arguments are either a :class:`~rich.segment.ControlType` enum or a
+            tuple of ControlType and an integer parameter
     """
 
-    BELL = "\x07"
-    CARRIAGE_RETURN = "\r"
-    HOME = "\x1b[H"
-    CLEAR = "\x1b[2J"
-    CLEAR_LINE = "\x1b[2K"
-    SHOW_CURSOR = "\x1b[?25h"
-    HIDE_CURSOR = "\x1b[?25l"
-    ENABLE_ALT_SCREEN = "\x1b[?1049h\x1b[2J"
-    DISABLE_ALT_SCREEN = "\x1b[?1049l"
+    __slots__ = ["segment"]
 
-    def __init__(self, *controls: str) -> None:
-        """Create Control.
-        
-        Args:
-            *controls: Control sequences.
-        """
-        self._controls = controls
+    def __init__(self, *codes: Union[ControlType, ControlCode]) -> None:
+        control_codes: List[ControlCode] = [
+            (code,) if isinstance(code, ControlType) else code for code in codes
+        ]
+        _format_map = CONTROL_CODES_FORMAT
+        rendered_codes = "".join(
+            _format_map[code](*parameters) for code, *parameters in control_codes
+        )
+        self.segment = Segment(rendered_codes, None, control_codes)
 
     @classmethod
     def bell(cls) -> "Control":
-        """Ring the terminal bell."""
-        return cls(cls.BELL)
+        """Ring the 'bell'."""
+        return cls(ControlType.BELL)
 
     @classmethod
     def home(cls) -> "Control":
-        """Move cursor to home position."""
-        return cls(cls.HOME)
+        """Move cursor to 'home' position."""
+        return cls(ControlType.HOME)
+
+    @classmethod
+    def move(cls, x: int = 0, y: int = 0) -> "Control":
+        """Move cursor relative to current position.
+
+        Args:
+            x (int): X offset.
+            y (int): Y offset.
+
+        Returns:
+            ~Control: Control object.
+
+        """
+
+        def get_codes() -> Iterable[ControlCode]:
+            control = ControlType
+            if x:
+                yield (
+                    control.CURSOR_FORWARD if x > 0 else control.CURSOR_BACKWARD,
+                    abs(x),
+                )
+            if y:
+                yield (
+                    control.CURSOR_DOWN if y > 0 else control.CURSOR_UP,
+                    abs(y),
+                )
+
+        control = cls(*get_codes())
+        return control
+
+    @classmethod
+    def move_to_column(cls, x: int, y: int = 0) -> "Control":
+        """Move to the given column, optionally add offset to row.
+
+        Returns:
+            x (int): absolute x (column)
+            y (int): optional y offset (row)
+
+        Returns:
+            ~Control: Control object.
+        """
+
+        return (
+            cls(
+                (ControlType.CURSOR_MOVE_TO_COLUMN, x),
+                (
+                    ControlType.CURSOR_DOWN if y > 0 else ControlType.CURSOR_UP,
+                    abs(y),
+                ),
+            )
+            if y
+            else cls((ControlType.CURSOR_MOVE_TO_COLUMN, x))
+        )
+
+    @classmethod
+    def move_to(cls, x: int, y: int) -> "Control":
+        """Move cursor to absolute position.
+
+        Args:
+            x (int): x offset (column)
+            y (int): y offset (row)
+
+        Returns:
+            ~Control: Control object.
+        """
+        return cls((ControlType.CURSOR_MOVE_TO, x, y))
 
     @classmethod
     def clear(cls) -> "Control":
         """Clear the screen."""
-        return cls(cls.CLEAR)
+        return cls(ControlType.CLEAR)
 
     @classmethod
-    def clear_line(cls) -> "Control":
-        """Clear the current line."""
-        return cls(cls.CLEAR_LINE)
+    def show_cursor(cls, show: bool) -> "Control":
+        """Show or hide the cursor."""
+        return cls(ControlType.SHOW_CURSOR if show else ControlType.HIDE_CURSOR)
 
     @classmethod
-    def show_cursor(cls, show: bool = True) -> "Control":
-        """Show or hide cursor."""
-        return cls(cls.SHOW_CURSOR if show else cls.HIDE_CURSOR)
-
-    @classmethod
-    def alt_screen(cls, enable: bool = True) -> "Control":
-        """Enable or disable alternate screen."""
-        return cls(cls.ENABLE_ALT_SCREEN if enable else cls.DISABLE_ALT_SCREEN)
-
-    @classmethod
-    def cursor_up(cls, n: int = 1) -> "Control":
-        """Move cursor up."""
-        return cls(f"\x1b[{n}A")
-
-    @classmethod
-    def cursor_down(cls, n: int = 1) -> "Control":
-        """Move cursor down."""
-        return cls(f"\x1b[{n}B")
-
-    @classmethod
-    def cursor_forward(cls, n: int = 1) -> "Control":
-        """Move cursor forward."""
-        return cls(f"\x1b[{n}C")
-
-    @classmethod
-    def cursor_backward(cls, n: int = 1) -> "Control":
-        """Move cursor backward."""
-        return cls(f"\x1b[{n}D")
-
-    @classmethod
-    def cursor_move_to(cls, x: int = 0, y: int = 0) -> "Control":
-        """Move cursor to position."""
-        return cls(f"\x1b[{y + 1};{x + 1}H")
-
-    @classmethod
-    def cursor_move_to_column(cls, x: int = 0) -> "Control":
-        """Move cursor to column."""
-        return cls(f"\x1b[{x + 1}G")
-
-    @classmethod
-    def erase_in_line(cls, mode: int = 0) -> "Control":
-        """Erase in line."""
-        return cls(f"\x1b[{mode}K")
+    def alt_screen(cls, enable: bool) -> "Control":
+        """Enable or disable alt screen."""
+        if enable:
+            return cls(ControlType.ENABLE_ALT_SCREEN, ControlType.HOME)
+        else:
+            return cls(ControlType.DISABLE_ALT_SCREEN)
 
     @classmethod
     def title(cls, title: str) -> "Control":
-        """Set terminal title."""
-        return cls(f"\x1b]0;{title}\x07")
+        """Set the terminal window title
+
+        Args:
+            title (str): The new terminal window title
+        """
+        return cls((ControlType.SET_WINDOW_TITLE, title))
 
     def __str__(self) -> str:
-        """Return control sequence."""
-        return "".join(self._controls)
+        return self.segment.text
 
-    def __rich_console__(self, console, options):
-        """Rich console protocol."""
-        from fast_rich.segment import Segment
-        for control in self._controls:
-            yield Segment(control, control=True)
+    def __rich_console__(
+        self, console: "Console", options: "ConsoleOptions"
+    ) -> "RenderResult":
+        if self.segment.text:
+            yield self.segment
 
 
-def strip_control_codes(text: str) -> str:
+def strip_control_codes(
+    text: str, _translate_table: Dict[int, None] = _CONTROL_STRIP_TRANSLATE
+) -> str:
     """Remove control codes from text.
-    
+
     Args:
-        text: Text with control codes.
-        
+        text (str): A string possibly contain control codes.
+
     Returns:
-        Text without control codes.
+        str: String with control codes removed.
     """
-    import re
-    return re.sub(r"\x1b\[[0-9;]*[A-Za-z]|\x1b\][^\x07]*\x07", "", text)
+    return text.translate(_translate_table)
 
 
-__all__ = ["Control", "strip_control_codes"]
+def escape_control_codes(
+    text: str,
+    _translate_table: Dict[int, str] = CONTROL_ESCAPE,
+) -> str:
+    """Replace control codes with their "escaped" equivalent in the given text.
+    (e.g. "\b" becomes "\\b")
+
+    Args:
+        text (str): A string possibly containing control codes.
+
+    Returns:
+        str: String with control codes replaced with their escaped version.
+    """
+    return text.translate(_translate_table)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    from fast_rich.console import Console
+
+    console = Console()
+    console.print("Look at the title of your terminal window ^")
+    # console.print(Control((ControlType.SET_WINDOW_TITLE, "Hello, world!")))
+    for i in range(10):
+        console.set_window_title("🚀 Loading" + "." * i)
+        time.sleep(0.5)

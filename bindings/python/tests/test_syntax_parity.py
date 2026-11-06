@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+from _render import render
+
 
 def normalize_output(s: str) -> str:
     """Normalize output for comparison."""
@@ -36,7 +38,7 @@ class TestSyntaxParity:
 
         code = "x = 1\ny = 2\nz = x + y"
         syn = Syntax(code, "python", line_numbers=True)
-        output = str(syn)
+        output = render(syn)
         # Line numbers should appear
         assert "1" in output or "x" in output
 
@@ -46,7 +48,7 @@ class TestSyntaxParity:
 
         code = "print('hello')"
         syn = Syntax(code, "python", theme="monokai")
-        output = str(syn)
+        output = render(syn)
         assert "print" in output
 
     def test_syntax_start_line(self):
@@ -55,7 +57,7 @@ class TestSyntaxParity:
 
         code = "x = 1\ny = 2"
         syn = Syntax(code, "python", line_numbers=True, start_line=10)
-        output = str(syn)
+        output = render(syn)
         # Should contain the code
         assert "x" in output
 
@@ -68,7 +70,7 @@ class TestSyntaxRendering:
         from fast_rich.syntax import Syntax
 
         syn = Syntax("def foo(): pass", "python")
-        output = str(syn)
+        output = render(syn)
         assert len(output) > 0
 
     def test_syntax_multiple_languages(self):
@@ -77,15 +79,15 @@ class TestSyntaxRendering:
 
         # Python
         py = Syntax("x = 1", "python")
-        assert "x" in str(py)
+        assert "x" in render(py)
 
         # JavaScript
         js = Syntax("let x = 1;", "javascript")
-        assert "let" in str(js) or "x" in str(js)
+        assert "let" in render(js) or "x" in render(js)
 
         # Rust
         rs = Syntax("fn main() {}", "rust")
-        assert "fn" in str(rs) or "main" in str(rs)
+        assert "fn" in render(rs) or "main" in render(rs)
 
     def test_syntax_constructor_params(self):
         """Test syntax accepts all constructor params."""

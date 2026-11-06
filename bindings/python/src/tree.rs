@@ -1,61 +1,88 @@
 use crate::style::PyStyle;
-use fast_rich::tree::{GuideStyle, Tree};
+use fast_rich::style::Style;
+use fast_rich::tree::{GuideStyle, Tree, TreeNode};
 use pyo3::prelude::*;
+use std::sync::{Arc, Mutex};
 
+/// A node shared between the Python `Tree` handles that refer to it.
+#[derive(Default)]
+struct Node {
+    label: String,
+    style: Style,
+    expanded: bool,
+    children: Vec<Arc<Mutex<Node>>>,
+}
+
+fn lock(node: &Arc<Mutex<Node>>) -> std::sync::MutexGuard<'_, Node> {
+    node.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+fn build(node: &Arc<Mutex<Node>>) -> TreeNode {
+    let n = lock(node);
+    let mut out = TreeNode::new(n.label.clone())
+        .style(n.style)
+        .expanded(n.expanded);
+    for child in &n.children {
+        out.add(build(child));
+    }
+    out
+}
+
+/// A tree node. `add` returns the child, so children can be nested:
+/// `t.add("child").add("leaf")`.
 #[pyclass(name = "Tree")]
 pub struct PyTree {
-    pub(crate) inner: Tree,
+    node: Arc<Mutex<Node>>,
+    guide_style: GuideStyle,
+}
+
+impl PyTree {
+    /// Build the crate tree for rendering.
+    pub(crate) fn to_tree(&self) -> Tree {
+        Tree::new(build(&self.node)).guide_style(self.guide_style)
+    }
 }
 
 #[pymethods]
 impl PyTree {
     #[new]
-    #[pyo3(signature = (label, style=None, guide_style=None, expanded=true, highlight=false))]
-    fn new(
-        label: &str,
-        style: Option<PyStyle>,
-        guide_style: Option<String>,
-        expanded: bool,
-        highlight: bool,
-    ) -> Self {
-        let mut t = Tree::new(label.to_string());
-
-        if let Some(s) = style {
-            t = t.style(s.inner);
-        }
-
-        if let Some(gs_str) = guide_style {
-            let gs = match gs_str.to_lowercase().as_str() {
-                "ascii" => GuideStyle::Ascii,
-                "bold" => GuideStyle::Bold,
-                "double" => GuideStyle::Double,
-                _ => GuideStyle::Unicode,
-            };
-            t = t.guide_style(gs);
-        }
-
-        // t = t.expanded(expanded).highlight(highlight); // Not available on Tree, only TreeNode?
-        // TODO: Expose these on Tree or access root node.
-        // For now, ignore expanded/highlight args to compile.
-        let _ = expanded;
-        let _ = highlight;
-
-        PyTree { inner: t }
-    }
-
-    fn add(&mut self, label: &str) -> PyTree {
-        let _child = self.inner.add(label.to_string());
-        // Return dummy?
-        // Actually, let's just make it void return for now to match add_leaf behavior effectively
-        // but keeping signature returns PyTree is hard without proper wrapper.
-        // Let's change signature to return None if we can't wrap easily.
+    #[pyo3(signature = (label, style=None, guide_style=None, expanded=true))]
+    fn new(label: &str, style: Option<PyStyle>, guide_style: Option<String>, expanded: bool) -> Self {
+        let guide = match guide_style.as_deref().map(str::to_lowercase).as_deref() {
+            Some("ascii") => GuideStyle::Ascii,
+            Some("bold") => GuideStyle::Bold,
+            Some("double") => GuideStyle::Double,
+            _ => GuideStyle::Unicode,
+        };
         PyTree {
-            inner: Tree::new("dummy".to_string()),
+            node: Arc::new(Mutex::new(Node {
+                label: label.to_string(),
+                style: style.map(|s| s.inner).unwrap_or_default(),
+                expanded,
+                children: Vec::new(),
+            })),
+            guide_style: guide,
         }
     }
 
-    // Better API for Rust bindings might be `add_leaf`
-    fn add_leaf(&mut self, label: &str) {
-        self.inner.add(label.to_string());
+    /// Add a child node and return it.
+    #[pyo3(signature = (label, style=None, expanded=true))]
+    fn add(&self, label: &str, style: Option<PyStyle>, expanded: bool) -> PyTree {
+        let child = Arc::new(Mutex::new(Node {
+            label: label.to_string(),
+            style: style.map(|s| s.inner).unwrap_or_default(),
+            expanded,
+            children: Vec::new(),
+        }));
+        lock(&self.node).children.push(child.clone());
+        PyTree {
+            node: child,
+            guide_style: self.guide_style,
+        }
+    }
+
+    /// Add a leaf (a child whose handle is not needed).
+    fn add_leaf(&self, label: &str) {
+        let _ = self.add(label, None, true);
     }
 }

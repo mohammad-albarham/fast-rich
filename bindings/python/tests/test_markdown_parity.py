@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+from _render import render
+
 
 def normalize_output(s: str) -> str:
     """Normalize output for comparison."""
@@ -43,7 +45,7 @@ def hello():
 ```
 """
         md = Markdown(md_content)
-        output = str(md)
+        output = render(md)
         # Should contain the function name
         assert "def" in output or "hello" in output
 
@@ -59,7 +61,7 @@ def hello():
 * Oranges
 """
         md = Markdown(md_content)
-        output = str(md)
+        output = render(md)
         # Should contain list items
         assert "Apples" in output
 
@@ -72,7 +74,7 @@ class TestMarkdownRendering:
         from fast_rich.markdown import Markdown
 
         md = Markdown("**Bold** and *italic*")
-        output = str(md)
+        output = render(md)
         assert len(output) > 0
 
     def test_markdown_heading_levels(self):
@@ -85,7 +87,7 @@ class TestMarkdownRendering:
 ### H3
 """
         md = Markdown(md_content)
-        output = str(md)
+        output = render(md)
         assert "H1" in output
         assert "H2" in output
         assert "H3" in output

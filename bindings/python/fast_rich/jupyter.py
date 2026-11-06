@@ -1,78 +1,101 @@
-"""Jupyter support - matches rich.jupyter API."""
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Sequence
 
-from __future__ import annotations
+if TYPE_CHECKING:
+    from fast_rich.console import ConsoleRenderable
 
-from typing import Any, Optional
+from . import get_console
+from .segment import Segment
+from .terminal_theme import DEFAULT_TERMINAL_THEME
 
-from fast_rich.console import Console
+if TYPE_CHECKING:
+    from fast_rich.console import ConsoleRenderable
 
-
-def is_jupyter() -> bool:
-    """Check if running in Jupyter environment.
-    
-    Returns:
-        True if in Jupyter.
-    """
-    try:
-        from IPython import get_ipython
-        shell = get_ipython()
-        if shell is None:
-            return False
-        return shell.__class__.__name__ in ("ZMQInteractiveShell", "Shell")
-    except ImportError:
-        return False
+JUPYTER_HTML_FORMAT = """\
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">{code}</pre>
+"""
 
 
-def get_jupyter_display_format() -> str:
-    """Get the preferred display format for Jupyter.
-    
-    Returns:
-        Format name ("html", "text").
-    """
-    return "html" if is_jupyter() else "text"
+class JupyterRenderable:
+    """A shim to write html to Jupyter notebook."""
+
+    def __init__(self, html: str, text: str) -> None:
+        self.html = html
+        self.text = text
+
+    def _repr_mimebundle_(
+        self, include: Sequence[str], exclude: Sequence[str], **kwargs: Any
+    ) -> Dict[str, str]:
+        data = {"text/plain": self.text, "text/html": self.html}
+        if include:
+            data = {k: v for (k, v) in data.items() if k in include}
+        if exclude:
+            data = {k: v for (k, v) in data.items() if k not in exclude}
+        return data
 
 
 class JupyterMixin:
-    """Mixin for Jupyter display support."""
+    """Add to an Rich renderable to make it render in Jupyter notebook."""
 
-    def _repr_html_(self) -> Optional[str]:
-        """HTML representation for Jupyter."""
-        if not is_jupyter():
-            return None
-        console = Console(force_terminal=True, record=True)
-        console.print(self)
-        return console.export_html(inline_styles=True)
+    __slots__ = ()
 
     def _repr_mimebundle_(
-        self,
-        include: Optional[Any] = None,
-        exclude: Optional[Any] = None,
-    ) -> dict:
-        """Rich display for Jupyter."""
-        return {
-            "text/html": self._repr_html_(),
-            "text/plain": str(self),
-        }
+        self: "ConsoleRenderable",
+        include: Sequence[str],
+        exclude: Sequence[str],
+        **kwargs: Any,
+    ) -> Dict[str, str]:
+        console = get_console()
+        segments = list(console.render(self, console.options))
+        html = _render_segments(segments)
+        text = console._render_buffer(segments)
+        data = {"text/plain": text, "text/html": html}
+        if include:
+            data = {k: v for (k, v) in data.items() if k in include}
+        if exclude:
+            data = {k: v for (k, v) in data.items() if k not in exclude}
+        return data
 
 
-def display(renderable: Any, console: Optional[Console] = None) -> None:
-    """Display a renderable in Jupyter.
-    
-    Args:
-        renderable: Object to display.
-        console: Console to use.
-    """
-    if is_jupyter():
-        try:
-            from IPython.display import display as ipython_display, HTML
-            _console = console or Console(force_terminal=True, record=True)
-            _console.print(renderable)
-            ipython_display(HTML(_console.export_html(inline_styles=True)))
-        except ImportError:
-            print(renderable)
-    else:
-        _console = console or Console()
-        _console.print(renderable)
+def _render_segments(segments: Iterable[Segment]) -> str:
+    def escape(text: str) -> str:
+        """Escape html."""
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    fragments: List[str] = []
+    append_fragment = fragments.append
+    theme = DEFAULT_TERMINAL_THEME
+    for text, style, control in Segment.simplify(segments):
+        if control:
+            continue
+        text = escape(text)
+        if style:
+            rule = style.get_html_style(theme)
+            text = f'<span style="{rule}">{text}</span>' if rule else text
+            if style.link:
+                text = f'<a href="{style.link}" target="_blank">{text}</a>'
+        append_fragment(text)
+
+    code = "".join(fragments)
+    html = JUPYTER_HTML_FORMAT.format(code=code)
+
+    return html
 
 
-__all__ = ["is_jupyter", "get_jupyter_display_format", "JupyterMixin", "display"]
+def display(segments: Iterable[Segment], text: str) -> None:
+    """Render segments to Jupyter."""
+    html = _render_segments(segments)
+    jupyter_renderable = JupyterRenderable(html, text)
+    try:
+        from IPython.display import display as ipython_display
+
+        ipython_display(jupyter_renderable)
+    except ModuleNotFoundError:
+        # Handle the case where the Console has force_jupyter=True,
+        # but IPython is not installed.
+        pass
+
+
+def print(*args: Any, **kwargs: Any) -> None:
+    """Proxy for Console print."""
+    console = get_console()
+    return console.print(*args, **kwargs)

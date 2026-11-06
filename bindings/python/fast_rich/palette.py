@@ -1,74 +1,100 @@
-"""Color palette - matches rich.palette API."""
+from math import sqrt
+from functools import lru_cache
+from typing import Sequence, Tuple, TYPE_CHECKING
 
-from __future__ import annotations
+from .color_triplet import ColorTriplet
 
-from typing import List, Tuple
+if TYPE_CHECKING:
+    from fast_rich.table import Table
 
 
 class Palette:
-    """A palette of colors.
-    
-    Matches rich.palette.Palette API.
-    """
+    """A palette of available colors."""
 
-    def __init__(self, colors: List[Tuple[int, int, int]]) -> None:
-        """Create Palette.
-        
-        Args:
-            colors: List of RGB tuples.
-        """
+    def __init__(self, colors: Sequence[Tuple[int, int, int]]):
         self._colors = colors
 
-    def __getitem__(self, index: int) -> Tuple[int, int, int]:
-        """Get color by index."""
-        return self._colors[index]
+    def __getitem__(self, number: int) -> ColorTriplet:
+        return ColorTriplet(*self._colors[number])
 
-    def __len__(self) -> int:
-        """Get number of colors."""
-        return len(self._colors)
+    def __rich__(self) -> "Table":
+        from fast_rich.color import Color
+        from fast_rich.style import Style
+        from fast_rich.text import Text
+        from fast_rich.table import Table
 
+        table = Table(
+            "index",
+            "RGB",
+            "Color",
+            title="Palette",
+            caption=f"{len(self._colors)} colors",
+            highlight=True,
+            caption_justify="right",
+        )
+        for index, color in enumerate(self._colors):
+            table.add_row(
+                str(index),
+                repr(color),
+                Text(" " * 16, style=Style(bgcolor=Color.from_rgb(*color))),
+            )
+        return table
+
+    # This is somewhat inefficient and needs caching
+    @lru_cache(maxsize=1024)
     def match(self, color: Tuple[int, int, int]) -> int:
-        """Find closest matching color index.
-        
+        """Find a color from a palette that most closely matches a given color.
+
         Args:
-            color: RGB tuple to match.
-            
+            color (Tuple[int, int, int]): RGB components in range 0 > 255.
+
         Returns:
-            Index of closest color.
+            int: Index of closes matching color.
         """
-        r, g, b = color
-        min_distance = float("inf")
-        best_match = 0
-        
-        for i, (pr, pg, pb) in enumerate(self._colors):
-            # Calculate color distance
-            distance = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2
-            if distance < min_distance:
-                min_distance = distance
-                best_match = i
-        
-        return best_match
+        red1, green1, blue1 = color
+        _sqrt = sqrt
+        get_color = self._colors.__getitem__
+
+        def get_color_distance(index: int) -> float:
+            """Get the distance to a color."""
+            red2, green2, blue2 = get_color(index)
+            red_mean = (red1 + red2) // 2
+            red = red1 - red2
+            green = green1 - green2
+            blue = blue1 - blue2
+            return _sqrt(
+                (((512 + red_mean) * red * red) >> 8)
+                + 4 * green * green
+                + (((767 - red_mean) * blue * blue) >> 8)
+            )
+
+        min_index = min(range(len(self._colors)), key=get_color_distance)
+        return min_index
 
 
-# Standard 16-color ANSI palette
-STANDARD_PALETTE = Palette([
-    (0, 0, 0),        # 0: Black
-    (128, 0, 0),      # 1: Red
-    (0, 128, 0),      # 2: Green
-    (128, 128, 0),    # 3: Yellow
-    (0, 0, 128),      # 4: Blue
-    (128, 0, 128),    # 5: Magenta
-    (0, 128, 128),    # 6: Cyan
-    (192, 192, 192),  # 7: White
-    (128, 128, 128),  # 8: Bright Black
-    (255, 0, 0),      # 9: Bright Red
-    (0, 255, 0),      # 10: Bright Green
-    (255, 255, 0),    # 11: Bright Yellow
-    (0, 0, 255),      # 12: Bright Blue
-    (255, 0, 255),    # 13: Bright Magenta
-    (0, 255, 255),    # 14: Bright Cyan
-    (255, 255, 255),  # 15: Bright White
-])
+if __name__ == "__main__":  # pragma: no cover
+    import colorsys
+    from typing import Iterable
+    from fast_rich.color import Color
+    from fast_rich.console import Console, ConsoleOptions
+    from fast_rich.segment import Segment
+    from fast_rich.style import Style
 
+    class ColorBox:
+        def __rich_console__(
+            self, console: Console, options: ConsoleOptions
+        ) -> Iterable[Segment]:
+            height = console.size.height - 3
+            for y in range(0, height):
+                for x in range(options.max_width):
+                    h = x / options.max_width
+                    l = y / (height + 1)
+                    r1, g1, b1 = colorsys.hls_to_rgb(h, l, 1.0)
+                    r2, g2, b2 = colorsys.hls_to_rgb(h, l + (1 / height / 2), 1.0)
+                    bgcolor = Color.from_rgb(r1 * 255, g1 * 255, b1 * 255)
+                    color = Color.from_rgb(r2 * 255, g2 * 255, b2 * 255)
+                    yield Segment("▄", Style(color=color, bgcolor=bgcolor))
+                yield Segment.line()
 
-__all__ = ["Palette", "STANDARD_PALETTE"]
+    console = Console()
+    console.print(ColorBox())

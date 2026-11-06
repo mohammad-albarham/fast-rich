@@ -1,96 +1,99 @@
-"""Columns layout - matches rich.columns API."""
+# Adapted from Rich (https://github.com/Textualize/rich), Copyright (c) 2020
+# Will McGugan, MIT License (see LICENSE.rich). fast_rich change: rendering
+# and measuring are done by the Rust core (see _native.py).
+from collections import defaultdict
+from itertools import chain
+from operator import itemgetter
+from typing import Dict, Iterable, List, Optional, Tuple
 
-from __future__ import annotations
+from .align import Align, AlignMethod
+from .console import Console, ConsoleOptions, RenderableType, RenderResult
+from .constrain import Constrain
+from .measure import Measurement
+from .padding import Padding, PaddingDimensions
+from .table import Table
+from .text import TextType
+from .jupyter import JupyterMixin
 
-from typing import Iterable, Optional, Union
 
-from fast_rich.style import Style
+class Columns(JupyterMixin):
+    """Display renderables in neat columns.
 
-
-class Columns:
-    """Display renderables in columns.
-    
-    Matches rich.columns.Columns API.
+    Args:
+        renderables (Iterable[RenderableType]): Any number of Rich renderables (including str).
+        width (int, optional): The desired width of the columns, or None to auto detect. Defaults to None.
+        padding (PaddingDimensions, optional): Optional padding around cells. Defaults to (0, 1).
+        expand (bool, optional): Expand columns to full width. Defaults to False.
+        equal (bool, optional): Arrange in to equal sized columns. Defaults to False.
+        column_first (bool, optional): Align items from top to bottom (rather than left to right). Defaults to False.
+        right_to_left (bool, optional): Start column from right hand side. Defaults to False.
+        align (str, optional): Align value ("left", "right", or "center") or None for default. Defaults to None.
+        title (TextType, optional): Optional title for Columns.
     """
 
     def __init__(
         self,
-        renderables: Optional[Iterable] = None,
+        renderables: Optional[Iterable[RenderableType]] = None,
+        padding: PaddingDimensions = (0, 1),
         *,
-        padding: Union[int, tuple] = (0, 1),
+        width: Optional[int] = None,
         expand: bool = False,
         equal: bool = False,
         column_first: bool = False,
         right_to_left: bool = False,
-        align: str = "left",
-        width: Optional[int] = None,
-        title: Optional[str] = None,
+        align: Optional[AlignMethod] = None,
+        title: Optional[TextType] = None,
     ) -> None:
-        """Create Columns.
-        
-        Args:
-            renderables: Items to display.
-            padding: Padding between columns.
-            expand: Expand to fill width.
-            equal: Make columns equal width.
-            column_first: Fill columns first.
-            right_to_left: Right to left order.
-            align: Text alignment.
-            width: Fixed column width.
-            title: Optional title.
-        """
-        self.renderables = list(renderables) if renderables else []
+        self.renderables = list(renderables or [])
+        self.width = width
         self.padding = padding
         self.expand = expand
         self.equal = equal
         self.column_first = column_first
         self.right_to_left = right_to_left
-        self.align = align
-        self.width = width
+        self.align: Optional[AlignMethod] = align
         self.title = title
 
-    def add_renderable(self, renderable) -> None:
-        """Add an item."""
+    def add_renderable(self, renderable: RenderableType) -> None:
+        """Add a renderable to the columns.
+
+        Args:
+            renderable (RenderableType): Any renderable object.
+        """
         self.renderables.append(renderable)
 
-    def __str__(self) -> str:
-        """Render columns as string."""
-        if not self.renderables:
-            return ""
-            
-        items = [str(r) for r in self.renderables]
-        
-        if self.right_to_left:
-            items = items[::-1]
-            
-        # Simple column layout
-        import shutil
-        try:
-            term_width = shutil.get_terminal_size().columns
-        except Exception:
-            term_width = 80
-            
-        col_width = self.width or max(len(item) for item in items) + 2
-        num_cols = max(1, term_width // col_width)
-        
-        lines = []
-        for i in range(0, len(items), num_cols):
-            row_items = items[i:i + num_cols]
-            line = ""
-            for item in row_items:
-                if self.align == "center":
-                    line += item.center(col_width)
-                elif self.align == "right":
-                    line += item.rjust(col_width)
-                else:
-                    line += item.ljust(col_width)
-            lines.append(line.rstrip())
-        
-        return "\n".join(lines)
 
-    def __rich_console__(self, console, options):
-        """Rich console protocol."""
-        yield str(self)
+from . import _native  # noqa: E402
+
+def _native_console(self, console, options):  # type: ignore[no-untyped-def]
+    yield from console.render(self, options)
 
 
-__all__ = ["Columns"]
+def _native_measure(self, console, options):  # type: ignore[no-untyped-def]
+    return _native.measure(console, options, self)
+
+
+def _columns_spec(self: Columns, console: "Console", options: "ConsoleOptions") -> tuple:
+    _top, right, _bottom, left = Padding.unpack(self.padding)
+    items = [_native.to_spec(console, options, r) for r in self.renderables]
+    spec = (
+        "columns",
+        items,
+        dict(
+            gap=max(left, right),
+            expand=self.expand,
+            equal=self.equal,
+            column_first=self.column_first,
+            right_to_left=self.right_to_left,
+            align=self.align,
+            width=self.width,
+        ),
+    )
+    if self.title:
+        title = console.render_str(self.title, style="table.title", justify="center") if isinstance(self.title, str) else self.title
+        spec = ("group", [_native.text_spec(console, options.update(justify="center"), title), spec])
+    return spec
+
+
+Columns.__fast_rich__ = _columns_spec  # type: ignore[attr-defined]
+Columns.__rich_console__ = _native_console  # type: ignore[attr-defined]

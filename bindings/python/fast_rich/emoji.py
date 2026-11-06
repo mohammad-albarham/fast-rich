@@ -1,196 +1,93 @@
-"""Emoji support - matches rich.emoji API."""
+import sys
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
-from __future__ import annotations
+from ._emoji_replace import _emoji_replace
+from .jupyter import JupyterMixin
+from .segment import Segment
+from .style import Style
 
-from typing import Optional
-
-# Common emoji mappings (subset of full emoji database)
-EMOJI_MAP = {
-    # Smileys
-    ":smile:": "😄",
-    ":grinning:": "😀",
-    ":joy:": "😂",
-    ":heart_eyes:": "😍",
-    ":wink:": "😉",
-    ":thinking:": "🤔",
-    ":sunglasses:": "😎",
-    ":sob:": "😭",
-    ":angry:": "😠",
-    ":scream:": "😱",
-    
-    # Gestures
-    ":thumbsup:": "👍",
-    ":thumbs_up:": "👍",
-    ":+1:": "👍",
-    ":thumbsdown:": "👎",
-    ":thumbs_down:": "👎",
-    ":-1:": "👎",
-    ":clap:": "👏",
-    ":wave:": "👋",
-    ":raised_hands:": "🙌",
-    ":pray:": "🙏",
-    ":muscle:": "💪",
-    ":point_right:": "👉",
-    ":point_left:": "👈",
-    ":point_up:": "👆",
-    ":point_down:": "👇",
-    ":ok_hand:": "👌",
-    
-    # Hearts
-    ":heart:": "❤️",
-    ":red_heart:": "❤️",
-    ":orange_heart:": "🧡",
-    ":yellow_heart:": "💛",
-    ":green_heart:": "💚",
-    ":blue_heart:": "💙",
-    ":purple_heart:": "💜",
-    ":broken_heart:": "💔",
-    ":sparkling_heart:": "💖",
-    
-    # Objects
-    ":rocket:": "🚀",
-    ":fire:": "🔥",
-    ":star:": "⭐",
-    ":star2:": "🌟",
-    ":sparkles:": "✨",
-    ":zap:": "⚡",
-    ":boom:": "💥",
-    ":bulb:": "💡",
-    ":warning:": "⚠️",
-    ":x:": "❌",
-    ":white_check_mark:": "✅",
-    ":heavy_check_mark:": "✔️",
-    ":ballot_box_with_check:": "☑️",
-    ":question:": "❓",
-    ":exclamation:": "❗",
-    
-    # Animals
-    ":dog:": "🐕",
-    ":cat:": "🐈",
-    ":snake:": "🐍",
-    ":bug:": "🐛",
-    ":bee:": "🐝",
-    ":butterfly:": "🦋",
-    ":turtle:": "🐢",
-    ":crab:": "🦀",
-    ":unicorn:": "🦄",
-    ":dragon:": "🐉",
-    
-    # Food
-    ":pizza:": "🍕",
-    ":hamburger:": "🍔",
-    ":coffee:": "☕",
-    ":beer:": "🍺",
-    ":wine_glass:": "🍷",
-    ":cake:": "🍰",
-    ":apple:": "🍎",
-    ":banana:": "🍌",
-    
-    # Tech
-    ":computer:": "💻",
-    ":keyboard:": "⌨️",
-    ":iphone:": "📱",
-    ":cd:": "💿",
-    ":floppy_disk:": "💾",
-    ":gear:": "⚙️",
-    ":wrench:": "🔧",
-    ":hammer:": "🔨",
-    ":lock:": "🔒",
-    ":key:": "🔑",
-    
-    # Weather
-    ":sun:": "☀️",
-    ":cloud:": "☁️",
-    ":rain:": "🌧️",
-    ":rainbow:": "🌈",
-    ":snowflake:": "❄️",
-    ":umbrella:": "☂️",
-    
-    # Arrows
-    ":arrow_right:": "➡️",
-    ":arrow_left:": "⬅️",
-    ":arrow_up:": "⬆️",
-    ":arrow_down:": "⬇️",
-    
-    # Misc
-    ":party_popper:": "🎉",
-    ":tada:": "🎉",
-    ":gift:": "🎁",
-    ":trophy:": "🏆",
-    ":medal:": "🏅",
-    ":crown:": "👑",
-    ":gem:": "💎",
-    ":money_bag:": "💰",
-    ":chart_with_upwards_trend:": "📈",
-    ":chart_with_downwards_trend:": "📉",
-    ":clock:": "🕐",
-    ":hourglass:": "⌛",
-    ":bell:": "🔔",
-    ":loudspeaker:": "📢",
-    ":bookmark:": "🔖",
-    ":link:": "🔗",
-    ":paperclip:": "📎",
-}
+if TYPE_CHECKING:
+    from .console import Console, ConsoleOptions, RenderResult
 
 
-class Emoji:
-    """A single emoji by name.
-    
-    Matches rich.emoji.Emoji API.
-    """
+EmojiVariant = Literal["emoji", "text"]
+
+
+class NoEmoji(Exception):
+    """No emoji by that name."""
+
+
+class Emoji(JupyterMixin):
+    __slots__ = ["name", "style", "_char", "variant"]
+
+    VARIANTS = {"text": "\ufe0e", "emoji": "\ufe0f"}
 
     def __init__(
         self,
         name: str,
-        *,
-        style: Optional[str] = None,
+        style: Union[str, Style] = "none",
+        variant: Optional[EmojiVariant] = None,
     ) -> None:
-        """Create an Emoji.
-        
+        """A single emoji character.
+
         Args:
-            name: Emoji name (with or without colons).
-            style: Optional style.
+            name (str): Name of emoji.
+            style (Union[str, Style], optional): Optional style. Defaults to None.
+
+        Raises:
+            NoEmoji: If the emoji doesn't exist.
         """
-        # Normalize name
-        if not name.startswith(":"):
-            name = f":{name}:"
-        if not name.endswith(":"):
-            name = f"{name}:"
-            
+        from ._emoji_codes import EMOJI
+
         self.name = name
         self.style = style
+        self.variant = variant
+        try:
+            self._char = EMOJI[name]
+        except KeyError:
+            raise NoEmoji(f"No emoji called {name!r}")
+        if variant is not None:
+            self._char += self.VARIANTS.get(variant, "")
 
-    @property
-    def emoji(self) -> str:
-        """Get the emoji character."""
-        return EMOJI_MAP.get(self.name, self.name)
+    @classmethod
+    def replace(cls, text: str) -> str:
+        """Replace emoji markup with corresponding unicode characters.
 
-    def __str__(self) -> str:
-        """Return the emoji character."""
-        return self.emoji
+        Args:
+            text (str): A string with emojis codes, e.g. "Hello :smiley:!"
+
+        Returns:
+            str: A string with emoji codes replaces with actual emoji.
+        """
+        return _emoji_replace(text)
 
     def __repr__(self) -> str:
-        """Return repr."""
-        return f"Emoji({self.name!r})"
+        return f"<emoji {self.name!r}>"
 
-    def __rich_console__(self, console, options):
-        """Rich console protocol."""
-        yield self.emoji
+    def __str__(self) -> str:
+        return self._char
 
-
-def replace(text: str) -> str:
-    """Replace emoji shortcodes with emoji characters.
-    
-    Args:
-        text: Text with emoji shortcodes like :smile:
-        
-    Returns:
-        Text with shortcodes replaced by emoji.
-    """
-    result = text
-    for shortcode, emoji in EMOJI_MAP.items():
-        result = result.replace(shortcode, emoji)
-    return result
+    def __rich_console__(
+        self, console: "Console", options: "ConsoleOptions"
+    ) -> "RenderResult":
+        yield Segment(self._char, console.get_style(self.style))
 
 
-__all__ = ["Emoji", "EMOJI_MAP", "replace"]
+if __name__ == "__main__":  # pragma: no cover
+    import sys
+
+    from fast_rich.columns import Columns
+    from fast_rich.console import Console
+
+    console = Console(record=True)
+
+    from ._emoji_codes import EMOJI
+
+    columns = Columns(
+        (f":{name}: {name}" for name in sorted(EMOJI.keys()) if "\u200d" not in name),
+        column_first=True,
+    )
+
+    console.print(columns)
+    if len(sys.argv) > 1:
+        console.save_html(sys.argv[1])

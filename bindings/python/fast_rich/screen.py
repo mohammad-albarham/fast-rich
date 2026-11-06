@@ -1,45 +1,54 @@
-"""Screen utilities - matches rich.screen API."""
+from typing import Optional, TYPE_CHECKING
 
-from __future__ import annotations
+from .segment import Segment
+from .style import StyleType
+from ._loop import loop_last
 
-from typing import Any, Optional
 
-from fast_rich.control import Control
+if TYPE_CHECKING:
+    from .console import (
+        Console,
+        ConsoleOptions,
+        RenderResult,
+        RenderableType,
+        Group,
+    )
 
 
 class Screen:
-    """A renderable that fills the terminal screen.
-    
-    Matches rich.screen.Screen API.
+    """A renderable that fills the terminal screen and crops excess.
+
+    Args:
+        renderable (RenderableType): Child renderable.
+        style (StyleType, optional): Optional background style. Defaults to None.
     """
+
+    renderable: "RenderableType"
 
     def __init__(
         self,
-        renderable: Any = "",
-        *,
-        style: Optional[str] = None,
+        *renderables: "RenderableType",
+        style: Optional[StyleType] = None,
         application_mode: bool = False,
     ) -> None:
-        """Create Screen.
-        
-        Args:
-            renderable: Content to display.
-            style: Screen style.
-            application_mode: Application mode.
-        """
-        self.renderable = renderable
+        from fast_rich.console import Group
+
+        self.renderable = Group(*renderables)
         self.style = style
         self.application_mode = application_mode
 
-    def __str__(self) -> str:
-        """Render as string."""
-        return str(self.renderable)
-
-    def __rich_console__(self, console, options):
-        """Rich console protocol."""
-        yield Control.clear()
-        yield Control.home()
-        yield str(self.renderable)
-
-
-__all__ = ["Screen"]
+    def __rich_console__(
+        self, console: "Console", options: "ConsoleOptions"
+    ) -> "RenderResult":
+        width, height = options.size
+        style = console.get_style(self.style) if self.style else None
+        render_options = options.update(width=width, height=height)
+        lines = console.render_lines(
+            self.renderable or "", render_options, style=style, pad=True
+        )
+        lines = Segment.set_shape(lines, width, height, style=style)
+        new_line = Segment("\n\r") if self.application_mode else Segment.line()
+        for last, line in loop_last(lines):
+            yield from line
+            if not last:
+                yield new_line

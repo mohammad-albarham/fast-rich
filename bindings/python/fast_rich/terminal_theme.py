@@ -1,96 +1,153 @@
-"""Terminal utilities - matches rich.terminal_theme and terminal APIs."""
+from typing import List, Optional, Tuple
 
-from __future__ import annotations
+from .color_triplet import ColorTriplet
+from .palette import Palette
 
-from typing import Dict, Tuple
-
-from fast_rich.color import ColorTriplet
+_ColorTuple = Tuple[int, int, int]
 
 
 class TerminalTheme:
-    """A theme for terminal colors.
-    
-    Matches rich.terminal_theme.TerminalTheme API.
+    """A color theme used when exporting console content.
+
+    Args:
+        background (Tuple[int, int, int]): The background color.
+        foreground (Tuple[int, int, int]): The foreground (text) color.
+        normal (List[Tuple[int, int, int]]): A list of 8 normal intensity colors.
+        bright (List[Tuple[int, int, int]], optional): A list of 8 bright colors, or None
+            to repeat normal intensity. Defaults to None.
     """
 
     def __init__(
         self,
-        background: Tuple[int, int, int],
-        foreground: Tuple[int, int, int],
-        normal: Tuple[
-            Tuple[int, int, int], Tuple[int, int, int], Tuple[int, int, int], Tuple[int, int, int],
-            Tuple[int, int, int], Tuple[int, int, int], Tuple[int, int, int], Tuple[int, int, int],
-        ],
-        bright: Tuple[
-            Tuple[int, int, int], Tuple[int, int, int], Tuple[int, int, int], Tuple[int, int, int],
-            Tuple[int, int, int], Tuple[int, int, int], Tuple[int, int, int], Tuple[int, int, int],
-        ],
+        background: _ColorTuple,
+        foreground: _ColorTuple,
+        normal: List[_ColorTuple],
+        bright: Optional[List[_ColorTuple]] = None,
     ) -> None:
-        """Create TerminalTheme.
-        
-        Args:
-            background: Background color.
-            foreground: Foreground color.
-            normal: Normal colors (black, red, green, yellow, blue, magenta, cyan, white).
-            bright: Bright colors.
-        """
-        self.background = ColorTriplet(*background)
-        self.foreground = ColorTriplet(*foreground)
-        self.ansi_colors = {
-            i: ColorTriplet(*normal[i]) for i in range(8)
-        }
-        self.ansi_colors.update({
-            i + 8: ColorTriplet(*bright[i]) for i in range(8)
-        })
+        self.background_color = ColorTriplet(*background)
+        self.foreground_color = ColorTriplet(*foreground)
+        self.ansi_colors = Palette(normal + (bright or normal))
 
 
-# Default terminal themes
-MONOKAI = TerminalTheme(
-    (39, 40, 34),
-    (248, 248, 242),
-    (
-        (0, 0, 0), (249, 38, 114), (166, 226, 46), (244, 191, 117),
-        (102, 217, 239), (174, 129, 255), (161, 239, 228), (248, 248, 242),
-    ),
-    (
-        (117, 113, 94), (255, 84, 168), (196, 255, 94), (255, 231, 146),
-        (134, 255, 255), (199, 159, 252), (190, 255, 242), (255, 255, 255),
-    ),
+DEFAULT_TERMINAL_THEME = TerminalTheme(
+    (255, 255, 255),
+    (0, 0, 0),
+    [
+        (0, 0, 0),
+        (128, 0, 0),
+        (0, 128, 0),
+        (128, 128, 0),
+        (0, 0, 128),
+        (128, 0, 128),
+        (0, 128, 128),
+        (192, 192, 192),
+    ],
+    [
+        (128, 128, 128),
+        (255, 0, 0),
+        (0, 255, 0),
+        (255, 255, 0),
+        (0, 0, 255),
+        (255, 0, 255),
+        (0, 255, 255),
+        (255, 255, 255),
+    ],
 )
 
+MONOKAI = TerminalTheme(
+    (12, 12, 12),
+    (217, 217, 217),
+    [
+        (26, 26, 26),
+        (244, 0, 95),
+        (152, 224, 36),
+        (253, 151, 31),
+        (157, 101, 255),
+        (244, 0, 95),
+        (88, 209, 235),
+        (196, 197, 181),
+        (98, 94, 76),
+    ],
+    [
+        (244, 0, 95),
+        (152, 224, 36),
+        (224, 213, 97),
+        (157, 101, 255),
+        (244, 0, 95),
+        (88, 209, 235),
+        (246, 246, 239),
+    ],
+)
 DIMMED_MONOKAI = TerminalTheme(
     (25, 25, 25),
-    (185, 186, 181),
-    (
-        (0, 0, 0), (197, 15, 31), (122, 179, 43), (180, 141, 64),
-        (65, 154, 207), (126, 87, 194), (83, 180, 173), (171, 171, 162),
-    ),
-    (
-        (104, 104, 104), (215, 95, 107), (157, 205, 105), (214, 191, 110),
-        (111, 189, 239), (161, 123, 218), (131, 210, 204), (244, 244, 244),
-    ),
+    (185, 188, 186),
+    [
+        (58, 61, 67),
+        (190, 63, 72),
+        (135, 154, 59),
+        (197, 166, 53),
+        (79, 118, 161),
+        (133, 92, 141),
+        (87, 143, 164),
+        (185, 188, 186),
+        (136, 137, 135),
+    ],
+    [
+        (251, 0, 31),
+        (15, 114, 47),
+        (196, 112, 51),
+        (24, 109, 227),
+        (251, 0, 103),
+        (46, 112, 109),
+        (253, 255, 185),
+    ],
 )
-
 NIGHT_OWLISH = TerminalTheme(
-    (11, 22, 38),
-    (171, 180, 194),
-    (
-        (1, 22, 39), (255, 91, 102), (101, 222, 134), (255, 203, 139),
-        (130, 170, 255), (199, 146, 234), (128, 203, 196), (171, 180, 194),
-    ),
-    (
-        (87, 108, 138), (255, 100, 94), (68, 232, 161), (255, 208, 102),
-        (158, 190, 255), (199, 146, 234), (111, 220, 196), (255, 255, 255),
-    ),
+    (255, 255, 255),
+    (64, 63, 83),
+    [
+        (1, 22, 39),
+        (211, 66, 62),
+        (42, 162, 152),
+        (218, 170, 1),
+        (72, 118, 214),
+        (64, 63, 83),
+        (8, 145, 106),
+        (122, 129, 129),
+        (122, 129, 129),
+    ],
+    [
+        (247, 110, 110),
+        (73, 208, 197),
+        (218, 194, 107),
+        (92, 167, 228),
+        (105, 112, 152),
+        (0, 201, 144),
+        (152, 159, 177),
+    ],
 )
 
-SVG_EXPORT_THEME = MONOKAI
-
-
-__all__ = [
-    "TerminalTheme",
-    "MONOKAI",
-    "DIMMED_MONOKAI",
-    "NIGHT_OWLISH",
-    "SVG_EXPORT_THEME",
-]
+SVG_EXPORT_THEME = TerminalTheme(
+    (41, 41, 41),
+    (197, 200, 198),
+    [
+        (75, 78, 85),
+        (204, 85, 90),
+        (152, 168, 75),
+        (208, 179, 68),
+        (96, 138, 177),
+        (152, 114, 159),
+        (104, 160, 179),
+        (197, 200, 198),
+        (154, 155, 153),
+    ],
+    [
+        (255, 38, 39),
+        (0, 130, 61),
+        (208, 132, 66),
+        (25, 132, 233),
+        (255, 44, 122),
+        (57, 130, 128),
+        (253, 253, 197),
+    ],
+)

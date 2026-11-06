@@ -1,40 +1,41 @@
-"""Markdown rendering - matches rich.markdown API."""
+"""Markdown rendering (Rich's ``rich.markdown`` API, rendered by the Rust core)."""
 
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional
 
-from fast_rich.style import Style
+from .jupyter import JupyterMixin
+from .style import StyleType
+
+if TYPE_CHECKING:  # pragma: no cover
+    from .console import Console, ConsoleOptions, JustifyMethod
+
+from . import _native
 
 
-class Markdown:
-    """Render Markdown to the terminal.
-    
-    Matches rich.markdown.Markdown API.
+class Markdown(JupyterMixin):
+    """A Markdown renderable.
+
+    Args:
+        markup (str): A string containing markdown.
+        code_theme (str, optional): Theme for code blocks. Defaults to "monokai".
+        justify (JustifyMethod, optional): Kept for Rich compatibility.
+        style (StyleType, optional): Base style for the whole document.
+        hyperlinks (bool, optional): Kept for Rich compatibility.
+        inline_code_lexer (str, optional): Kept for Rich compatibility.
+        inline_code_theme (str, optional): Kept for Rich compatibility.
     """
 
     def __init__(
         self,
         markup: str,
-        *,
         code_theme: str = "monokai",
-        justify: Optional[str] = None,
-        style: Optional[Union[str, Style]] = "none",
+        justify: Optional["JustifyMethod"] = None,
+        style: StyleType = "none",
         hyperlinks: bool = True,
         inline_code_lexer: Optional[str] = None,
         inline_code_theme: Optional[str] = None,
     ) -> None:
-        """Create Markdown renderer.
-        
-        Args:
-            markup: Markdown text.
-            code_theme: Theme for code blocks.
-            justify: Text justification.
-            style: Base style.
-            hyperlinks: Render hyperlinks.
-            inline_code_lexer: Lexer for inline code.
-            inline_code_theme: Theme for inline code.
-        """
         self.markup = markup
         self.code_theme = code_theme
         self.justify = justify
@@ -43,47 +44,18 @@ class Markdown:
         self.inline_code_lexer = inline_code_lexer
         self.inline_code_theme = inline_code_theme
 
-    def __str__(self) -> str:
-        """Render markdown as styled text."""
-        # Simple markdown rendering
-        lines = self.markup.split("\n")
-        result = []
-        
-        for line in lines:
-            # Headers
-            if line.startswith("# "):
-                result.append(f"\033[1m{line[2:]}\033[0m")
-            elif line.startswith("## "):
-                result.append(f"\033[1m{line[3:]}\033[0m")
-            elif line.startswith("### "):
-                result.append(f"\033[1m{line[4:]}\033[0m")
-            # Lists
-            elif line.startswith("- ") or line.startswith("* "):
-                result.append(f"  • {line[2:]}")
-            elif line.startswith("  - ") or line.startswith("  * "):
-                result.append(f"    ◦ {line[4:]}")
-            # Code blocks
-            elif line.startswith("```"):
-                result.append("─" * 40)
-            # Bold
-            elif "**" in line:
-                import re
-                line = re.sub(r'\*\*(.+?)\*\*', r'\033[1m\1\033[0m', line)
-                result.append(line)
-            # Italic
-            elif "*" in line or "_" in line:
-                import re
-                line = re.sub(r'\*(.+?)\*', r'\033[3m\1\033[0m', line)
-                line = re.sub(r'_(.+?)_', r'\033[3m\1\033[0m', line)
-                result.append(line)
-            else:
-                result.append(line)
-        
-        return "\n".join(result)
+    def __fast_rich__(self, console: "Console", options: "ConsoleOptions") -> tuple:
+        spec = ("markdown", self.markup)
+        style = console.get_style(self.style, default="none")
+        if style:
+            spec = ("styled", spec, _native.native_style(style))
+        return spec
 
-    def __rich_console__(self, console, options):
-        """Rich console protocol."""
-        yield str(self)
+    def __rich_console__(self, console, options):  # type: ignore[no-untyped-def]
+        yield from console.render(self, options)
+
+    def __rich_measure__(self, console, options):  # type: ignore[no-untyped-def]
+        return _native.measure(console, options, self)
 
 
 __all__ = ["Markdown"]

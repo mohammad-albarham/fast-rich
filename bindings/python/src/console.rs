@@ -62,7 +62,7 @@ impl PyConsole {
 
     /// Print a tree.
     fn print_tree(&self, tree: &PyTree) {
-        self.inner.print_renderable(&tree.inner);
+        self.inner.print_renderable(&tree.to_tree());
     }
 
     fn print_markdown(&self, markdown: &crate::markdown::PyMarkdown) {

@@ -1,350 +1,132 @@
-"""Spinner animations - matches rich.spinner API."""
+from typing import TYPE_CHECKING, List, Optional, Union, cast
 
-from __future__ import annotations
+from ._spinners import SPINNERS
+from .measure import Measurement
+from .table import Table
+from .text import Text
 
-import itertools
-import time
-from typing import Iterator, Optional, Union
-
-from fast_rich.style import Style
-from fast_rich.text import Text
-
-
-# Spinner frame definitions matching rich.spinner
-SPINNERS = {
-    "dots": {
-        "frames": ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"],
-        "interval": 80,
-    },
-    "dots2": {
-        "frames": ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"],
-        "interval": 80,
-    },
-    "dots3": {
-        "frames": ["⠋", "⠙", "⠚", "⠞", "⠖", "⠦", "⠴", "⠲", "⠳", "⠓"],
-        "interval": 80,
-    },
-    "line": {
-        "frames": ["-", "\\", "|", "/"],
-        "interval": 130,
-    },
-    "line2": {
-        "frames": ["⠂", "-", "–", "—", "–", "-"],
-        "interval": 100,
-    },
-    "pipe": {
-        "frames": ["┤", "┘", "┴", "└", "├", "┌", "┬", "┐"],
-        "interval": 100,
-    },
-    "simpleDots": {
-        "frames": [".  ", ".. ", "...", "   "],
-        "interval": 400,
-    },
-    "simpleDotsScrolling": {
-        "frames": [".  ", ".. ", "...", " ..", "  .", "   "],
-        "interval": 200,
-    },
-    "star": {
-        "frames": ["✶", "✸", "✹", "✺", "✹", "✷"],
-        "interval": 70,
-    },
-    "star2": {
-        "frames": ["+", "x", "*"],
-        "interval": 80,
-    },
-    "flip": {
-        "frames": ["_", "_", "_", "-", "`", "`", "'", "´", "-", "_", "_", "_"],
-        "interval": 70,
-    },
-    "hamburger": {
-        "frames": ["☱", "☲", "☴"],
-        "interval": 100,
-    },
-    "growVertical": {
-        "frames": ["▁", "▃", "▄", "▅", "▆", "▇", "▆", "▅", "▄", "▃"],
-        "interval": 120,
-    },
-    "growHorizontal": {
-        "frames": ["▏", "▎", "▍", "▌", "▋", "▊", "▉", "▊", "▋", "▌", "▍", "▎"],
-        "interval": 120,
-    },
-    "balloon": {
-        "frames": [" ", ".", "o", "O", "@", "*", " "],
-        "interval": 140,
-    },
-    "balloon2": {
-        "frames": [".", "o", "O", "°", "O", "o", "."],
-        "interval": 120,
-    },
-    "noise": {
-        "frames": ["▓", "▒", "░"],
-        "interval": 100,
-    },
-    "bounce": {
-        "frames": ["⠁", "⠂", "⠄", "⠂"],
-        "interval": 120,
-    },
-    "boxBounce": {
-        "frames": ["▖", "▘", "▝", "▗"],
-        "interval": 120,
-    },
-    "boxBounce2": {
-        "frames": ["▌", "▀", "▐", "▄"],
-        "interval": 100,
-    },
-    "triangle": {
-        "frames": ["◢", "◣", "◤", "◥"],
-        "interval": 50,
-    },
-    "arc": {
-        "frames": ["◜", "◠", "◝", "◞", "◡", "◟"],
-        "interval": 100,
-    },
-    "circle": {
-        "frames": ["◡", "⊙", "◠"],
-        "interval": 120,
-    },
-    "squareCorners": {
-        "frames": ["◰", "◳", "◲", "◱"],
-        "interval": 180,
-    },
-    "circleQuarters": {
-        "frames": ["◴", "◷", "◶", "◵"],
-        "interval": 120,
-    },
-    "circleHalves": {
-        "frames": ["◐", "◓", "◑", "◒"],
-        "interval": 50,
-    },
-    "squish": {
-        "frames": ["╫", "╪"],
-        "interval": 100,
-    },
-    "toggle": {
-        "frames": ["⊶", "⊷"],
-        "interval": 250,
-    },
-    "toggle2": {
-        "frames": ["▫", "▪"],
-        "interval": 80,
-    },
-    "toggle3": {
-        "frames": ["□", "■"],
-        "interval": 120,
-    },
-    "toggle4": {
-        "frames": ["■", "□", "▪", "▫"],
-        "interval": 100,
-    },
-    "toggle5": {
-        "frames": ["▮", "▯"],
-        "interval": 100,
-    },
-    "toggle6": {
-        "frames": ["ဝ", "၀"],
-        "interval": 300,
-    },
-    "toggle7": {
-        "frames": ["⦾", "⦿"],
-        "interval": 80,
-    },
-    "toggle8": {
-        "frames": ["◍", "◌"],
-        "interval": 100,
-    },
-    "toggle9": {
-        "frames": ["◉", "◎"],
-        "interval": 100,
-    },
-    "toggle10": {
-        "frames": ["㊂", "㊀", "㊁"],
-        "interval": 100,
-    },
-    "toggle11": {
-        "frames": ["⧇", "⧆"],
-        "interval": 50,
-    },
-    "toggle12": {
-        "frames": ["☗", "☖"],
-        "interval": 120,
-    },
-    "toggle13": {
-        "frames": ["=", "*", "-"],
-        "interval": 80,
-    },
-    "arrow": {
-        "frames": ["←", "↖", "↑", "↗", "→", "↘", "↓", "↙"],
-        "interval": 100,
-    },
-    "arrow2": {
-        "frames": ["⬆️ ", "↗️ ", "➡️ ", "↘️ ", "⬇️ ", "↙️ ", "⬅️ ", "↖️ "],
-        "interval": 80,
-    },
-    "arrow3": {
-        "frames": ["▹▹▹▹▹", "▸▹▹▹▹", "▹▸▹▹▹", "▹▹▸▹▹", "▹▹▹▸▹", "▹▹▹▹▸"],
-        "interval": 120,
-    },
-    "bouncingBar": {
-        "frames": [
-            "[    ]", "[=   ]", "[==  ]", "[=== ]", "[ ===]",
-            "[  ==]", "[   =]", "[    ]", "[   =]", "[  ==]",
-            "[ ===]", "[====]", "[=== ]", "[==  ]", "[=   ]",
-        ],
-        "interval": 80,
-    },
-    "bouncingBall": {
-        "frames": [
-            "( ●    )", "(  ●   )", "(   ●  )", "(    ● )",
-            "(     ●)", "(    ● )", "(   ●  )", "(  ●   )",
-            "( ●    )", "(●     )",
-        ],
-        "interval": 80,
-    },
-    "clock": {
-        "frames": ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"],
-        "interval": 100,
-    },
-    "earth": {
-        "frames": ["🌍", "🌎", "🌏"],
-        "interval": 180,
-    },
-    "moon": {
-        "frames": ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"],
-        "interval": 80,
-    },
-    "runner": {
-        "frames": ["🚶", "🏃"],
-        "interval": 140,
-    },
-    "pong": {
-        "frames": [
-            "▐⠂       ▌", "▐⠈       ▌", "▐ ⠂      ▌", "▐ ⠠      ▌",
-            "▐  ⡀     ▌", "▐  ⠠     ▌", "▐   ⠂    ▌", "▐   ⠈    ▌",
-            "▐    ⠂   ▌", "▐    ⠠   ▌", "▐     ⡀  ▌", "▐     ⠠  ▌",
-            "▐      ⠂ ▌", "▐      ⠈ ▌", "▐       ⠂▌", "▐       ⠠▌",
-            "▐       ⡀▌", "▐      ⠠ ▌", "▐      ⠂ ▌", "▐     ⠈  ▌",
-            "▐     ⠂  ▌", "▐    ⠠   ▌", "▐    ⡀   ▌", "▐   ⠠    ▌",
-            "▐   ⠂    ▌", "▐  ⠈     ▌", "▐  ⠂     ▌", "▐ ⠠      ▌",
-            "▐ ⡀      ▌", "▐⠠       ▌",
-        ],
-        "interval": 80,
-    },
-    "shark": {
-        "frames": [
-            "▐|\\____________▌", "▐_|\\___________▌", "▐__|\\__________▌",
-            "▐___|\\_________▌", "▐____|\\________▌", "▐_____|\\_______▌",
-            "▐______|\\______▌", "▐_______|\\_____▌", "▐________|\\____▌",
-            "▐_________|\\___▌", "▐__________|\\__▌", "▐___________|\\_▌",
-            "▐____________|\\▌", "▐____________/|▌", "▐___________/|_▌",
-            "▐__________/|__▌", "▐_________/|___▌", "▐________/|____▌",
-            "▐_______/|_____▌", "▐______/|______▌", "▐_____/|_______▌",
-            "▐____/|________▌", "▐___/|_________▌", "▐__/|__________▌",
-            "▐_/|___________▌", "▐/|____________▌",
-        ],
-        "interval": 120,
-    },
-    "dqpb": {
-        "frames": ["d", "q", "p", "b"],
-        "interval": 100,
-    },
-    "weather": {
-        "frames": ["☀️ ", "☀️ ", "☀️ ", "🌤 ", "⛅️", "🌥 ", "☁️ ", "🌧 ", "🌨 ", "🌧 ", "🌨 ", "🌧 ", "🌨 ", "⛈ ", "🌨 ", "🌧 ", "🌨 ", "☁️ ", "🌥 ", "⛅️", "🌤 ", "☀️ ", "☀️ "],
-        "interval": 100,
-    },
-    "christmas": {
-        "frames": ["🌲", "🎄"],
-        "interval": 400,
-    },
-    "grenade": {
-        "frames": ["،  ", "′  ", " ´ ", " ‾ ", "  ⸌", "  ⸊", "  |", "  ⁎", "  ⁕", " ෴ ", "  ⁂", "   ", "   ", "   "],
-        "interval": 80,
-    },
-    "point": {
-        "frames": ["∙∙∙", "●∙∙", "∙●∙", "∙∙●", "∙∙∙"],
-        "interval": 125,
-    },
-    "layer": {
-        "frames": ["-", "=", "≡"],
-        "interval": 150,
-    },
-}
+if TYPE_CHECKING:
+    from .console import Console, ConsoleOptions, RenderableType, RenderResult
+    from .style import StyleType
 
 
 class Spinner:
     """A spinner animation.
-    
-    Matches rich.spinner.Spinner API.
+
+    Args:
+        name (str): Name of spinner (run python -m rich.spinner).
+        text (RenderableType, optional): A renderable to display at the right of the spinner (str or Text typically). Defaults to "".
+        style (StyleType, optional): Style for spinner animation. Defaults to None.
+        speed (float, optional): Speed factor for animation. Defaults to 1.0.
+
+    Raises:
+        KeyError: If name isn't one of the supported spinner animations.
     """
 
     def __init__(
         self,
-        name: str = "dots",
-        text: Union[str, Text] = "",
+        name: str,
+        text: "RenderableType" = "",
         *,
-        style: Optional[Union[str, Style]] = None,
+        style: Optional["StyleType"] = None,
         speed: float = 1.0,
     ) -> None:
-        """Create a Spinner.
-        
-        Args:
-            name: Spinner name from SPINNERS.
-            text: Text to show after spinner.
-            style: Spinner style.
-            speed: Animation speed multiplier.
-        """
+        try:
+            spinner = SPINNERS[name]
+        except KeyError:
+            raise KeyError(f"no spinner called {name!r}")
+        self.text: "Union[RenderableType, Text]" = (
+            Text.from_markup(text) if isinstance(text, str) else text
+        )
         self.name = name
-        self.text = text
+        self.frames = cast(List[str], spinner["frames"])[:]
+        self.interval = cast(float, spinner["interval"])
+        self.start_time: Optional[float] = None
         self.style = style
         self.speed = speed
-        
-        spinner_def = SPINNERS.get(name, SPINNERS["dots"])
-        self.frames = spinner_def["frames"]
-        self.interval = spinner_def["interval"] / speed
-        
-        self._frame_iter = itertools.cycle(self.frames)
-        self._last_frame_time = 0.0
-        self._current_frame = next(self._frame_iter)
+        self.frame_no_offset: float = 0.0
+        self._update_speed = 0.0
 
-    def __str__(self) -> str:
-        """Get current frame."""
-        return f"{self._current_frame} {self.text}"
+    def __rich_console__(
+        self, console: "Console", options: "ConsoleOptions"
+    ) -> "RenderResult":
+        yield self.render(console.get_time())
 
-    @property
-    def frame(self) -> str:
-        """Get the current frame character."""
-        return self._current_frame
+    def __rich_measure__(
+        self, console: "Console", options: "ConsoleOptions"
+    ) -> Measurement:
+        text = self.render(0)
+        return Measurement.get(console, options, text)
 
-    def update(self) -> None:
-        """Advance to the next frame if enough time has passed."""
-        current_time = time.time() * 1000  # Convert to ms
-        if current_time - self._last_frame_time >= self.interval:
-            self._current_frame = next(self._frame_iter)
-            self._last_frame_time = current_time
+    def render(self, time: float) -> "RenderableType":
+        """Render the spinner for a given time.
 
-    def render(self, time_elapsed: float) -> Text:
-        """Render the spinner at a given time.
-        
         Args:
-            time_elapsed: Time in seconds since start.
-            
+            time (float): Time in seconds.
+
         Returns:
-            Text with current frame.
+            RenderableType: A renderable containing animation frame.
         """
-        frame_index = int(time_elapsed * 1000 / self.interval) % len(self.frames)
-        frame = self.frames[frame_index]
-        
-        result = Text(f"{frame} ")
-        if isinstance(self.text, Text):
-            result.append(self.text.plain)
+        if self.start_time is None:
+            self.start_time = time
+
+        frame_no = ((time - self.start_time) * self.speed) / (
+            self.interval / 1000.0
+        ) + self.frame_no_offset
+        frame = Text(
+            self.frames[int(frame_no) % len(self.frames)], style=self.style or ""
+        )
+
+        if self._update_speed:
+            self.frame_no_offset = frame_no
+            self.start_time = time
+            self.speed = self._update_speed
+            self._update_speed = 0.0
+
+        if not self.text:
+            return frame
+        elif isinstance(self.text, (str, Text)):
+            return Text.assemble(frame, " ", self.text)
         else:
-            result.append(str(self.text))
-        
-        return result
+            table = Table.grid(padding=1)
+            table.add_row(frame, self.text)
+            return table
 
-    def __rich_console__(self, console, options):
-        """Rich console protocol."""
-        self.update()
-        yield str(self)
+    def update(
+        self,
+        *,
+        text: "RenderableType" = "",
+        style: Optional["StyleType"] = None,
+        speed: Optional[float] = None,
+    ) -> None:
+        """Updates attributes of a spinner after it has been started.
+
+        Args:
+            text (RenderableType, optional): A renderable to display at the right of the spinner (str or Text typically). Defaults to "".
+            style (StyleType, optional): Style for spinner animation. Defaults to None.
+            speed (float, optional): Speed factor for animation. Defaults to None.
+        """
+        if text:
+            self.text = Text.from_markup(text) if isinstance(text, str) else text
+        if style:
+            self.style = style
+        if speed:
+            self._update_speed = speed
 
 
-__all__ = ["Spinner", "SPINNERS"]
+if __name__ == "__main__":  # pragma: no cover
+    from time import sleep
+
+    from .console import Group
+    from .live import Live
+
+    all_spinners = Group(
+        *[
+            Spinner(spinner_name, text=Text(repr(spinner_name), style="green"))
+            for spinner_name in sorted(SPINNERS.keys())
+        ]
+    )
+
+    with Live(all_spinners, refresh_per_second=20) as live:
+        while True:
+            sleep(0.1)

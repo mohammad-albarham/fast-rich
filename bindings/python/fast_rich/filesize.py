@@ -1,97 +1,88 @@
-"""File size formatting - matches rich._fileno_to_path/filesize API."""
+"""Functions for reporting filesizes. Borrowed from https://github.com/PyFilesystem/pyfilesystem2
 
-from __future__ import annotations
+The functions declared in this module should cover the different
+use cases needed to generate a string representation of a file size
+using several different units. Since there are many standards regarding
+file size units, three different functions have been implemented.
 
-from typing import Tuple
+See Also:
+    * `Wikipedia: Binary prefix <https://en.wikipedia.org/wiki/Binary_prefix>`_
 
+"""
 
-def decimal(size: int, *, precision: int = 1) -> str:
-    """Convert size to human readable format (decimal).
-    
-    Uses SI units (KB, MB, GB).
-    
-    Args:
-        size: Size in bytes.
-        precision: Decimal precision.
-        
-    Returns:
-        Human readable size string.
-    """
-    return _format_size(size, ("bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"), 1000, precision)
+__all__ = ["decimal"]
+
+from typing import Iterable, List, Optional, Tuple
 
 
-def traditional(size: int, *, precision: int = 1) -> str:
-    """Convert size to human readable format (binary).
-    
-    Uses binary units (KiB, MiB, GiB).
-    
-    Args:
-        size: Size in bytes.
-        precision: Decimal precision.
-        
-    Returns:
-        Human readable size string.
-    """
-    return _format_size(size, ("bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"), 1024, precision)
-
-
-def _format_size(
+def _to_str(
     size: int,
-    units: Tuple[str, ...],
+    suffixes: Iterable[str],
     base: int,
-    precision: int,
+    *,
+    precision: Optional[int] = 1,
+    separator: Optional[str] = " ",
 ) -> str:
-    """Format size with given units.
-    
-    Args:
-        size: Size in bytes.
-        units: Unit names.
-        base: Base (1000 or 1024).
-        precision: Decimal places.
-        
-    Returns:
-        Formatted size string.
-    """
-    if size < 0:
-        return f"-{_format_size(-size, units, base, precision)}"
-    
     if size == 1:
         return "1 byte"
-    if size < base:
-        return f"{size} {units[0]}"
-    
-    for unit in units[1:]:
-        size /= base
-        if abs(size) < base:
-            return f"{size:.{precision}f} {unit}"
-    
-    return f"{size:.{precision}f} {units[-1]}"
+    elif size < base:
+        return f"{size:,} bytes"
+
+    for i, suffix in enumerate(suffixes, 2):  # noqa: B007
+        unit = base**i
+        if size < unit:
+            break
+    return "{:,.{precision}f}{separator}{}".format(
+        (base * size / unit),
+        suffix,
+        precision=precision,
+        separator=separator,
+    )
 
 
-def pick_unit_and_suffix(
+def pick_unit_and_suffix(size: int, suffixes: List[str], base: int) -> Tuple[int, str]:
+    """Pick a suffix and base for the given size."""
+    for i, suffix in enumerate(suffixes):
+        unit = base**i
+        if size < unit * base:
+            break
+    return unit, suffix
+
+
+def decimal(
     size: int,
-    suffixes: Tuple[str, ...],
-    base: int,
-) -> Tuple[float, str]:
-    """Pick appropriate unit for size.
-    
-    Args:
-        size: Size in bytes.
-        suffixes: Unit suffixes.
-        base: Base (1000 or 1024).
-        
+    *,
+    precision: Optional[int] = 1,
+    separator: Optional[str] = " ",
+) -> str:
+    """Convert a filesize in to a string (powers of 1000, SI prefixes).
+
+    In this convention, ``1000 B = 1 kB``.
+
+    This is typically the format used to advertise the storage
+    capacity of USB flash drives and the like (*256 MB* meaning
+    actually a storage capacity of more than *256 000 000 B*),
+    or used by **Mac OS X** since v10.6 to report file sizes.
+
+    Arguments:
+        int (size): A file size.
+        int (precision): The number of decimal places to include (default = 1).
+        str (separator): The string to separate the value from the units (default = " ").
+
     Returns:
-        Tuple of (value, suffix).
+        `str`: A string containing a abbreviated file size and units.
+
+    Example:
+        >>> filesize.decimal(30000)
+        '30.0 kB'
+        >>> filesize.decimal(30000, precision=2, separator="")
+        '30.00kB'
+
     """
-    if size == 0:
-        return 0, suffixes[0]
-    
-    for suffix in suffixes[:-1]:
-        if abs(size) < base:
-            return size, suffix
-        size /= base
-    
-    return size, suffixes[-1]
-
-
-__all__ = ["decimal", "traditional", "pick_unit_and_suffix"]
+    return _to_str(
+        size,
+        ("kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"),
+        1000,
+        precision=precision,
+        separator=separator,
+    )

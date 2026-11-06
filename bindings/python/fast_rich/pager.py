@@ -1,70 +1,34 @@
-"""Pager support - matches rich.pager API."""
-
-from __future__ import annotations
-
-import os
-import subprocess
-import sys
-from typing import Optional
+from abc import ABC, abstractmethod
+from typing import Any
 
 
-class Pager:
-    """A pager for displaying long content.
-    
-    Matches rich.pager.Pager API.
-    """
+class Pager(ABC):
+    """Base class for a pager."""
 
-    def __init__(self, command: Optional[str] = None) -> None:
-        """Create Pager.
-        
-        Args:
-            command: Pager command (default: uses PAGER env or less/more).
-        """
-        self.command = command
-
-    def _get_pager_command(self) -> str:
-        """Get the pager command to use."""
-        if self.command:
-            return self.command
-        
-        pager = os.environ.get("PAGER", "")
-        if pager:
-            return pager
-        
-        # Try common pagers
-        for cmd in ["less", "more"]:
-            try:
-                subprocess.run([cmd, "--version"], capture_output=True)
-                return cmd
-            except FileNotFoundError:
-                continue
-        
-        return "cat"
-
+    @abstractmethod
     def show(self, content: str) -> None:
         """Show content in pager.
-        
+
         Args:
-            content: Content to display.
+            content (str): Content to be displayed.
         """
-        pager_cmd = self._get_pager_command()
-        
-        try:
-            process = subprocess.Popen(
-                pager_cmd,
-                shell=True,
-                stdin=subprocess.PIPE,
-                text=True,
-            )
-            process.communicate(input=content)
-        except Exception:
-            # Fallback to print
-            print(content)
 
 
 class SystemPager(Pager):
-    """System pager using PAGER environment variable."""
-    pass
+    """Uses the pager installed on the system."""
+
+    def _pager(self, content: str) -> Any:  #  pragma: no cover
+        return __import__("pydoc").pager(content)
+
+    def show(self, content: str) -> None:
+        """Use the same pager used by pydoc."""
+        self._pager(content)
 
 
-__all__ = ["Pager", "SystemPager"]
+if __name__ == "__main__":  # pragma: no cover
+    from .__main__ import make_test_card
+    from .console import Console
+
+    console = Console()
+    with console.pager(styles=True):
+        console.print(make_test_card())

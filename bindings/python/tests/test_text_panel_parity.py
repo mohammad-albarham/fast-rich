@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+from _render import render
+
 
 class TestTextParity:
     """Test Text parity between fast_rich and rich."""
@@ -64,7 +66,7 @@ class TestPanelParity:
         from fast_rich.panel import Panel
 
         panel = Panel("Content")
-        output = str(panel)
+        output = render(panel)
         assert "Content" in output
 
     def test_panel_with_title(self):
@@ -72,7 +74,7 @@ class TestPanelParity:
         from fast_rich.panel import Panel
 
         panel = Panel("Content", title="My Panel")
-        output = str(panel)
+        output = render(panel)
         assert "Content" in output
         assert "My Panel" in output
 
@@ -92,7 +94,7 @@ class TestRuleParity:
         from fast_rich.rule import Rule
 
         rule = Rule()
-        output = str(rule)
+        output = render(rule)
         assert "─" in output
 
     def test_rule_with_title(self):
@@ -100,7 +102,7 @@ class TestRuleParity:
         from fast_rich.rule import Rule
 
         rule = Rule("Title")
-        output = str(rule)
+        output = render(rule)
         assert "Title" in output
 
 
@@ -113,8 +115,8 @@ class TestStyleParity:
 
         style = Style.parse("bold red on blue")
         assert style.bold is True
-        assert style.color == "red"
-        assert style.bgcolor == "blue"
+        assert style.color.name == "red"
+        assert style.bgcolor.name == "blue"
 
     def test_style_combination(self):
         """Test style combination with +."""
@@ -125,7 +127,7 @@ class TestStyleParity:
         combined = s1 + s2
 
         assert combined.bold is True
-        assert combined.color == "red"
+        assert combined.color.name == "red"
 
     def test_style_str(self):
         """Test style string representation."""

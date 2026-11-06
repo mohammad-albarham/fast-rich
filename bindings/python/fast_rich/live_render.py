@@ -1,71 +1,116 @@
-"""Live render support - matches rich.live_render API."""
+from typing import Literal, Optional, Tuple
 
-from __future__ import annotations
+from ._loop import loop_last
+from .console import Console, ConsoleOptions, RenderableType, RenderResult
+from .control import Control
+from .segment import ControlType, Segment
+from .style import StyleType
+from .text import Text
 
-from typing import Any, Optional
-
-from fast_rich.console import Console
-from fast_rich.control import Control
+VerticalOverflowMethod = Literal["crop", "ellipsis", "visible"]
 
 
 class LiveRender:
-    """Renders a renderable that may change.
-    
-    Matches rich.live_render.LiveRender API.
+    """Creates a renderable that may be updated.
+
+    Args:
+        renderable (RenderableType): Any renderable object.
+        style (StyleType, optional): An optional style to apply to the renderable. Defaults to "".
     """
 
     def __init__(
         self,
-        renderable: Any = "",
-        *,
-        style: Optional[str] = None,
+        renderable: RenderableType,
+        style: StyleType = "",
+        vertical_overflow: VerticalOverflowMethod = "ellipsis",
     ) -> None:
-        """Create LiveRender.
-        
-        Args:
-            renderable: Content to render.
-            style: Style to apply.
-        """
-        self._renderable = renderable
+        self.renderable = renderable
         self.style = style
-        self._shape: tuple = (0, 0)
+        self.vertical_overflow = vertical_overflow
+        self._shape: Optional[Tuple[int, int]] = None
 
     @property
-    def renderable(self) -> Any:
-        """Get current renderable."""
-        return self._renderable
+    def last_render_height(self) -> int:
+        """The number of lines in the last render (may be 0 if nothing was rendered).
 
-    @renderable.setter
-    def renderable(self, new_renderable: Any) -> None:
-        """Set new renderable."""
-        self._renderable = new_renderable
-
-    def set_renderable(self, renderable: Any) -> None:
-        """Set the renderable.
-        
-        Args:
-            renderable: New renderable.
+        Returns:
+            Height in lines
         """
-        self._renderable = renderable
+        if self._shape is None:
+            return 0
+        return self._shape[1]
 
-    @property
-    def position_cursor(self) -> str:
-        """Get cursor positioning control."""
-        height = self._shape[1]
-        if height > 0:
-            return f"\x1b[{height}A"
-        return ""
+    def set_renderable(self, renderable: RenderableType) -> None:
+        """Set a new renderable.
 
-    def __str__(self) -> str:
-        """Render as string."""
-        return str(self._renderable)
+        Args:
+            renderable (RenderableType): Any renderable object, including str.
+        """
+        self.renderable = renderable
 
-    def __rich_console__(self, console, options):
-        """Rich console protocol."""
-        # Move cursor up if needed
-        if self._shape[1] > 0:
-            yield Control.cursor_up(self._shape[1])
-        yield str(self._renderable)
+    def position_cursor(self) -> Control:
+        """Get control codes to move cursor to beginning of live render.
 
+        Returns:
+            Control: A control instance that may be printed.
+        """
+        if self._shape is not None:
+            _, height = self._shape
+            return Control(
+                ControlType.CARRIAGE_RETURN,
+                (ControlType.ERASE_IN_LINE, 2),
+                *(
+                    (
+                        (ControlType.CURSOR_UP, 1),
+                        (ControlType.ERASE_IN_LINE, 2),
+                    )
+                    * (height - 1)
+                )
+            )
+        return Control()
 
-__all__ = ["LiveRender"]
+    def restore_cursor(self) -> Control:
+        """Get control codes to clear the render and restore the cursor to its previous position.
+
+        Returns:
+            Control: A Control instance that may be printed.
+        """
+        if self._shape is not None:
+            _, height = self._shape
+            return Control(
+                ControlType.CARRIAGE_RETURN,
+                *((ControlType.CURSOR_UP, 1), (ControlType.ERASE_IN_LINE, 2)) * height
+            )
+        return Control()
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        renderable = self.renderable
+        style = console.get_style(self.style)
+        lines = console.render_lines(renderable, options, style=style, pad=False)
+        shape = Segment.get_shape(lines)
+
+        _, height = shape
+        if height > options.size.height:
+            if self.vertical_overflow == "crop":
+                lines = lines[: options.size.height]
+                shape = Segment.get_shape(lines)
+            elif self.vertical_overflow == "ellipsis":
+                lines = lines[: (options.size.height - 1)]
+                overflow_text = Text(
+                    "...",
+                    overflow="crop",
+                    justify="center",
+                    end="",
+                    style="live.ellipsis",
+                )
+                lines.append(list(console.render(overflow_text)))
+                shape = Segment.get_shape(lines)
+        self._shape = shape
+
+        new_line = Segment.line()
+        for last, line in loop_last(lines):
+            yield from line
+            if not last:
+                yield new_line

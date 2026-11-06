@@ -1,54 +1,41 @@
-"""Rich protocol - matches rich.protocol API."""
+from typing import Any, cast, Set, TYPE_CHECKING
 
-from __future__ import annotations
+if TYPE_CHECKING:
+    from fast_rich.console import RenderableType
 
-from typing import Any, Callable, Union
+_GIBBERISH = """aihwerij235234ljsdnp34ksodfipwoe234234jlskjdf"""
 
 
-def is_renderable(obj: Any) -> bool:
-    """Check if object is renderable.
-    
-    Args:
-        obj: Object to check.
-        
-    Returns:
-        True if renderable.
-    """
+def is_renderable(check_object: Any) -> bool:
+    """Check if an object may be rendered by Rich."""
     return (
-        hasattr(obj, "__rich__")
-        or hasattr(obj, "__rich_console__")
-        or isinstance(obj, str)
+        isinstance(check_object, str)
+        or hasattr(check_object, "__rich__")
+        or hasattr(check_object, "__rich_console__")
     )
 
 
-def rich_cast(obj: Any) -> Any:
-    """Cast object to a Rich renderable.
-    
+def rich_cast(renderable: object) -> "RenderableType":
+    """Cast an object to a renderable by calling __rich__ if present.
+
     Args:
-        obj: Object to cast.
-        
+        renderable (object): A potentially renderable object
+
     Returns:
-        Renderable object.
+        object: The result of recursively calling __rich__.
     """
-    if hasattr(obj, "__rich__"):
-        return obj.__rich__()
-    return obj
+    from fast_rich.console import RenderableType
 
+    rich_visited_set: Set[type] = set()  # Prevent potential infinite loop
+    while hasattr(renderable, "__rich__") and not isinstance(renderable, type):
+        # Detect object which claim to have all the attributes
+        if hasattr(renderable, _GIBBERISH):
+            return repr(renderable)
+        cast_method = getattr(renderable, "__rich__")
+        renderable = cast_method()
+        renderable_type = type(renderable)
+        if renderable_type in rich_visited_set:
+            break
+        rich_visited_set.add(renderable_type)
 
-def rich_repr_result(*, angular: bool = False) -> Callable:
-    """Decorator for rich repr results."""
-    def decorator(func: Callable) -> Callable:
-        func._rich_repr_angular = angular
-        return func
-    return decorator
-
-
-class RichRenderable:
-    """Base class for Rich renderables."""
-    
-    def __rich_console__(self, console: Any, options: Any) -> Any:
-        """Override in subclass."""
-        raise NotImplementedError
-
-
-__all__ = ["is_renderable", "rich_cast", "rich_repr_result", "RichRenderable"]
+    return cast(RenderableType, renderable)

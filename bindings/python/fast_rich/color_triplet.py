@@ -1,39 +1,38 @@
-"""Color triplet - matches rich.color_triplet API."""
-
-from __future__ import annotations
-
 from typing import NamedTuple, Tuple
 
 
 class ColorTriplet(NamedTuple):
-    """An RGB color triplet.
-    
-    Matches rich.color_triplet.ColorTriplet API.
-    """
+    """The red, green, and blue components of a color."""
 
     red: int
+    """Red component in 0 to 255 range."""
     green: int
+    """Green component in 0 to 255 range."""
     blue: int
+    """Blue component in 0 to 255 range."""
 
     @property
     def hex(self) -> str:
-        """Get hex representation."""
-        return f"#{self.red:02x}{self.green:02x}{self.blue:02x}"
+        """get the color triplet in CSS style."""
+        red, green, blue = self
+        return f"#{red:02x}{green:02x}{blue:02x}"
 
     @property
     def rgb(self) -> str:
-        """Get RGB string."""
-        return f"rgb({self.red},{self.green},{self.blue})"
+        """The color in RGB format.
+
+        Returns:
+            str: An rgb color, e.g. ``"rgb(100,23,255)"``.
+        """
+        red, green, blue = self
+        return f"rgb({red},{green},{blue})"
 
     @property
     def normalized(self) -> Tuple[float, float, float]:
-        """Get normalized RGB (0-1)."""
-        return (self.red / 255, self.green / 255, self.blue / 255)
+        """Convert components into floats between 0 and 1.
 
-    def __rich_repr__(self):
-        yield self.red
-        yield self.green
-        yield self.blue
-
-
-__all__ = ["ColorTriplet"]
+        Returns:
+            Tuple[float, float, float]: A tuple of three normalized colour components.
+        """
+        red, green, blue = self
+        return red / 255.0, green / 255.0, blue / 255.0

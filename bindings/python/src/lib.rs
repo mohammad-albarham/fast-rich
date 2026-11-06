@@ -1,4 +1,6 @@
+mod bridge;
 mod console;
+mod render;
 mod style;
 mod table;
 
@@ -50,12 +52,13 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<crate::prompt::PyPrompt>()?;
     m.add_class::<crate::prompt::PyConfirm>()?;
     m.add_class::<crate::prompt::PyIntPrompt>()?;
-    m.add_class::<crate::prompt::PyIntPrompt>()?;
     m.add_class::<crate::layout::PyLayout>()?;
     m.add_class::<crate::live::PyLive>()?;
     m.add_class::<crate::align::PyAlign>()?;
 
     // Functions
+    m.add_function(wrap_pyfunction!(render::render, m)?)?;
+    m.add_function(wrap_pyfunction!(render::measure, m)?)?;
     m.add_function(wrap_pyfunction!(filesize::decimal, m)?)?;
     m.add_function(wrap_pyfunction!(filesize::binary, m)?)?;
     m.add_function(wrap_pyfunction!(inspect::inspect, m)?)?;

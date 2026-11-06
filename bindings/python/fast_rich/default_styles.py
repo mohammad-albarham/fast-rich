@@ -1,170 +1,196 @@
-"""Default styles - matches rich.default_styles API."""
-
-from __future__ import annotations
-
 from typing import Dict
 
-from fast_rich.style import Style
+from .style import Style
 
-
-# Default style definitions matching rich.default_styles
-DEFAULT_STYLES: Dict[str, str] = {
-    # General
-    "none": "",
-    "reset": "",
-    "dim": "dim",
-    "bright": "bright",
-    "bold": "bold",
-    "italic": "italic",
-    "underline": "underline",
-    "blink": "blink",
-    "blink2": "blink",
-    "reverse": "reverse",
-    "conceal": "conceal",
-    "strike": "strike",
-    
-    # Console
-    "repr.indent": "dim green",
-    "repr.str": "green",
-    "repr.brace": "bold",
-    "repr.comma": "bold",
-    "repr.ipv4": "bright green",
-    "repr.ipv6": "bright green",
-    "repr.eui48": "bright green",
-    "repr.eui64": "bright green",
-    "repr.tag_start": "bold",
-    "repr.tag_name": "bright magenta",
-    "repr.tag_contents": "",
-    "repr.tag_end": "bold",
-    "repr.attrib_name": "yellow",
-    "repr.attrib_equal": "bold",
-    "repr.attrib_value": "magenta",
-    "repr.number": "cyan bold",
-    "repr.number_complex": "cyan bold",
-    "repr.bool_true": "bright green italic",
-    "repr.bool_false": "bright red italic",
-    "repr.none": "bright magenta italic",
-    "repr.url": "underline bright blue",
-    "repr.uuid": "bright yellow",
-    "repr.call": "cyan bold",
-    "repr.path": "magenta",
-    "repr.filename": "bright magenta",
-    "repr.ellipsis": "yellow",
-    
-    # Rule
-    "rule.line": "bright green",
-    "rule.text": "bright green",
-    
-    # JSON
-    "json.brace": "bold",
-    "json.bracket": "bold",
-    "json.colon": "bold",
-    "json.comma": "bold",
-    "json.key": "cyan bold",
-    "json.null": "bright magenta italic",
-    "json.bool_true": "bright green italic",
-    "json.bool_false": "bright red italic",
-    "json.str": "green",
-    "json.number": "cyan bold",
-    
-    # Markdown
-    "markdown.h1": "bold underline",
-    "markdown.h2": "bold",
-    "markdown.h3": "bold dim",
-    "markdown.h4": "italic",
-    "markdown.h5": "italic dim",
-    "markdown.h6": "italic dim",
-    "markdown.bold": "bold",
-    "markdown.italic": "italic",
-    "markdown.bold_italic": "bold italic",
-    "markdown.code": "cyan",
-    "markdown.code_block": "",
-    "markdown.block_quote": "magenta",
-    "markdown.list": "cyan",
-    "markdown.link": "bright blue underline",
-    "markdown.link_url": "blue underline",
-    "markdown.hr": "yellow",
-    
-    # Logging
-    "logging.level.notset": "dim",
-    "logging.level.debug": "bright blue",
-    "logging.level.info": "bright green",
-    "logging.level.warning": "bright yellow",
-    "logging.level.error": "bright red",
-    "logging.level.critical": "bold bright red",
-    
-    # Progress
-    "bar.back": "grey23",
-    "bar.complete": "bright_green",
-    "bar.finished": "bright_green",
-    "bar.pulse": "bright_yellow",
-    "progress.description": "none",
-    "progress.filesize": "green",
-    "progress.filesize.total": "green",
-    "progress.download": "green",
-    "progress.elapsed": "yellow",
-    "progress.percentage": "magenta",
-    "progress.remaining": "cyan",
-    "progress.data.speed": "red",
-    "progress.spinner": "green",
-    
-    # Table
-    "table.header": "bold",
-    "table.footer": "bold",
-    "table.cell": "",
-    "table.row_odd": "",
-    "table.row_even": "",
-    "table.title": "italic",
-    "table.caption": "dim italic",
-    
-    # Tree
-    "tree": "",
-    "tree.line": "bright_blue",
-    
-    # Traceback
-    "traceback.border": "red",
-    "traceback.border.syntax_error": "bright_red",
-    "traceback.text": "",
-    "traceback.title": "bold red",
-    "traceback.error": "bright_red",
-    "traceback.exc_type": "bright_red",
-    
-    # Inspect
-    "inspect.attr": "yellow",
-    "inspect.attr.dunder": "yellow dim",
-    "inspect.callable": "bold cyan",
-    "inspect.async_def": "cyan italic",
-    "inspect.def": "cyan",
-    "inspect.class": "bold cyan",
-    "inspect.error": "bold red",
-    "inspect.equals": "",
-    "inspect.doc": "",
-    "inspect.value.border": "green",
-    
-    # Status
-    "status.spinner": "green",
-    
-    # Prompt
-    "prompt": "bold",
-    "prompt.choices": "dim",
-    "prompt.default": "dim italic",
-    "prompt.invalid": "prompt.invalid",
-    
-    # Scope
-    "scope.border": "cyan",
-    "scope.key": "yellow italic",
-    "scope.key.special": "yellow italic dim",
-    "scope.equals": "cyan",
+DEFAULT_STYLES: Dict[str, Style] = {
+    "none": Style.null(),
+    "reset": Style(
+        color="default",
+        bgcolor="default",
+        dim=False,
+        bold=False,
+        italic=False,
+        underline=False,
+        blink=False,
+        blink2=False,
+        reverse=False,
+        conceal=False,
+        strike=False,
+    ),
+    "dim": Style(dim=True),
+    "bright": Style(dim=False),
+    "bold": Style(bold=True),
+    "strong": Style(bold=True),
+    "code": Style(reverse=True, bold=True),
+    "italic": Style(italic=True),
+    "emphasize": Style(italic=True),
+    "underline": Style(underline=True),
+    "blink": Style(blink=True),
+    "blink2": Style(blink2=True),
+    "reverse": Style(reverse=True),
+    "strike": Style(strike=True),
+    "black": Style(color="black"),
+    "red": Style(color="red"),
+    "green": Style(color="green"),
+    "yellow": Style(color="yellow"),
+    "magenta": Style(color="magenta"),
+    "cyan": Style(color="cyan"),
+    "white": Style(color="white"),
+    "inspect.attr": Style(color="yellow", italic=True),
+    "inspect.attr.dunder": Style(color="yellow", italic=True, dim=True),
+    "inspect.callable": Style(bold=True, color="red"),
+    "inspect.async_def": Style(italic=True, color="bright_cyan"),
+    "inspect.def": Style(italic=True, color="bright_cyan"),
+    "inspect.class": Style(italic=True, color="bright_cyan"),
+    "inspect.error": Style(bold=True, color="red"),
+    "inspect.equals": Style(),
+    "inspect.help": Style(color="cyan"),
+    "inspect.doc": Style(dim=True),
+    "inspect.value.border": Style(color="green"),
+    "live.ellipsis": Style(bold=True, color="red"),
+    "layout.tree.row": Style(dim=False, color="red"),
+    "layout.tree.column": Style(dim=False, color="blue"),
+    "logging.keyword": Style(bold=True, color="yellow"),
+    "logging.level.notset": Style(dim=True),
+    "logging.level.debug": Style(color="green"),
+    "logging.level.info": Style(color="blue"),
+    "logging.level.warning": Style(color="yellow"),
+    "logging.level.error": Style(color="red", bold=True),
+    "logging.level.critical": Style(color="red", bold=True, reverse=True),
+    "log.level": Style.null(),
+    "log.time": Style(color="cyan", dim=True),
+    "log.message": Style.null(),
+    "log.path": Style(dim=True),
+    "repr.ellipsis": Style(color="yellow"),
+    "repr.indent": Style(color="green", dim=True),
+    "repr.error": Style(color="red", bold=True),
+    "repr.str": Style(color="green", italic=False, bold=False),
+    "repr.brace": Style(bold=True),
+    "repr.comma": Style(bold=True),
+    "repr.ipv4": Style(bold=True, color="bright_green"),
+    "repr.ipv6": Style(bold=True, color="bright_green"),
+    "repr.eui48": Style(bold=True, color="bright_green"),
+    "repr.eui64": Style(bold=True, color="bright_green"),
+    "repr.tag_start": Style(bold=True),
+    "repr.tag_name": Style(color="bright_magenta", bold=True),
+    "repr.tag_contents": Style(color="default"),
+    "repr.tag_end": Style(bold=True),
+    "repr.attrib_name": Style(color="yellow", italic=False),
+    "repr.attrib_equal": Style(bold=True),
+    "repr.attrib_value": Style(color="magenta", italic=False),
+    "repr.number": Style(color="cyan", bold=True, italic=False),
+    "repr.number_complex": Style(color="cyan", bold=True, italic=False),  # same
+    "repr.bool_true": Style(color="bright_green", italic=True),
+    "repr.bool_false": Style(color="bright_red", italic=True),
+    "repr.none": Style(color="magenta", italic=True),
+    "repr.url": Style(underline=True, color="bright_blue", italic=False, bold=False),
+    "repr.uuid": Style(color="bright_yellow", bold=False),
+    "repr.call": Style(color="magenta", bold=True),
+    "repr.path": Style(color="magenta"),
+    "repr.filename": Style(color="bright_magenta"),
+    "rule.line": Style(color="bright_green"),
+    "rule.text": Style.null(),
+    "json.brace": Style(bold=True),
+    "json.bool_true": Style(color="bright_green", italic=True),
+    "json.bool_false": Style(color="bright_red", italic=True),
+    "json.null": Style(color="magenta", italic=True),
+    "json.number": Style(color="cyan", bold=True, italic=False),
+    "json.str": Style(color="green", italic=False, bold=False),
+    "json.key": Style(color="blue", bold=True),
+    "prompt": Style.null(),
+    "prompt.choices": Style(color="magenta", bold=True),
+    "prompt.default": Style(color="cyan", bold=True),
+    "prompt.invalid": Style(color="red"),
+    "prompt.invalid.choice": Style(color="red"),
+    "pretty": Style.null(),
+    "scope.border": Style(color="blue"),
+    "scope.key": Style(color="yellow", italic=True),
+    "scope.key.special": Style(color="yellow", italic=True, dim=True),
+    "scope.equals": Style(color="red"),
+    "table.header": Style(bold=True),
+    "table.footer": Style(bold=True),
+    "table.cell": Style.null(),
+    "table.title": Style(italic=True),
+    "table.caption": Style(italic=True, dim=True),
+    "traceback.error": Style(color="red", italic=True),
+    "traceback.border.syntax_error": Style(color="bright_red"),
+    "traceback.border": Style(color="red"),
+    "traceback.text": Style.null(),
+    "traceback.title": Style(color="red", bold=True),
+    "traceback.exc_type": Style(color="bright_red", bold=True),
+    "traceback.exc_value": Style.null(),
+    "traceback.offset": Style(color="bright_red", bold=True),
+    "traceback.error_range": Style(underline=True, bold=True),
+    "traceback.note": Style(color="green", bold=True),
+    "traceback.group.border": Style(color="magenta"),
+    "bar.back": Style(color="grey23"),
+    "bar.complete": Style(color="rgb(249,38,114)"),
+    "bar.finished": Style(color="rgb(114,156,31)"),
+    "bar.pulse": Style(color="rgb(249,38,114)"),
+    "progress.description": Style.null(),
+    "progress.filesize": Style(color="green"),
+    "progress.filesize.total": Style(color="green"),
+    "progress.download": Style(color="green"),
+    "progress.elapsed": Style(color="yellow"),
+    "progress.percentage": Style(color="magenta"),
+    "progress.remaining": Style(color="cyan"),
+    "progress.data.speed": Style(color="red"),
+    "progress.spinner": Style(color="green"),
+    "status.spinner": Style(color="green"),
+    "tree": Style(),
+    "tree.line": Style(),
+    "markdown.paragraph": Style(),
+    "markdown.text": Style(),
+    "markdown.em": Style(italic=True),
+    "markdown.emph": Style(italic=True),  # For commonmark backwards compatibility
+    "markdown.strong": Style(bold=True),
+    "markdown.code": Style(bold=True, color="cyan", bgcolor="black"),
+    "markdown.code_block": Style(color="cyan", bgcolor="black"),
+    "markdown.block_quote": Style(color="magenta"),
+    "markdown.list": Style(color="cyan"),
+    "markdown.item": Style(),
+    "markdown.item.bullet": Style(bold=True),
+    "markdown.item.number": Style(color="cyan"),
+    "markdown.hr": Style(dim=True),
+    "markdown.h1.border": Style(),
+    "markdown.h1": Style(bold=True, underline=True),
+    "markdown.h2": Style(color="magenta", underline=True),
+    "markdown.h3": Style(color="magenta", bold=True),
+    "markdown.h4": Style(color="magenta", italic=True),
+    "markdown.h5": Style(italic=True),
+    "markdown.h6": Style(dim=True),
+    "markdown.h7": Style(italic=True, dim=True),
+    "markdown.link": Style(color="bright_blue"),
+    "markdown.link_url": Style(color="blue", underline=True),
+    "markdown.s": Style(strike=True),
+    "markdown.table.border": Style(color="cyan"),
+    "markdown.table.header": Style(color="cyan", bold=False),
+    "markdown.kbd": Style(bold=True, color="bright_yellow"),
+    "iso8601.date": Style(color="blue"),
+    "iso8601.time": Style(color="magenta"),
+    "iso8601.timezone": Style(color="yellow"),
 }
 
 
-def get_default_styles() -> Dict[str, Style]:
-    """Get dictionary of default styles.
-    
-    Returns:
-        Dictionary of style name to Style.
-    """
-    return {name: Style.parse(definition) for name, definition in DEFAULT_STYLES.items()}
+if __name__ == "__main__":  # pragma: no cover
+    import argparse
+    import io
 
+    from fast_rich.console import Console
+    from fast_rich.table import Table
+    from fast_rich.text import Text
 
-__all__ = ["DEFAULT_STYLES", "get_default_styles"]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--html", action="store_true", help="Export as HTML table")
+    args = parser.parse_args()
+    html: bool = args.html
+    console = Console(record=True, width=70, file=io.StringIO()) if html else Console()
+
+    table = Table("Name", "Styling")
+
+    for style_name, style in DEFAULT_STYLES.items():
+        table.add_row(Text(style_name, style=style), str(style))
+
+    console.print(table)
+    if html:
+        print(console.export_html(inline_styles=True))

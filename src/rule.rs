@@ -4,17 +4,19 @@
 //! a centered title.
 
 use crate::console::RenderContext;
-use crate::renderable::{Renderable, Segment};
+use crate::renderable::{line_width, Renderable, Segment};
 use crate::style::Style;
-use crate::text::Span;
+use crate::text::{Alignment, Overflow, Span, Text};
+use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 /// A horizontal rule/line.
 #[derive(Debug, Clone)]
 pub struct Rule {
-    /// Optional title in the center
-    title: Option<String>,
-    /// Character to use for the line
-    character: char,
+    /// Optional title (markup parsed)
+    title: Option<Text>,
+    /// Characters repeated to draw the line
+    characters: String,
     /// Style for the rule
     style: Style,
     /// Style for the title
@@ -37,9 +39,9 @@ impl Rule {
             title: if title.is_empty() {
                 None
             } else {
-                Some(title.to_string())
+                Some(crate::markup::parse(title))
             },
-            character: '─',
+            characters: "─".to_string(),
             style: Style::new(),
             title_style: Style::new(),
             align: crate::text::Alignment::Center,
@@ -50,7 +52,7 @@ impl Rule {
     pub fn line() -> Self {
         Rule {
             title: None,
-            character: '─',
+            characters: "─".to_string(),
             style: Style::new(),
             title_style: Style::new(),
             align: crate::text::Alignment::Center,
@@ -59,7 +61,26 @@ impl Rule {
 
     /// Set the character used for the line.
     pub fn character(mut self, c: char) -> Self {
-        self.character = c;
+        self.characters = c.to_string();
+        self
+    }
+
+    /// Use a string of one or more characters for the line (Rich's
+    /// `characters`), repeated and cut to the width.
+    pub fn characters(mut self, characters: &str) -> Self {
+        if !characters.is_empty() {
+            self.characters = characters.to_string();
+        }
+        self
+    }
+
+    /// Use styled text as the title (markup already parsed).
+    pub fn title_text(mut self, title: Text) -> Self {
+        self.title = if title.plain_text().is_empty() {
+            None
+        } else {
+            Some(title)
+        };
         self
     }
 
@@ -88,64 +109,96 @@ impl Default for Rule {
     }
 }
 
+/// `characters` repeated to cover exactly `width` cells.
+fn repeat_to_width(characters: &str, width: usize) -> String {
+    let chars_len = UnicodeWidthStr::width(characters).max(1);
+    let repeated = characters.repeat(width / chars_len + 1);
+    set_cell_size(&repeated, width)
+}
+
+/// Crop or pad `s` to exactly `width` cells (Rich's `set_cell_size`).
+fn set_cell_size(s: &str, width: usize) -> String {
+    let mut out = String::new();
+    let mut used = 0;
+    for g in s.graphemes(true) {
+        let w = UnicodeWidthStr::width(g);
+        if used + w > width {
+            break;
+        }
+        used += w;
+        out.push_str(g);
+    }
+    out.push_str(&" ".repeat(width - used));
+    out
+}
+
 impl Renderable for Rule {
+    /// Rich's `Rule.__rich_console__`.
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
         let width = context.width;
+        let line = |n: usize| Span::styled(repeat_to_width(&self.characters, n), self.style);
+        let title = match &self.title {
+            Some(t) => t,
+            None => return vec![Segment::line(vec![line(width)])],
+        };
+        let required = if self.align == Alignment::Center {
+            4
+        } else {
+            2
+        };
+        let truncate_width = width.saturating_sub(required);
+        if truncate_width == 0 {
+            return vec![Segment::line(vec![line(width)])];
+        }
 
-        match &self.title {
-            None => {
-                // Simple line. `repeat` counts chars, not columns — divide by
-                // the character's display width so wide characters don't
-                // overflow the terminal.
-                let char_width = unicode_width::UnicodeWidthChar::width(self.character)
-                    .unwrap_or(1)
-                    .max(1);
-                let count = width / char_width;
-                let line = self.character.to_string().repeat(count);
-                vec![Segment::new(vec![Span::styled(line, self.style)])]
+        // Title on one line, cut with an ellipsis to fit.
+        let mut title = title.clone();
+        for span in &mut title.spans {
+            if span.text.contains('\n') {
+                span.text = span.text.replace('\n', " ").into();
             }
-            Some(title) => {
-                // Parse markup in the title
-                let title_text = crate::markup::parse(title);
-                let title_spans = title_text.spans;
+            span.style = self.title_style.combine(&span.style);
+        }
+        title.overflow = Overflow::Ellipsis;
+        let title_spans: Vec<Span> = title
+            .wrap(truncate_width)
+            .into_iter()
+            .next()
+            .unwrap_or_default();
+        let title_width = line_width(&title_spans);
 
-                // Calculate width of parsed title
-                let title_content: String = title_spans.iter().map(|s| s.text.as_ref()).collect();
-                let title_with_spacing = format!(" {} ", title_content);
-                let title_width =
-                    unicode_width::UnicodeWidthStr::width(title_with_spacing.as_str());
-
-                if title_width >= width {
-                    // Title is too long, just show title with markup
-                    return vec![Segment::new(title_spans)];
-                }
-
-                let remaining = width - title_width;
-
-                let (left_len, right_len) = match self.align {
-                    crate::text::Alignment::Left => (4.min(remaining), remaining.saturating_sub(4)),
-                    crate::text::Alignment::Center => {
-                        let left = remaining / 2;
-                        (left, remaining - left)
-                    }
-                    crate::text::Alignment::Right => {
-                        (remaining.saturating_sub(4), 4.min(remaining))
-                    }
-                };
-
-                let left_line = self.character.to_string().repeat(left_len);
-                let right_line = self.character.to_string().repeat(right_len);
-
-                let mut spans = Vec::new();
-                spans.push(Span::styled(left_line, self.style));
-                spans.push(Span::raw(" "));
+        let mut spans = Vec::new();
+        match self.align {
+            Alignment::Center => {
+                let side = (width - title_width) / 2;
+                let left = repeat_to_width(&self.characters, side.saturating_sub(1));
+                let right_len =
+                    width.saturating_sub(UnicodeWidthStr::width(left.as_str()) + title_width);
+                spans.push(Span::styled(format!("{left} "), self.style));
+                spans.extend(title_spans);
+                let right = repeat_to_width(&self.characters, right_len.saturating_sub(1));
+                spans.push(Span::styled(format!(" {right}"), self.style));
+            }
+            Alignment::Left => {
                 spans.extend(title_spans);
                 spans.push(Span::raw(" "));
-                spans.push(Span::styled(right_line, self.style));
-
-                vec![Segment::new(spans)]
+                spans.push(line(width.saturating_sub(title_width + 1)));
+            }
+            Alignment::Right => {
+                spans.push(line(width.saturating_sub(title_width + 1)));
+                spans.push(Span::raw(" "));
+                spans.extend(title_spans);
             }
         }
+        vec![Segment::line(crate::renderable::fit_line(
+            spans,
+            width,
+            Style::new(),
+        ))]
+    }
+
+    fn min_width(&self) -> usize {
+        1
     }
 }
 
@@ -188,5 +241,39 @@ mod tests {
         };
         let segments = rule.render(&context);
         assert_eq!(segments[0].plain_text(), "=====");
+    }
+
+    #[test]
+    fn test_matches_rich() {
+        let render = |rule: Rule| {
+            let context = RenderContext {
+                width: 20,
+                height: None,
+            };
+            let segs = rule.render(&context);
+            assert!(
+                segs.iter().all(|s| s.newline),
+                "rule lines end with a newline"
+            );
+            segs.iter().map(|s| s.plain_text()).collect::<String>()
+        };
+        assert_eq!(render(Rule::line()), "────────────────────");
+        assert_eq!(render(Rule::new("Title")), "────── Title ───────");
+        assert_eq!(
+            render(Rule::new("Left").align(Alignment::Left)),
+            "Left ───────────────"
+        );
+        assert_eq!(
+            render(Rule::new("R").align(Alignment::Right)),
+            "────────────────── R"
+        );
+        assert_eq!(
+            render(Rule::new("T").characters("=-")),
+            "=-=-=-=- T =-=-=-=-="
+        );
+        assert_eq!(
+            render(Rule::new("a very long title that will not fit")),
+            "─ a very long tit… ─"
+        );
     }
 }

@@ -114,6 +114,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Row::end_section`, `Column::no_wrap`, `Column::overflow`. Without a
   border (`show_border(false)`) columns are separated by padding only, like
   Rich's `box=None`.
+- **Rule**: ends with a newline (the next print no longer joins its line);
+  layout ports Rich's algorithm — left/right titles sit at the edge, long
+  titles are cut with `…`; new `characters` (multi-character patterns like
+  `"=-"`) and `title_text` (styled title).
 - **Layout widgets follow Rich**: `Align` aligns multi-line content as one
   block (`Align::new` added); `Padding` renders its child at the inner
   width and pads every line (new `expand`, default true, and `style`);

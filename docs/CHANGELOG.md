@@ -102,6 +102,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `style`), `padding_spec` (four sides). Fit width and title placement now
   follow Rich's algorithm exactly (`╭─ Title ─╮`), and `Panel` reports its
   measured width.
+- **Table**: column widths now use Rich's algorithm (natural widths, shrink
+  the widest wrapping columns first, then even reduction; `expand` spreads
+  spare space, by `Column::ratio` when set) — layouts match Rich 15 exactly
+  in `tests/table_rich_parity.rs`. Cells can be any renderable
+  (`table::Cell`, `Row::cells`, `Table::add_row_renderables`); headers can
+  be styled text or renderables (`Column::header_text`,
+  `Column::header_renderable`). New: `caption` (+ style/align), title
+  style/alignment (`title_text`, default italic like Rich), `show_edge`,
+  `width`, `min_width`, `row_styles`, table-level `header_style`,
+  `Row::end_section`, `Column::no_wrap`, `Column::overflow`. Without a
+  border (`show_border(false)`) columns are separated by padding only, like
+  Rich's `box=None`.
+- **Text**: `Overflow::WrapEllipsis` / `Overflow::WrapCrop` — wrap at words
+  and cut only over-long words (Rich's `overflow="ellipsis"`/`"crop"`).
 - **Renderable**: `render_lines`, `segments_to_lines`, `fit_line`,
   `line_width` helpers and the `SharedRenderable` alias; `Text` measures its
   widest line as its natural width (was the sum of all lines).

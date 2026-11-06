@@ -220,6 +220,10 @@ pub fn render_lines(
     width: usize,
     pad_style: crate::style::Style,
 ) -> Vec<Vec<Span>> {
+    // Like Rich's Console.render: no space, nothing to render.
+    if width == 0 {
+        return Vec::new();
+    }
     let context = RenderContext {
         width,
         height: None,

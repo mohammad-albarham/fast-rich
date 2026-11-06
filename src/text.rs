@@ -88,6 +88,12 @@ pub enum Overflow {
     Truncate,
     /// Allow overflow
     Visible,
+    /// Wrap at word boundaries; a word longer than the width is cut with
+    /// an ellipsis instead of folded (Rich's `overflow="ellipsis"`)
+    WrapEllipsis,
+    /// Wrap at word boundaries; a word longer than the width is cropped
+    /// (Rich's `overflow="crop"`)
+    WrapCrop,
 }
 
 /// A text container with multiple styled spans.
@@ -208,7 +214,12 @@ impl Text {
                 .collect(),
             Overflow::Wrap => logical_lines
                 .into_iter()
-                .flat_map(|line| wrap_line(&line, width))
+                .flat_map(|line| wrap_line(&line, width, true))
+                .collect(),
+            Overflow::WrapEllipsis | Overflow::WrapCrop => logical_lines
+                .into_iter()
+                .flat_map(|line| wrap_line(&line, width, false))
+                .map(|line| truncate_line(&line, width, self.overflow == Overflow::WrapEllipsis))
                 .collect(),
         }
     }
@@ -408,7 +419,10 @@ fn truncate_line(line: &[Span], width: usize, ellipsis: bool) -> Vec<Span> {
 /// Words are kept intact when possible, whitespace runs between words are
 /// preserved, and a line never exceeds `max_width` display columns. Adjacent
 /// fragments sharing the same style are merged into one span.
-fn wrap_line(line: &[Span], max_width: usize) -> Vec<Vec<Span>> {
+/// Word-wrap one logical line. With `fold`, words wider than `max_width`
+/// are broken across lines; without it they stay whole on their own line
+/// (the caller truncates them).
+fn wrap_line(line: &[Span], max_width: usize, fold: bool) -> Vec<Vec<Span>> {
     let mut lines: Vec<Vec<Span>> = Vec::new();
     let mut current_line: Vec<Span> = Vec::new();
     let mut current_width = 0usize;
@@ -439,7 +453,16 @@ fn wrap_line(line: &[Span], max_width: usize) -> Vec<Vec<Span>> {
                 Token::Word(word) => {
                     let word_width = UnicodeWidthStr::width(word);
 
-                    if word_width > max_width {
+                    if word_width > max_width && !fold {
+                        // Too long for any line: give it a line of its own.
+                        if current_width > 0 {
+                            lines.push(std::mem::take(&mut current_line));
+                        }
+                        pending_spaces = None;
+                        push_fragment(&mut current_line, word, span.style, span.link.as_deref());
+                        lines.push(std::mem::take(&mut current_line));
+                        current_width = 0;
+                    } else if word_width > max_width {
                         // Word is too long for any line: start fresh, then break it.
                         if current_width > 0 {
                             lines.push(std::mem::take(&mut current_line));

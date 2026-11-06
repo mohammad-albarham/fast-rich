@@ -3,7 +3,8 @@
 //! Adds configurable padding (spaces) around any renderable content.
 
 use crate::console::RenderContext;
-use crate::renderable::{BoxedRenderable, Renderable, Segment};
+use crate::renderable::{render_lines, BoxedRenderable, Renderable, Segment};
+use crate::style::Style;
 use crate::text::Span;
 
 /// Padding specification.
@@ -60,6 +61,8 @@ impl PaddingSpec {
 pub struct Padding {
     child: BoxedRenderable,
     spec: PaddingSpec,
+    expand: bool,
+    style: Style,
 }
 
 impl Padding {
@@ -68,7 +71,21 @@ impl Padding {
         Padding {
             child: Box::new(child),
             spec,
+            expand: true,
+            style: Style::new(),
         }
+    }
+
+    /// Fill the available width (default, like Rich) or fit the child.
+    pub fn expand(mut self, expand: bool) -> Self {
+        self.expand = expand;
+        self
+    }
+
+    /// Style for the padding area (Rich's `Padding(style=...)`).
+    pub fn style(mut self, style: Style) -> Self {
+        self.style = style;
+        self
     }
 
     /// Create padding with all sides equal.
@@ -87,70 +104,49 @@ impl Padding {
 }
 
 impl Renderable for Padding {
+    /// Rich's `Padding`: the child is rendered at the width left after the
+    /// left/right padding and every line is padded to the full width.
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
-        // Calculate available width for child after horizontal padding
-        let child_width = context
-            .width
-            .saturating_sub(self.spec.left + self.spec.right);
-        let child_context = RenderContext {
-            width: child_width,
-            height: None,
+        let horizontal = self.spec.left + self.spec.right;
+        let width = if self.expand {
+            context.width
+        } else {
+            self.child
+                .max_width()
+                .saturating_add(horizontal)
+                .min(context.width)
         };
-
-        // Render child
-        let child_segments = self.child.render(&child_context);
-
+        let child_width = width.saturating_sub(horizontal);
+        let blank = || Segment::line(vec![Span::styled(" ".repeat(width), self.style)]);
         let mut result = Vec::new();
-
-        // Top padding (empty lines)
-        for _ in 0..self.spec.top {
-            result.push(Segment::line(vec![Span::raw(" ".repeat(context.width))]));
-        }
-
-        // Lines are padded to the widest child line so the right padding
-        // sits at a consistent column (the "column edge") instead of
-        // following ragged content.
-        let content_width = child_segments
-            .iter()
-            .map(|seg| seg.spans.iter().map(|s| s.width()).sum::<usize>())
-            .max()
-            .unwrap_or(0);
-
-        // Add left/right padding to each child segment
-        for segment in child_segments {
-            let mut padded_spans = Vec::new();
-
-            // Left padding
+        result.extend((0..self.spec.top).map(|_| blank()));
+        for line in render_lines(&*self.child, child_width, self.style) {
+            let mut spans = Vec::with_capacity(line.len() + 2);
             if self.spec.left > 0 {
-                padded_spans.push(Span::raw(" ".repeat(self.spec.left)));
+                spans.push(Span::styled(" ".repeat(self.spec.left), self.style));
             }
-
-            // Child content
-            padded_spans.extend(segment.spans.clone());
-
-            // Right padding, filling out to the column edge
-            let line_width: usize = segment.spans.iter().map(|s| s.width()).sum();
-            let right_pad = content_width.saturating_sub(line_width) + self.spec.right;
-            if right_pad > 0 {
-                padded_spans.push(Span::raw(" ".repeat(right_pad)));
+            spans.extend(line);
+            if self.spec.right > 0 {
+                spans.push(Span::styled(" ".repeat(self.spec.right), self.style));
             }
-
-            if segment.newline {
-                result.push(Segment::line(padded_spans));
-            } else {
-                result.push(Segment::new(padded_spans));
-            }
+            result.push(Segment::line(spans));
         }
-
-        // Bottom padding (empty lines)
-        for _ in 0..self.spec.bottom {
-            result.push(Segment::line(vec![Span::raw(" ".repeat(context.width))]));
-        }
-
+        result.extend((0..self.spec.bottom).map(|_| blank()));
         result
     }
-}
 
+    fn min_width(&self) -> usize {
+        self.child
+            .min_width()
+            .saturating_add(self.spec.left + self.spec.right)
+    }
+
+    fn max_width(&self) -> usize {
+        self.child
+            .max_width()
+            .saturating_add(self.spec.left + self.spec.right)
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;

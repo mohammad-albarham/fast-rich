@@ -904,7 +904,11 @@ fn ratio_reduce(
 
 /// Split `total` in proportion to `ratios` (each at least its minimum) —
 /// Rich's `_ratio.ratio_distribute`.
-fn ratio_distribute(total: usize, ratios: &[usize], minimums: Option<&[usize]>) -> Vec<usize> {
+pub(crate) fn ratio_distribute(
+    total: usize,
+    ratios: &[usize],
+    minimums: Option<&[usize]>,
+) -> Vec<usize> {
     let ratios: Vec<usize> = match minimums {
         Some(mins) => ratios
             .iter()

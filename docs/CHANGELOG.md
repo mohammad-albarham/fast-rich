@@ -114,6 +114,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Row::end_section`, `Column::no_wrap`, `Column::overflow`. Without a
   border (`show_border(false)`) columns are separated by padding only, like
   Rich's `box=None`.
+- **Layout widgets follow Rich**: `Align` aligns multi-line content as one
+  block (`Align::new` added); `Padding` renders its child at the inner
+  width and pads every line (new `expand`, default true, and `style`);
+  new `constrain::Constrain` caps a renderable's width; `Columns` uses
+  Rich's column-count search, accepts any renderables
+  (`Columns::renderables`) and gains `column_first`, `right_to_left`,
+  `align`, `width`. Columns defaults now match Rich (`Fit` mode, gap 1, no
+  expand). All report measured widths.
 - **Tree**: labels can be any renderable (`TreeNode::renderable`); rendering
   follows Rich's algorithm — labels wrap at the width left after the guides
   with `│   ` continuation lines, `hide_root` drops the root's guide level,

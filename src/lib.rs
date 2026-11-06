@@ -100,6 +100,7 @@ pub mod align;
 pub mod bar;
 pub mod box_drawing;
 pub mod console;
+pub mod constrain;
 pub mod emoji;
 pub mod group;
 #[cfg(feature = "json")]
@@ -147,6 +148,7 @@ pub mod syntax;
 pub use align::{Align, VerticalAlignment};
 pub use bar::BarChart;
 pub use console::Console;
+pub use constrain::Constrain;
 pub use group::RenderGroup;
 pub use layout::{Direction, Layout};
 pub use live::Live;

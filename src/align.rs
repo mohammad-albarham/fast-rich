@@ -1,7 +1,8 @@
 //! Alignment wrapper for renderables.
 
 use crate::console::RenderContext;
-use crate::renderable::{BoxedRenderable, Renderable, Segment};
+use crate::renderable::{render_lines, BoxedRenderable, Renderable, Segment};
+use crate::style::Style;
 use crate::text::{Alignment, Span};
 
 /// Vertical alignment options.
@@ -34,6 +35,17 @@ impl Align {
     }
 
     /// Create a new left-aligned wrapper.
+    /// Align `child` with the given horizontal alignment.
+    pub fn new(child: impl Renderable + Send + Sync + 'static, align: Alignment) -> Self {
+        Align {
+            child: Box::new(child),
+            align,
+            vertical: VerticalAlignment::Top,
+            height: None,
+            pad: true,
+        }
+    }
+
     pub fn left(child: impl Renderable + Send + Sync + 'static) -> Self {
         Align {
             child: Box::new(child),
@@ -80,89 +92,55 @@ impl Align {
 }
 
 impl Renderable for Align {
+    /// Rich's `Align`: the child is rendered as a block at its natural
+    /// width (capped by the available width), every line padded to the
+    /// block width, then the block is placed left/center/right.
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
-        let segments = self.child.render(context);
         let width = context.width;
-        let mut aligned_segments = Vec::with_capacity(segments.len());
-
-        for segment in segments {
-            let mut line = segment.spans.clone();
-            let line_width: usize = line.iter().map(|s| s.width()).sum();
-
-            if line_width < width {
-                let padding = width - line_width;
-                match self.align {
-                    Alignment::Left => {
-                        if self.pad {
-                            line.push(Span::raw(" ".repeat(padding)));
-                        }
-                    }
-                    Alignment::Right => {
-                        let mut new_line = vec![Span::raw(" ".repeat(padding))];
-                        new_line.extend(line);
-                        line = new_line;
-                    }
-                    Alignment::Center => {
-                        let left_pad = padding / 2;
-                        let right_pad = padding - left_pad;
-                        let mut new_line = vec![Span::raw(" ".repeat(left_pad))];
-                        new_line.extend(line);
-                        if self.pad {
-                            new_line.push(Span::raw(" ".repeat(right_pad)));
-                        }
-                        line = new_line;
-                    }
-                }
-            }
-
-            // Reconstruct segment
-            if segment.newline {
-                aligned_segments.push(Segment::line(line));
-            } else {
-                aligned_segments.push(Segment::new(line));
-            }
+        let block_width = self.child.max_width().min(width);
+        let mut lines = render_lines(&*self.child, block_width, Style::new());
+        if let Some(target) = self.height {
+            let blank = || vec![Span::raw(" ".repeat(block_width))];
+            let diff = target.saturating_sub(lines.len());
+            let top = match self.vertical {
+                VerticalAlignment::Top => 0,
+                VerticalAlignment::Middle => diff / 2,
+                VerticalAlignment::Bottom => diff,
+            };
+            let mut shaped = Vec::with_capacity(lines.len() + diff);
+            shaped.extend((0..top).map(|_| blank()));
+            shaped.append(&mut lines);
+            shaped.extend((0..diff - top).map(|_| blank()));
+            lines = shaped;
         }
-
-        // Handle vertical alignment if height is set (TODO: Context height?)
-        // For now only if explicit height is set.
-        if let Some(target_height) = self.height {
-            let current_height = aligned_segments.len();
-            if current_height < target_height {
-                let diff = target_height - current_height;
-                match self.vertical {
-                    VerticalAlignment::Top => {
-                        // Add empty lines at bottom
-                        for _ in 0..diff {
-                            aligned_segments
-                                .push(Segment::line(vec![Span::raw(" ".repeat(width))]));
-                        }
-                    }
-                    VerticalAlignment::Bottom => {
-                        let mut new_segments = Vec::with_capacity(target_height);
-                        for _ in 0..diff {
-                            new_segments.push(Segment::line(vec![Span::raw(" ".repeat(width))]));
-                        }
-                        new_segments.extend(aligned_segments);
-                        aligned_segments = new_segments;
-                    }
-                    VerticalAlignment::Middle => {
-                        let top_pad = diff / 2;
-                        let bottom_pad = diff - top_pad;
-                        let mut new_segments = Vec::with_capacity(target_height);
-                        for _ in 0..top_pad {
-                            new_segments.push(Segment::line(vec![Span::raw(" ".repeat(width))]));
-                        }
-                        new_segments.extend(aligned_segments);
-                        for _ in 0..bottom_pad {
-                            new_segments.push(Segment::line(vec![Span::raw(" ".repeat(width))]));
-                        }
-                        aligned_segments = new_segments;
-                    }
+        let excess = width.saturating_sub(block_width);
+        let (left, right) = match self.align {
+            Alignment::Left => (0, if self.pad { excess } else { 0 }),
+            Alignment::Center => (excess / 2, if self.pad { excess - excess / 2 } else { 0 }),
+            Alignment::Right => (excess, 0),
+        };
+        lines
+            .into_iter()
+            .map(|line| {
+                let mut spans = Vec::with_capacity(line.len() + 2);
+                if left > 0 {
+                    spans.push(Span::raw(" ".repeat(left)));
                 }
-            }
-        }
+                spans.extend(line);
+                if right > 0 {
+                    spans.push(Span::raw(" ".repeat(right)));
+                }
+                Segment::line(spans)
+            })
+            .collect()
+    }
 
-        aligned_segments
+    fn min_width(&self) -> usize {
+        self.child.min_width()
+    }
+
+    fn max_width(&self) -> usize {
+        self.child.max_width()
     }
 }
 

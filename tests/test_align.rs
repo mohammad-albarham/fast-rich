@@ -63,3 +63,35 @@ fn test_vertical_alignment() {
     // Should have more segments due to vertical padding
     assert!(segments.len() >= 3); // empty lines + content + empty lines
 }
+
+fn plain(r: &dyn fast_rich::renderable::Renderable, width: usize) -> String {
+    fast_rich::renderable::render_lines(r, width, fast_rich::style::Style::new())
+        .iter()
+        .map(|l| l.iter().map(|s| s.text.as_ref()).collect::<String>())
+        .map(|l| l.trim_end().to_string())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[test]
+fn test_align_matches_rich() {
+    use fast_rich::constrain::Constrain;
+    use fast_rich::padding::{Padding, PaddingSpec};
+    use fast_rich::panel::Panel;
+    use fast_rich::text::Text;
+
+    // Multi-line content is aligned as one block, like Rich.
+    let centered = Align::center(Panel::new("hi\nthere"));
+    assert_eq!(
+        plain(&centered, 30),
+        "          ╭───────╮\n          │ hi    │\n          │ there │\n          ╰───────╯"
+    );
+    assert_eq!(
+        plain(&Align::right(Text::plain("end")), 30),
+        format!("{}end", " ".repeat(27))
+    );
+    let padded = Padding::new(Text::plain("abc def"), PaddingSpec::symmetric(1, 2));
+    assert_eq!(plain(&padded, 12), "\n  abc def\n");
+    let constrained = Constrain::new(Text::plain("aaa bbb ccc ddd"), Some(8));
+    assert_eq!(plain(&constrained, 30), "aaa bbb\nccc ddd");
+}

@@ -1,0 +1,57 @@
+# Run the fast-rich feature test (bindings/python/docker/feature_test.py) on
+# Windows against the published PyPI wheels, with real `rich` as reference.
+# Linux runs the same test in Docker: bindings/python/docker/test-features.sh
+
+name: Python feature test (Windows)
+
+on:
+  push:
+    branches: [py-release]
+    paths:
+      - bindings/python/docker/feature_test.py
+      - .github/workflows/python-features.yml
+  workflow_dispatch:
+    inputs:
+      version:
+        description: fast-rich version to install from PyPI
+        default: "0.3.2"
+
+permissions:
+  contents: read
+
+jobs:
+  features:
+    name: windows / py${{ matrix.python }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.14"]
+    env:
+      FAST_RICH_VERSION: ${{ inputs.version || '0.3.2' }}
+      PYTHONUTF8: "1"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Remove Rust toolchain
+        run: |
+          rm -rf "$HOME/.cargo" "$HOME/.rustup"
+          for tool in cargo rustc rustup; do
+            while p=$(command -v "$tool"); do echo "removing $p"; rm -f "$p"; hash -r; done
+          done
+      - name: Install fast-rich (PyPI) and reference rich
+        run: python -m pip install --no-cache-dir "fast-rich==${FAST_RICH_VERSION}" rich==15.0.0
+      - name: Feature test
+        run: |
+          cd "$RUNNER_TEMP"
+          TEST_IMAGE="windows-latest" python "$GITHUB_WORKSPACE/bindings/python/docker/feature_test.py" \
+            --timeout 60 --json "$RUNNER_TEMP/windows-py${{ matrix.python }}-pipe.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: features-windows-py${{ matrix.python }}
+          path: ${{ runner.temp }}/windows-py${{ matrix.python }}-pipe.json

@@ -1,0 +1,82 @@
+site_name: fast_rich
+site_description: A drop-in replacement for Python Rich with Rust performance
+site_url: https://mohammad-albarham.github.io/fast-rich 
+repo_url: https://github.com/mohammad-albarham/fast-rich
+repo_name: mohammad-albarham/fast-rich
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Migration from Rich: getting-started/migration.md
+    - Verification: getting-started/verification.md
+  - Components:
+    - Console: components/console.md
+    - Table: components/table.md
+    - Text & Style: components/text.md
+    - Panel: components/panel.md
+    - Progress: components/progress.md
+    - Tree: components/tree.md
+    - Markdown: components/markdown.md
+    - Syntax: components/syntax.md
+    - More Components: components/more.md
+  - Performance:
+    - Benchmarks: benchmarks.md
+  - API Reference:
+    - Overview: api/index.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/mohammad-albarham/fast-rich

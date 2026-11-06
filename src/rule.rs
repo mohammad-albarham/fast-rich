@@ -27,7 +27,7 @@ pub struct Rule {
 
 /// Alignment for the rule title.
 ///
-/// Deprecated alias of [`Alignment`](crate::text::Alignment) — use that
+/// Deprecated alias of [`Alignment`] — use that
 /// instead; the four alignment enums are being consolidated.
 #[deprecated(since = "0.3.3", note = "use `fast_rich::text::Alignment` instead")]
 pub type RuleAlign = crate::text::Alignment;

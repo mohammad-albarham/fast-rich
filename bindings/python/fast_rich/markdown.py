@@ -19,9 +19,11 @@ class Markdown(JupyterMixin):
     Args:
         markup (str): A string containing markdown.
         code_theme (str, optional): Theme for code blocks. Defaults to "monokai".
-        justify (JustifyMethod, optional): Kept for Rich compatibility.
+        justify (JustifyMethod, optional): Paragraph alignment ("full" is
+            treated as "left").
         style (StyleType, optional): Base style for the whole document.
-        hyperlinks (bool, optional): Kept for Rich compatibility.
+        hyperlinks (bool, optional): Clickable links; when False links print
+            as ``text (url)``.
         inline_code_lexer (str, optional): Kept for Rich compatibility.
         inline_code_theme (str, optional): Kept for Rich compatibility.
     """
@@ -45,7 +47,15 @@ class Markdown(JupyterMixin):
         self.inline_code_theme = inline_code_theme
 
     def __fast_rich__(self, console: "Console", options: "ConsoleOptions") -> tuple:
-        spec = ("markdown", self.markup)
+        spec = (
+            "markdown",
+            self.markup,
+            dict(
+                code_theme=self.code_theme if isinstance(self.code_theme, str) else "monokai",
+                hyperlinks=self.hyperlinks,
+                justify=self.justify if self.justify in ("left", "center", "right") else "left",
+            ),
+        )
         style = console.get_style(self.style, default="none")
         if style:
             spec = ("styled", spec, _native.native_style(style))

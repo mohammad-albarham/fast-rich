@@ -336,6 +336,12 @@ impl Syntax {
         (lines, theme_bg, theme_fg)
     }
 
+    /// Highlighted code lines (no gutter) and the theme background.
+    pub(crate) fn highlighted_lines(&self) -> (Vec<Vec<Span>>, Option<Color>) {
+        let (lines, bg, _) = self.highlight();
+        (lines, bg)
+    }
+
     /// Width of the line-number column, as in Rich's
     /// `Syntax._numbers_column_width` (0 without line numbers).
     fn numbers_column_width(&self) -> usize {

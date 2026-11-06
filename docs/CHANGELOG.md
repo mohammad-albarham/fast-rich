@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Text**: wrapping keeps trailing whitespace that fits the width, like
   Rich (`"Q? "` keeps its space; `"hello world"` at width 6 wraps to
   `"hello "` / `"world"`), instead of always dropping it.
+- **Markdown (breaking layout change)**: rendering is a port of Rich's
+  `rich.markdown` — centred `h1`, ` • ` bullets and right-aligned ` 1 `
+  numbers, `▌ ` quotes, code blocks highlighted with one cell of
+  background padding (no panel unless `code_block_panel`), tables in
+  Rich's SIMPLE box, `-` rules, Rich's default styles and Rich's spacing
+  between blocks. Plain text output matches Rich 15 on the test document.
+  Fixes a paragraph losing its wrapped lines. `MarkdownConfig` gains
+  `strike_style`, `hr_style`, `table_border_style`, `table_header_style`,
+  `hyperlinks` and `justify`.
 - **Syntax**: `Theme::Monokai` named a theme syntect doesn't ship, so it fell
   back to a light theme (white background). Monokai is now built in with
   Pygments' monokai colours; across Python/Rust/JS/JSON samples only

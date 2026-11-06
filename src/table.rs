@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 /// Column alignment.
 ///
-/// Deprecated alias of [`Alignment`](crate::text::Alignment) — use that
+/// Deprecated alias of [`Alignment`] — use that
 /// instead; the four alignment enums are being consolidated.
 #[deprecated(since = "0.3.3", note = "use `fast_rich::text::Alignment` instead")]
 pub type ColumnAlign = crate::text::Alignment;

@@ -16,7 +16,7 @@ use fast_rich::box_drawing::{BoxStyle, Line};
 use fast_rich::columns::{ColumnMode, Columns};
 use fast_rich::console::RenderContext;
 use fast_rich::constrain::Constrain;
-use fast_rich::markdown::Markdown;
+use fast_rich::markdown::{Markdown, MarkdownConfig};
 use fast_rich::padding::{Padding, PaddingSpec};
 use fast_rich::panel::{BorderStyle, Panel};
 use fast_rich::renderable::{segments_to_lines, Renderable, Segment, SharedRenderable};
@@ -107,6 +107,17 @@ pub fn style_to_string(st: &Style) -> String {
         parts.push(format!("on {}", color_name(bg)));
     }
     parts.join(" ")
+}
+
+/// Theme name (Rich/Pygments style) -> one of the bundled themes.
+fn syntax_theme(name: &str) -> SyntaxTheme {
+    match name.to_lowercase().as_str() {
+        "github" | "github-dark" | "inspiredgithub" | "default" => SyntaxTheme::InspiredGitHub,
+        "solarized-dark" => SyntaxTheme::SolarizedDark,
+        "solarized-light" => SyntaxTheme::SolarizedLight,
+        "ocean" | "base16-ocean.dark" => SyntaxTheme::Base16OceanDark,
+        _ => SyntaxTheme::Monokai,
+    }
 }
 
 fn kind_err(kind: &str) -> PyErr {
@@ -597,20 +608,22 @@ pub fn build(py: Python<'_>, spec: &Bound<'_, PyAny>, console: &Py<PyAny>) -> Py
         }
         "markdown" => {
             let source: String = t.get_item(1)?.extract()?;
-            Arc::new(Markdown::new(&source))
+            let opts = t.get_item(2)?;
+            let opts = opts.downcast::<PyDict>()?;
+            let config = MarkdownConfig {
+                syntax_theme: syntax_theme(&get::<String>(opts, "code_theme", "monokai".into())?),
+                hyperlinks: get(opts, "hyperlinks", true)?,
+                justify: alignment(&get::<String>(opts, "justify", "left".into())?),
+                ..MarkdownConfig::default()
+            };
+            Arc::new(Markdown::new(&source).config(config))
         }
         "syntax" => {
             let code: String = t.get_item(1)?.extract()?;
             let lexer: String = t.get_item(2)?.extract()?;
             let opts = t.get_item(3)?;
             let opts = opts.downcast::<PyDict>()?;
-            let theme = match get::<String>(opts, "theme", "monokai".into())?.as_str() {
-                "github" | "github-dark" | "inspiredgithub" | "default" => SyntaxTheme::InspiredGitHub,
-                "solarized-dark" => SyntaxTheme::SolarizedDark,
-                "solarized-light" => SyntaxTheme::SolarizedLight,
-                "ocean" | "base16-ocean.dark" => SyntaxTheme::Base16OceanDark,
-                _ => SyntaxTheme::Monokai,
-            };
+            let theme = syntax_theme(&get::<String>(opts, "theme", "monokai".into())?);
             let config = SyntaxConfig {
                 line_numbers: get(opts, "line_numbers", false)?,
                 panel: false,

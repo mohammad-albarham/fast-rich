@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-06
+
 ### Fixed
 - **Text**: wrapping keeps trailing whitespace that fits the width, like
   Rich (`"Q? "` keeps its space; `"hello world"` at width 6 wraps to

@@ -188,8 +188,12 @@ impl Syntax {
         let syntax_set = SYNTAX_SET.get_or_init(SyntaxSet::load_defaults_newlines);
         let theme_set = THEME_SET.get_or_init(ThemeSet::load_defaults);
 
+        // `find_syntax_by_token` matches extensions and (case-insensitive)
+        // names, so both "py" and "python"/"Python" work, like Pygments
+        // lexer names in Rich.
         let syntax = syntax_set
             .find_syntax_by_extension(&self.language)
+            .or_else(|| syntax_set.find_syntax_by_token(&self.language))
             .or_else(|| syntax_set.find_syntax_by_name(&self.language))
             .unwrap_or_else(|| syntax_set.find_syntax_plain_text());
 
@@ -395,5 +399,25 @@ mod tests {
         let segments = syntax.render(&context);
 
         assert!(!segments.is_empty());
+    }
+
+    #[test]
+    fn test_language_name_lookup_is_case_insensitive() {
+        let context = RenderContext {
+            width: 40,
+            height: None,
+        };
+        let colored = |lang: &str| {
+            Syntax::new("def f():\n    return 1\n", lang)
+                .line_numbers(false)
+                .panel(false)
+                .render(&context)
+                .iter()
+                .flat_map(|s| s.spans.iter())
+                .any(|s| s.style.foreground.is_some())
+        };
+        assert!(colored("python"), "lowercase language name must highlight");
+        assert!(colored("Python"));
+        assert!(colored("py"));
     }
 }

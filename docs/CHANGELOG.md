@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Syntax**: language names are matched case-insensitively
+  (`Syntax::new(code, "python")` now highlights; previously only `"py"` or
+  `"Python"` did).
 - **Build**: The `markdown` feature no longer fails to compile without `syntax`;
   `markdown` now implies `syntax` (matching Rich, where markdown renders code blocks).
 - **Build**: Removed unused `terminal_size` dependency (crossterm is used for

@@ -85,7 +85,7 @@ def python_api() -> None:
     table = Table("a", "b")
     table.add_row("1", "2")
     assert _native.is_native(table), "Table is not rendered by the native core"
-    console = Console(file=io.StringIO(), width=30, color_system=None)
+    console = Console(file=io.StringIO(), width=30, color_system=None, legacy_windows=False)
     console.print(Panel(table, title="t"))
     lines = console.file.getvalue().splitlines()
     assert lines[0].startswith("╭") and " t " in lines[0], lines

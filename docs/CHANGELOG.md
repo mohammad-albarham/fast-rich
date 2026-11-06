@@ -34,8 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `hyperlinks` and `justify`.
 - **Syntax**: `Theme::Monokai` named a theme syntect doesn't ship, so it fell
   back to a light theme (white background). Monokai is now built in with
-  Pygments' monokai colours; across Python/Rust/JS/JSON samples only
-  `self` differs in colour from Rich (a tokenizer difference).
+  Pygments' monokai colours (builtins green, operators and `->` pink); across
+  Python/Rust/JS/JSON samples only `self` as a parameter differs in colour
+  from Rich (a tokenizer difference).
 - **Syntax**: layout follows Rich — gutter `  1 code` / `❱ 2 code` (was
   `→ 1 │ code`), line numbers blended into the background, code area padded
   with the theme background to the width, a final empty line when the code

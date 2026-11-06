@@ -191,7 +191,8 @@ fn monokai_theme() -> SyntectTheme {
         ("constant.language", cyan, false),
         ("keyword", cyan, false),
         (
-            "keyword.operator, keyword.operator.word, punctuation.accessor, keyword.control.flow.for.in",
+            "keyword.operator, keyword.operator.word, punctuation.accessor, \
+             keyword.control.flow.for.in, punctuation.separator.annotation.return",
             pink,
             false,
         ),
@@ -217,7 +218,9 @@ fn monokai_theme() -> SyntectTheme {
             green,
             false,
         ),
-        ("variable.parameter, support.function, support.type", white, false),
+        ("variable.parameter, support.function", white, false),
+        // Pygments' Name.Builtin (int, range, print, ...)
+        ("support.type, support.function.builtin", green, false),
         ("markup.deleted", pink, false),
         ("markup.inserted", green, false),
         ("markup.italic", white, true),

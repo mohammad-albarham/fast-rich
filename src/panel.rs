@@ -113,6 +113,8 @@ pub struct Panel {
     expand: bool,
     /// Fixed total width (including borders)
     width: Option<usize>,
+    /// Fixed total height (including borders)
+    height: Option<usize>,
 }
 
 impl std::fmt::Debug for Panel {
@@ -162,6 +164,7 @@ impl Panel {
             // full-width default.
             expand: false,
             width: None,
+            height: None,
         }
     }
 
@@ -265,6 +268,13 @@ impl Panel {
     /// the available width.
     pub fn width(mut self, width: usize) -> Self {
         self.width = Some(width);
+        self
+    }
+
+    /// Set a fixed total height (borders included): the content area is
+    /// padded with blank lines or cropped to fit, like Rich's `height`.
+    pub fn height(mut self, height: usize) -> Self {
+        self.height = Some(height);
         self
     }
 
@@ -390,6 +400,7 @@ impl Renderable for Panel {
         let blank = Span::styled(" ".repeat(child_width), self.content_style);
         let side = |c: char| Span::styled(c.to_string(), border);
 
+        let mut body: Vec<Segment> = Vec::new();
         let mut segments = Vec::new();
         segments.push(self.border_line(
             &box_chars.top,
@@ -399,7 +410,7 @@ impl Renderable for Panel {
             width,
         ));
         for _ in 0..self.padding.top {
-            segments.push(Segment::line(vec![
+            body.push(Segment::line(vec![
                 side(cell.left),
                 blank.clone(),
                 side(cell.right),
@@ -424,15 +435,28 @@ impl Renderable for Panel {
                 ));
             }
             spans.push(side(cell.right));
-            segments.push(Segment::line(spans));
+            body.push(Segment::line(spans));
         }
         for _ in 0..self.padding.bottom {
-            segments.push(Segment::line(vec![
+            body.push(Segment::line(vec![
                 side(cell.left),
                 blank.clone(),
                 side(cell.right),
             ]));
         }
+        if let Some(height) = self.height {
+            // Rich: the content area is exactly height - 2 rows.
+            let rows = height.saturating_sub(2);
+            body.truncate(rows);
+            while body.len() < rows {
+                body.push(Segment::line(vec![
+                    side(cell.left),
+                    blank.clone(),
+                    side(cell.right),
+                ]));
+            }
+        }
+        segments.append(&mut body);
         segments.push(self.border_line(
             &box_chars.bottom,
             self.subtitle.as_ref(),
@@ -562,5 +586,20 @@ mod tests {
             .unwrap();
         assert!(hi.style.bold);
         assert_eq!(segs[0].plain_text(), "+- Hi -+");
+    }
+
+    #[test]
+    fn test_height_pads_and_crops() {
+        let lines = |p: Panel| {
+            crate::renderable::render_lines(&p, 10, Style::new())
+                .iter()
+                .map(|l| l.iter().map(|s| s.text.as_ref()).collect::<String>())
+                .collect::<Vec<_>>()
+        };
+        let tall = lines(Panel::new("x").expand(true).height(5));
+        assert_eq!(tall.len(), 5);
+        assert_eq!(tall[2], "│        │");
+        let short = lines(Panel::new("a\nb\nc").expand(true).height(3));
+        assert_eq!(short, ["╭────────╮", "│ a      │", "╰────────╯"]);
     }
 }

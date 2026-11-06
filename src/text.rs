@@ -419,6 +419,24 @@ fn truncate_line(line: &[Span], width: usize, ellipsis: bool) -> Vec<Span> {
 /// Words are kept intact when possible, whitespace runs between words are
 /// preserved, and a line never exceeds `max_width` display columns. Adjacent
 /// fragments sharing the same style are merged into one span.
+/// Append as many of the whitespace characters `s` as fit in `max_width`.
+fn push_fitting_spaces(line: &mut Vec<Span>, s: &str, style: Style, used: usize, max_width: usize) {
+    let room = max_width.saturating_sub(used);
+    let mut kept = String::new();
+    let mut width = 0;
+    for c in s.chars() {
+        let w = unicode_width::UnicodeWidthChar::width(c).unwrap_or(0);
+        if width + w > room {
+            break;
+        }
+        width += w;
+        kept.push(c);
+    }
+    if !kept.is_empty() {
+        push_fragment(line, &kept, style, None);
+    }
+}
+
 /// Word-wrap one logical line. With `fold`, words wider than `max_width`
 /// are broken across lines; without it they stay whole on their own line
 /// (the caller truncates them).
@@ -491,10 +509,19 @@ fn wrap_line(line: &[Span], max_width: usize, fold: bool) -> Vec<Vec<Span>> {
                         if current_width + spaces_width + word_width > max_width
                             && current_width > 0
                         {
-                            // Wrap: pending spaces are dropped at the line end.
+                            // Wrap. Like Rich, the separating spaces stay on
+                            // the line being closed as far as they fit.
+                            if let Some((s, style)) = pending_spaces.take() {
+                                push_fitting_spaces(
+                                    &mut current_line,
+                                    s,
+                                    style,
+                                    current_width,
+                                    max_width,
+                                );
+                            }
                             lines.push(std::mem::take(&mut current_line));
                             current_width = 0;
-                            pending_spaces = None;
                         } else if let Some((s, style)) = pending_spaces.take() {
                             push_fragment(&mut current_line, s, style, None);
                             current_width += spaces_width;
@@ -508,6 +535,10 @@ fn wrap_line(line: &[Span], max_width: usize, fold: bool) -> Vec<Vec<Span>> {
         }
     }
 
+    // Trailing whitespace is kept as far as it fits (Rich's rstrip_end).
+    if let Some((s, style)) = pending_spaces.take() {
+        push_fitting_spaces(&mut current_line, s, style, current_width, max_width);
+    }
     if !current_line.is_empty() {
         lines.push(current_line);
     }
@@ -584,8 +615,25 @@ mod tests {
         assert_eq!(lines.len(), 2);
         let first: String = lines[0].iter().map(|s| s.text.as_ref()).collect();
         let second: String = lines[1].iter().map(|s| s.text.as_ref()).collect();
-        assert_eq!(first, "hello");
+        // Like Rich (`['hello ', 'world']`), the separating space stays on
+        // the first line because it fits the width.
+        assert_eq!(first, "hello ");
         assert_eq!(second, "world");
+    }
+
+    #[test]
+    fn test_trailing_spaces_kept_when_they_fit() {
+        let plain = |t: &str, w: usize| -> Vec<String> {
+            Text::plain(t.to_string())
+                .wrap(w)
+                .iter()
+                .map(|l| l.iter().map(|s| s.text.as_ref()).collect())
+                .collect()
+        };
+        assert_eq!(plain("Q? ", 40), ["Q? "]);
+        assert_eq!(plain("hello world foo", 6), ["hello ", "world ", "foo"]);
+        // Never wider than the width.
+        assert_eq!(plain("hello   world", 7), ["hello  ", "world"]);
     }
 
     #[test]

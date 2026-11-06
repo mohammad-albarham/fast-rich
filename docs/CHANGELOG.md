@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Text**: wrapping keeps trailing whitespace that fits the width, like
+  Rich (`"Q? "` keeps its space; `"hello world"` at width 6 wraps to
+  `"hello "` / `"world"`), instead of always dropping it.
 - **Syntax**: language names are matched case-insensitively
   (`Syntax::new(code, "python")` now highlights; previously only `"py"` or
   `"Python"` did).
@@ -103,7 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `collapse_padding`, and `Table::grid()` (borderless layout grid, like
   Rich's `Table.grid`); cells are measured with their own padding.
 - **Box**: `BorderStyle::Custom(BoxStyle)` for any box definition.
-- **Panel**: `title_text` / `subtitle_text` take styled text.
+- **Panel**: `title_text` / `subtitle_text` take styled text; `height`
+  fixes the total height (content padded or cropped, like Rich).
 - **Panel**: any renderable as content (`Panel::renderable`), so tables,
   trees and panels nest like in Rich; `width`, `title_align` /
   `subtitle_align` (default center, like Rich), `content_style` (Rich's

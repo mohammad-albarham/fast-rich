@@ -114,6 +114,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Row::end_section`, `Column::no_wrap`, `Column::overflow`. Without a
   border (`show_border(false)`) columns are separated by padding only, like
   Rich's `box=None`.
+- **Tree**: labels can be any renderable (`TreeNode::renderable`); rendering
+  follows Rich's algorithm — labels wrap at the width left after the guides
+  with `│   ` continuation lines, `hide_root` drops the root's guide level,
+  label styles are inherited by descendants, and the tree reports its
+  measured width. ASCII guides use Rich's `` `-- `` for the last branch.
 - **Text**: `Overflow::WrapEllipsis` / `Overflow::WrapCrop` — wrap at words
   and cut only over-long words (Rich's `overflow="ellipsis"`/`"crop"`).
 - **Renderable**: `render_lines`, `segments_to_lines`, `fit_line`,

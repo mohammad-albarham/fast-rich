@@ -3,9 +3,10 @@
 //! Renders tree-like structures with guide lines.
 
 use crate::console::RenderContext;
-use crate::renderable::{Renderable, Segment};
+use crate::renderable::{segments_to_lines, Renderable, Segment, SharedRenderable};
 use crate::style::Style;
 use crate::text::{Span, Text};
+use std::sync::Arc;
 
 /// Guide style for tree connections.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -22,55 +23,26 @@ pub enum GuideStyle {
 }
 
 impl GuideStyle {
-    fn chars(&self) -> TreeGuideChars {
+    /// Rich's guide strings: (space, continue, fork, end).
+    fn guides(&self) -> [&'static str; 4] {
         match self {
-            GuideStyle::Ascii => TreeGuideChars {
-                vertical: '|',
-                horizontal: '-',
-                branch: '+',
-                last_branch: '\\',
-                space: ' ',
-            },
-            GuideStyle::Unicode => TreeGuideChars {
-                vertical: '│',
-                horizontal: '─',
-                branch: '├',
-                last_branch: '└',
-                space: ' ',
-            },
-            GuideStyle::Bold => TreeGuideChars {
-                vertical: '┃',
-                horizontal: '━',
-                branch: '┣',
-                last_branch: '┗',
-                space: ' ',
-            },
-            GuideStyle::Double => TreeGuideChars {
-                vertical: '║',
-                horizontal: '═',
-                branch: '╠',
-                last_branch: '╚',
-                space: ' ',
-            },
+            GuideStyle::Ascii => ["    ", "|   ", "+-- ", "`-- "],
+            GuideStyle::Unicode => ["    ", "│   ", "├── ", "└── "],
+            GuideStyle::Bold => ["    ", "┃   ", "┣━━ ", "┗━━ "],
+            GuideStyle::Double => ["    ", "║   ", "╠══ ", "╚══ "],
         }
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-struct TreeGuideChars {
-    vertical: char,
-    horizontal: char,
-    branch: char,
-    last_branch: char,
-    #[allow(dead_code)]
-    space: char,
-}
+const SPACE: usize = 0;
+const CONTINUE: usize = 1;
+const FORK: usize = 2;
+const END: usize = 3;
 
-/// A node in a tree.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct TreeNode {
     /// Label for this node
-    label: Text,
+    label: SharedRenderable,
     /// Child nodes
     children: Vec<TreeNode>,
     /// Style for the label
@@ -82,8 +54,20 @@ pub struct TreeNode {
 impl TreeNode {
     /// Create a new tree node with a label.
     pub fn new<T: Into<Text>>(label: T) -> Self {
+        Self::renderable(label.into())
+    }
+
+    /// Create a node whose label is any renderable (e.g. a panel or table).
+    ///
+    /// ```
+    /// use fast_rich::panel::Panel;
+    /// use fast_rich::tree::{Tree, TreeNode};
+    /// let mut tree = Tree::new("root");
+    /// tree.add(TreeNode::renderable(Panel::new("boxed")));
+    /// ```
+    pub fn renderable(label: impl Renderable + Send + Sync + 'static) -> Self {
         TreeNode {
-            label: label.into(),
+            label: Arc::new(label),
             children: Vec::new(),
             style: Style::new(),
             expanded: true,
@@ -129,6 +113,16 @@ impl TreeNode {
     /// Check if this node has children.
     pub fn has_children(&self) -> bool {
         !self.children.is_empty()
+    }
+}
+
+impl std::fmt::Debug for TreeNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TreeNode")
+            .field("children", &self.children)
+            .field("style", &self.style)
+            .field("expanded", &self.expanded)
+            .finish_non_exhaustive()
     }
 }
 
@@ -186,74 +180,112 @@ impl Tree {
         self
     }
 
+    /// Render `node` and its expanded children, following Rich's
+    /// `Tree.__rich_console__`: `conts` holds the continuation guides of the
+    /// ancestors below the root; labels wrap at the width left after the
+    /// guides, and label styles are inherited from ancestors.
+    #[allow(clippy::too_many_arguments)]
     fn render_node(
         &self,
         node: &TreeNode,
-        prefix: &str,
-        is_last: bool,
-        is_root: bool,
-        chars: &TreeGuideChars,
-        segments: &mut Vec<Segment>,
+        depth: usize,
+        last: bool,
+        conts: &mut Vec<usize>,
+        inherited: Style,
+        width: usize,
+        out: &mut Vec<Segment>,
     ) {
-        if !is_root || !self.hide_root {
-            let mut spans = Vec::new();
+        let guides = self.guide_style.guides();
+        let style = inherited.combine(&node.style);
 
-            if !is_root {
-                // Add the prefix and branch character
-                spans.push(Span::styled(prefix.to_string(), self.style));
-
-                let branch_char = if is_last {
-                    chars.last_branch
-                } else {
-                    chars.branch
-                };
-
-                spans.push(Span::styled(
-                    format!("{}{}{} ", branch_char, chars.horizontal, chars.horizontal),
-                    self.style,
-                ));
-            }
-
-            // Add the label
-            for span in &node.label.spans {
-                let combined_style = node.style.combine(&span.style);
-                spans.push(Span::styled(span.text.to_string(), combined_style));
-            }
-
-            segments.push(Segment::line(spans));
+        // Rich's `levels[1:]` (or `levels[2:]` with hide_root).
+        let mut prefix: Vec<usize> = conts.clone();
+        if depth > 0 {
+            prefix.push(if last { END } else { FORK });
+        }
+        if self.hide_root && !prefix.is_empty() {
+            prefix.remove(0);
         }
 
-        // Render children
-        if node.expanded {
-            let child_count = node.children.len();
+        if !(depth == 0 && self.hide_root) {
+            let prefix_width = prefix.len() * 4;
+            let context = RenderContext {
+                width: width.saturating_sub(prefix_width).max(1),
+                height: None,
+            };
+            let lines = segments_to_lines(node.label.render(&context));
+            for (i, line) in lines.into_iter().enumerate() {
+                let mut spans = Vec::with_capacity(line.len() + prefix.len());
+                if !prefix.is_empty() {
+                    let guide: String = prefix.iter().map(|&g| guides[g]).collect();
+                    spans.push(Span::styled(guide, self.style));
+                }
+                spans.extend(line.into_iter().map(|mut span| {
+                    span.style = style.combine(&span.style);
+                    span
+                }));
+                out.push(Segment::line(spans));
+                if i == 0 {
+                    if let Some(own) = prefix.last_mut() {
+                        *own = if last { SPACE } else { CONTINUE };
+                    }
+                }
+            }
+        }
+
+        if node.expanded && !node.children.is_empty() {
+            if depth > 0 {
+                conts.push(if last { SPACE } else { CONTINUE });
+            }
+            let count = node.children.len();
             for (i, child) in node.children.iter().enumerate() {
-                let is_last_child = i == child_count - 1;
+                self.render_node(child, depth + 1, i + 1 == count, conts, style, width, out);
+            }
+            if depth > 0 {
+                conts.pop();
+            }
+        }
+    }
 
-                let new_prefix = if is_root {
-                    String::new()
-                } else {
-                    let connector = if is_last {
-                        "    ".to_string()
-                    } else {
-                        format!("{}   ", chars.vertical)
-                    };
-                    format!("{}{}", prefix, connector)
-                };
-
-                self.render_node(child, &new_prefix, is_last_child, false, chars, segments);
+    /// Rich's tree measurement: widest label plus 4 cells per level.
+    fn measure(&self, node: &TreeNode, level: usize, acc: &mut (usize, usize)) {
+        let indent = level * 4;
+        acc.0 = acc.0.max(node.label.min_width().saturating_add(indent));
+        acc.1 = acc.1.max(node.label.max_width().saturating_add(indent));
+        if node.expanded {
+            for child in &node.children {
+                self.measure(child, level + 1, acc);
             }
         }
     }
 }
 
 impl Renderable for Tree {
-    fn render(&self, _context: &RenderContext) -> Vec<Segment> {
-        let chars = self.guide_style.chars();
+    fn render(&self, context: &RenderContext) -> Vec<Segment> {
         let mut segments = Vec::new();
-
-        self.render_node(&self.root, "", true, true, &chars, &mut segments);
-
+        let mut conts = Vec::new();
+        self.render_node(
+            &self.root,
+            0,
+            true,
+            &mut conts,
+            Style::new(),
+            context.width,
+            &mut segments,
+        );
         segments
+    }
+
+    fn min_width(&self) -> usize {
+        let mut acc = (0, 0);
+        self.measure(&self.root, 0, &mut acc);
+        acc.0
+    }
+
+    fn max_width(&self) -> usize {
+        let mut acc = (0, 0);
+        self.measure(&self.root, 0, &mut acc);
+        acc.1
     }
 }
 
@@ -352,6 +384,20 @@ pub fn from_directory_with(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    fn label_plain(node: &TreeNode) -> String {
+        let context = RenderContext {
+            width: 200,
+            height: None,
+        };
+        node.label
+            .render(&context)
+            .iter()
+            .map(|s| s.plain_text())
+            .collect()
+    }
+
     #[test]
     fn test_from_directory_symlink_cycle_terminates() {
         let dir = std::env::temp_dir().join(format!("fr_tree_{}", std::process::id()));
@@ -384,7 +430,7 @@ mod tests {
         .unwrap();
         // Only "a" should appear, not "b"/"c".
         fn collect(node: &TreeNode, out: &mut Vec<String>) {
-            out.push(node.label.plain_text());
+            out.push(label_plain(node));
             for c in &node.children {
                 collect(c, out);
             }
@@ -409,7 +455,7 @@ mod tests {
 
         let tree = from_directory(&dir).unwrap();
         fn collect(node: &TreeNode, out: &mut Vec<String>) {
-            out.push(node.label.plain_text());
+            out.push(label_plain(node));
             for c in &node.children {
                 collect(c, out);
             }
@@ -420,8 +466,6 @@ mod tests {
         assert!(!labels.iter().any(|l| l == ".secret"));
         let _ = std::fs::remove_dir_all(&dir);
     }
-
-    use super::*;
 
     #[test]
     fn test_tree_simple() {
@@ -490,5 +534,71 @@ mod tests {
         let text: String = segments.iter().map(|s| s.plain_text()).collect();
         assert!(!text.contains("root"));
         assert!(text.contains("child1"));
+    }
+
+    fn plain(tree: &Tree, width: usize) -> String {
+        let context = RenderContext {
+            width,
+            height: None,
+        };
+        tree.render(&context)
+            .iter()
+            .map(|s| s.plain_text().trim_end().to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    #[test]
+    fn test_matches_rich_nested() {
+        let mut a = TreeNode::new("a");
+        a.add(TreeNode::new("a1").with_child("deep"));
+        a.add("a2");
+        let mut tree = Tree::new("root");
+        tree.add(a);
+        tree.add("b");
+        assert_eq!(
+            plain(&tree, 30),
+            "root\n├── a\n│   ├── a1\n│   │   └── deep\n│   └── a2\n└── b"
+        );
+    }
+
+    #[test]
+    fn test_matches_rich_hide_root() {
+        let mut tree = Tree::new("root").hide_root(true);
+        tree.add(TreeNode::new("a").with_child("a1"));
+        tree.add("b");
+        assert_eq!(plain(&tree, 30), "a\n└── a1\nb");
+    }
+
+    #[test]
+    fn test_matches_rich_wrapped_and_renderable_labels() {
+        let mut tree = Tree::new("root");
+        tree.add("a long label that has to wrap around");
+        tree.add(TreeNode::renderable(crate::panel::Panel::new("box")));
+        assert_eq!(
+            plain(&tree, 30),
+            "root\n├── a long label that has to\n│   wrap around\n└── ╭─────╮\n    │ box │\n    ╰─────╯"
+        );
+    }
+
+    #[test]
+    fn test_bold_guides_and_measure() {
+        let mut tree = Tree::new("root").guide_style(GuideStyle::Bold);
+        tree.add(TreeNode::new("x").with_child("y"));
+        assert_eq!(plain(&tree, 30), "root\n┗━━ x\n    ┗━━ y");
+        assert_eq!(tree.max_width(), 9);
+    }
+
+    #[test]
+    fn test_label_style_inherited() {
+        use crate::style::Color;
+        let mut tree = Tree::new(TreeNode::new("root").style(Style::new().foreground(Color::Red)));
+        tree.add("child");
+        let segs = tree.render(&RenderContext {
+            width: 30,
+            height: None,
+        });
+        let child = segs[1].spans.iter().find(|s| s.text == "child").unwrap();
+        assert_eq!(child.style.foreground, Some(Color::Red));
     }
 }

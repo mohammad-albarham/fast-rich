@@ -96,6 +96,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the semantic colors (`primary`, `success`, ...).
 
 ### Added
+- **Table**: Rich's cell padding model — `padding_sides`, `pad_edge`,
+  `collapse_padding`, and `Table::grid()` (borderless layout grid, like
+  Rich's `Table.grid`); cells are measured with their own padding.
+- **Box**: `BorderStyle::Custom(BoxStyle)` for any box definition.
+- **Panel**: `title_text` / `subtitle_text` take styled text.
 - **Panel**: any renderable as content (`Panel::renderable`), so tables,
   trees and panels nest like in Rich; `width`, `title_align` /
   `subtitle_align` (default center, like Rich), `content_style` (Rich's

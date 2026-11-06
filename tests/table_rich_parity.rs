@@ -106,3 +106,57 @@ fn table_widths() {
     t.add_row_strs(&["x", "y", "zzzzzzzz"]);
     assert_eq!(plain(&t, 40), "╭────────────┬────────┬──────╮\n│ A          │ B      │ C    │\n├────────────┼────────┼──────┤\n│ x          │ y      │ zzz… │\n╰────────────┴────────┴──────╯");
 }
+
+fn raw(t: &Table, width: usize) -> String {
+    render_lines(t, width, Style::new())
+        .iter()
+        .map(|l| l.iter().map(|s| s.text.as_ref()).collect::<String>())
+        .map(|l| l.trim_end().to_string())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[test]
+fn table_grid_padding() {
+    let mut t = Table::grid().padding(1);
+    for _ in 0..3 {
+        t.add_column("");
+    }
+    t.add_row_strs(&["a", "bb", "ccc"]);
+    t.add_row_strs(&["dddd", "e", "f"]);
+    assert_eq!(raw(&t, 20), "a    bb ccc\ndddd e  f");
+}
+
+#[test]
+fn table_grid_expand() {
+    let mut t = Table::grid().padding(1).expand(true);
+    for _ in 0..3 {
+        t.add_column("");
+    }
+    t.add_row_strs(&["a", "bb", "ccc"]);
+    assert_eq!(raw(&t, 20), "a    bb      ccc");
+}
+
+#[test]
+fn table_grid_no_padding() {
+    let mut t = Table::grid();
+    t.add_column("");
+    t.add_column("");
+    t.add_row_strs(&["x", "y"]);
+    assert_eq!(raw(&t, 20), "xy");
+}
+
+#[test]
+fn table_pad_edge_false() {
+    let mut t = Table::new()
+        .border_style(BorderStyle::HeavyHead)
+        .padding(2)
+        .pad_edge(false);
+    t.add_column("A");
+    t.add_column("B");
+    t.add_row_strs(&["1", "2"]);
+    assert_eq!(
+        raw(&t, 20),
+        "┏━━━┳━━━┓\n┃A  ┃  B┃\n┡━━━╇━━━┩\n│1  │  2│\n└───┴───┘"
+    );
+}

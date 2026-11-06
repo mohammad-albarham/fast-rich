@@ -9,7 +9,6 @@ use crate::renderable::{render_lines, Renderable, Segment, SharedRenderable};
 use crate::style::Style;
 use crate::text::{Alignment, Span, Text};
 use std::sync::Arc;
-use unicode_width::UnicodeWidthStr;
 
 use crate::box_drawing::{self, BoxStyle};
 
@@ -47,6 +46,8 @@ pub enum BorderStyle {
     DoubleEdge,
     /// No visible border (but space is reserved)
     Hidden,
+    /// Custom box characters (e.g. built from a Rich box definition)
+    Custom(BoxStyle),
 }
 
 impl BorderStyle {
@@ -67,6 +68,7 @@ impl BorderStyle {
             BorderStyle::HeavyEdge => box_drawing::HEAVY_EDGE,
             BorderStyle::HeavyHead => box_drawing::HEAVY_HEAD,
             BorderStyle::DoubleEdge => box_drawing::DOUBLE_EDGE,
+            BorderStyle::Custom(b) => *b,
             BorderStyle::Hidden => BoxStyle {
                 top: box_drawing::Line::new(' ', ' ', ' ', ' '),
                 head: box_drawing::Line::new(' ', ' ', ' ', ' '),
@@ -88,11 +90,11 @@ pub struct Panel {
     /// The content to display
     content: SharedRenderable,
     /// Optional title at the top
-    title: Option<String>,
+    title: Option<Text>,
     /// Title alignment within the top border
     title_align: Alignment,
     /// Optional subtitle at the bottom
-    subtitle: Option<String>,
+    subtitle: Option<Text>,
     /// Subtitle alignment within the bottom border
     subtitle_align: Alignment,
     /// Style for the subtitle
@@ -116,8 +118,8 @@ pub struct Panel {
 impl std::fmt::Debug for Panel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Panel")
-            .field("title", &self.title)
-            .field("subtitle", &self.subtitle)
+            .field("title", &self.title.as_ref().map(Text::plain_text))
+            .field("subtitle", &self.subtitle.as_ref().map(Text::plain_text))
             .field("border_style", &self.border_style)
             .field("padding", &self.padding)
             .field("expand", &self.expand)
@@ -164,8 +166,13 @@ impl Panel {
     }
 
     /// Set the title.
-    pub fn title(mut self, title: &str) -> Self {
-        self.title = Some(title.to_string());
+    pub fn title(self, title: &str) -> Self {
+        self.title_text(Text::plain(title.to_string()))
+    }
+
+    /// Set the title from styled text.
+    pub fn title_text(mut self, title: Text) -> Self {
+        self.title = Some(title);
         self
     }
 
@@ -176,8 +183,13 @@ impl Panel {
     }
 
     /// Set the subtitle.
-    pub fn subtitle(mut self, subtitle: &str) -> Self {
-        self.subtitle = Some(subtitle.to_string());
+    pub fn subtitle(self, subtitle: &str) -> Self {
+        self.subtitle_text(Text::plain(subtitle.to_string()))
+    }
+
+    /// Set the subtitle from styled text.
+    pub fn subtitle_text(mut self, subtitle: Text) -> Self {
+        self.subtitle = Some(subtitle);
         self
     }
 
@@ -258,8 +270,8 @@ impl Panel {
 
     fn title_width(&self) -> usize {
         self.title
-            .as_deref()
-            .map(|t| UnicodeWidthStr::width(t) + 2)
+            .as_ref()
+            .map(|t| one_line(t).iter().map(Span::width).sum::<usize>() + 2)
             .unwrap_or(0)
     }
 
@@ -279,7 +291,7 @@ impl Panel {
     fn border_line(
         &self,
         line: &box_drawing::Line,
-        label: Option<&str>,
+        label: Option<&Text>,
         align: Alignment,
         label_style: Style,
         width: usize,
@@ -302,8 +314,12 @@ impl Panel {
         // Like Rich: " label " is truncated/aligned within width - 4 and
         // framed by corner + one border char on each side.
         let avail = width - 4;
-        let padded = format!(" {label} ");
-        let (text, text_width) = truncate_to_width(&padded, avail);
+        let mut spans = vec![Span::raw(" ")];
+        spans.extend(one_line(label));
+        spans.push(Span::raw(" "));
+        // " label " cut to the space between the corners.
+        let text_width = crate::renderable::line_width(&spans).min(avail);
+        let spans = crate::renderable::fit_line(spans, text_width, Style::new());
         let excess = avail - text_width;
         let (left, right) = match align {
             Alignment::Left => (0, excess),
@@ -311,28 +327,34 @@ impl Panel {
             Alignment::Right => (excess, 0),
         };
         let fill = |n: usize| line.mid.to_string().repeat(n);
-        Segment::line(vec![
-            Span::styled(format!("{}{}{}", line.left, line.mid, fill(left)), border),
-            Span::styled(text, border.combine(&label_style)),
-            Span::styled(format!("{}{}{}", fill(right), line.mid, line.right), border),
-        ])
+        let mut out = vec![Span::styled(
+            format!("{}{}{}", line.left, line.mid, fill(left)),
+            border,
+        )];
+        out.extend(spans.into_iter().map(|mut s| {
+            s.style = border.combine(&label_style).combine(&s.style);
+            s
+        }));
+        out.push(Span::styled(
+            format!("{}{}{}", fill(right), line.mid, line.right),
+            border,
+        ));
+        Segment::line(out)
     }
 }
 
-/// Truncate `s` to at most `width` cells; returns the text and its width.
-fn truncate_to_width(s: &str, width: usize) -> (String, usize) {
-    use unicode_segmentation::UnicodeSegmentation;
-    let mut out = String::new();
-    let mut used = 0;
-    for g in s.graphemes(true) {
-        let w = UnicodeWidthStr::width(g);
-        if used + w > width {
-            break;
-        }
-        used += w;
-        out.push_str(g);
-    }
-    (out, used)
+/// A title's spans on a single line (newlines become spaces).
+fn one_line(text: &Text) -> Vec<Span> {
+    text.spans
+        .iter()
+        .map(|s| {
+            let mut s = s.clone();
+            if s.text.contains('\n') {
+                s.text = s.text.replace('\n', " ").into();
+            }
+            s
+        })
+        .collect()
 }
 
 impl<T: Into<Text>> From<T> for Panel {
@@ -371,7 +393,7 @@ impl Renderable for Panel {
         let mut segments = Vec::new();
         segments.push(self.border_line(
             &box_chars.top,
-            self.title.as_deref(),
+            self.title.as_ref(),
             self.title_align,
             self.title_style,
             width,
@@ -413,7 +435,7 @@ impl Renderable for Panel {
         }
         segments.push(self.border_line(
             &box_chars.bottom,
-            self.subtitle.as_deref(),
+            self.subtitle.as_ref(),
             self.subtitle_align,
             self.subtitle_style,
             width,
@@ -522,5 +544,23 @@ mod tests {
         let panel = Panel::new("日本語");
         assert_eq!(plain(&panel, 30), "╭────────╮\n│ 日本語 │\n╰────────╯");
         assert_eq!(panel.max_width(), 10);
+    }
+
+    #[test]
+    fn test_title_text_keeps_styles_and_custom_box() {
+        let title = crate::markup::parse("[bold]Hi[/]");
+        let custom = BorderStyle::Custom(box_drawing::ASCII);
+        let panel = Panel::new("x").title_text(title).border_style(custom);
+        let segs = panel.render(&RenderContext {
+            width: 20,
+            height: None,
+        });
+        let hi = segs[0]
+            .spans
+            .iter()
+            .find(|s| s.text.contains("Hi"))
+            .unwrap();
+        assert!(hi.style.bold);
+        assert_eq!(segs[0].plain_text(), "+- Hi -+");
     }
 }

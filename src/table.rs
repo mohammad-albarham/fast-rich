@@ -301,8 +301,12 @@ pub struct Table {
     show_edge: bool,
     /// Show row separators
     show_row_lines: bool,
-    /// Padding in cells
-    padding: usize,
+    /// Padding in cells (left, right)
+    padding: (usize, usize),
+    /// Pad the outer edges of the first/last column
+    pad_edge: bool,
+    /// Merge the padding between adjacent cells
+    collapse_padding: bool,
     /// Title
     title: Option<Text>,
     /// Title style and alignment
@@ -342,7 +346,9 @@ impl Table {
             show_border: true,
             show_edge: true,
             show_row_lines: false,
-            padding: 1,
+            padding: (1, 1),
+            pad_edge: true,
+            collapse_padding: false,
             title: None,
             title_style: Style::new().italic(),
             title_align: Alignment::Center,
@@ -465,8 +471,40 @@ impl Table {
 
     /// Set cell padding.
     pub fn padding(mut self, padding: usize) -> Self {
-        self.padding = padding;
+        self.padding = (padding, padding);
         self
+    }
+
+    /// Set different left and right cell padding.
+    pub fn padding_sides(mut self, left: usize, right: usize) -> Self {
+        self.padding = (left, right);
+        self
+    }
+
+    /// Whether the first column's left and last column's right padding
+    /// are drawn (Rich's `pad_edge`, default true).
+    pub fn pad_edge(mut self, pad_edge: bool) -> Self {
+        self.pad_edge = pad_edge;
+        self
+    }
+
+    /// Merge the right padding of a cell with the left padding of the next
+    /// (Rich's `collapse_padding`).
+    pub fn collapse_padding(mut self, collapse: bool) -> Self {
+        self.collapse_padding = collapse;
+        self
+    }
+
+    /// A borderless, headerless, edge-padding-free table for layout
+    /// (Rich's `Table.grid`).
+    pub fn grid() -> Self {
+        Table::new()
+            .show_border(false)
+            .show_header(false)
+            .show_edge(false)
+            .padding(0)
+            .pad_edge(false)
+            .collapse_padding(true)
     }
 
     /// Set the table title.
@@ -554,24 +592,61 @@ impl Table {
         edges + self.columns.len() - 1
     }
 
-    fn padding_width(&self) -> usize {
-        self.padding * 2
+    /// Padding width counted for a column's measurement — Rich's
+    /// `_get_padding_width` (edge padding is still counted here).
+    fn padding_width(&self, index: usize) -> usize {
+        let (mut left, mut right) = self.padding;
+        if self.collapse_padding {
+            left = 0;
+        }
+        if !self.pad_edge {
+            if index == 0 {
+                left = 0;
+            }
+            if index + 1 == self.columns.len() {
+                right = 0;
+            }
+        }
+        left + right
+    }
+
+    /// Actual (left, right) padding of a cell — Rich's `get_padding`.
+    fn cell_padding(&self, index: usize) -> (usize, usize) {
+        let (mut left, mut right) = self.padding;
+        if self.collapse_padding && index > 0 {
+            left = left.saturating_sub(right);
+        }
+        if !self.pad_edge {
+            if index == 0 {
+                left = 0;
+            }
+            if index + 1 == self.columns.len() {
+                right = 0;
+            }
+        }
+        (left, right)
     }
 
     /// (min, max) cell width of a column, padding included — Rich's
     /// `_measure_column`.
     fn measure_column(&self, index: usize, max_width: usize) -> (usize, usize) {
         let column = &self.columns[index];
-        let pad = self.padding_width();
+        let pad = self.padding_width(index);
         if let Some(w) = column.fixed_width() {
             let w = (w + pad).min(max_width);
             return (w, w);
         }
+        // Cells are measured with their actual padding (Rich wraps each
+        // cell in `Padding(renderable, get_padding(...))`).
+        let (pad_left, pad_right) = self.cell_padding(index);
+        let cell_pad = pad_left + pad_right;
+        let mut any = false;
         let mut min_w = 0;
         let mut max_w = 0;
         let mut measure = |cell: &Cell| {
-            min_w = min_w.max(cell.min_width().saturating_add(pad));
-            max_w = max_w.max(cell.max_width().saturating_add(pad));
+            any = true;
+            min_w = min_w.max(cell.min_width().saturating_add(cell_pad));
+            max_w = max_w.max(cell.max_width().saturating_add(cell_pad));
         };
         if self.show_header {
             measure(&column.header_cell());
@@ -580,6 +655,10 @@ impl Table {
             if let Some(cell) = row.cells.get(index) {
                 measure(cell);
             }
+        }
+        if !any {
+            min_w = 1;
+            max_w = max_width;
         }
         // Measurement.with_maximum(max_width)
         let mut max_w = max_w.min(max_width);
@@ -627,7 +706,7 @@ impl Table {
                 .collect();
             let minimums: Vec<usize> = flex
                 .iter()
-                .map(|&i| self.columns[i].fixed_width().unwrap_or(1) + self.padding_width())
+                .map(|&i| self.columns[i].fixed_width().unwrap_or(1) + self.padding_width(i))
                 .collect();
             let flexible_width = max_width.saturating_sub(fixed.iter().sum());
             let flex_widths = ratio_distribute(flexible_width, &ratios, Some(&minimums));
@@ -680,10 +759,10 @@ impl Table {
     /// Content widths (padding excluded) for the given available width.
     #[cfg(test)]
     fn calculate_widths(&self, available_width: usize) -> Vec<usize> {
-        let pad = self.padding_width();
         self.cell_widths(available_width)
             .into_iter()
-            .map(|w| w.saturating_sub(pad))
+            .enumerate()
+            .map(|(i, w)| w.saturating_sub(self.padding_width(i)))
             .collect()
     }
 
@@ -705,14 +784,10 @@ impl Table {
     }
 
     /// Render one cell into exactly `width`-wide lines (padding included).
-    fn cell_lines(
-        &self,
-        cell: &Cell,
-        column: &Column,
-        width: usize,
-        base: Style,
-    ) -> Vec<Vec<Span>> {
-        let content_width = width.saturating_sub(self.padding_width());
+    fn cell_lines(&self, cell: &Cell, index: usize, width: usize, base: Style) -> Vec<Vec<Span>> {
+        let column = &self.columns[index];
+        let (pad_left, pad_right) = self.cell_padding(index);
+        let content_width = width.saturating_sub(pad_left + pad_right);
         let lines = match cell {
             Cell::Text(text) => {
                 let mut text = text.clone();
@@ -731,17 +806,16 @@ impl Table {
             }
             Cell::Renderable(r) => render_lines(&**r, content_width, Style::new()),
         };
-        let pad = Span::raw(" ".repeat(self.padding));
         lines
             .into_iter()
             .map(|line| {
                 let mut spans = Vec::with_capacity(line.len() + 2);
-                if self.padding > 0 {
-                    spans.push(pad.clone());
+                if pad_left > 0 {
+                    spans.push(Span::raw(" ".repeat(pad_left)));
                 }
                 spans.extend(line);
-                if self.padding > 0 {
-                    spans.push(pad.clone());
+                if pad_right > 0 {
+                    spans.push(Span::raw(" ".repeat(pad_right)));
                 }
                 spans
                     .into_iter()
@@ -778,7 +852,7 @@ impl Table {
         let mut rendered: Vec<Vec<Vec<Span>>> = Vec::with_capacity(widths.len());
         for (i, &width) in widths.iter().enumerate() {
             let cell = cells.get(i).unwrap_or(&empty);
-            rendered.push(self.cell_lines(cell, &self.columns[i], width, bases[i]));
+            rendered.push(self.cell_lines(cell, i, width, bases[i]));
         }
         let height = rendered.iter().map(Vec::len).max().unwrap_or(1).max(1);
         let mut segments = Vec::with_capacity(height);

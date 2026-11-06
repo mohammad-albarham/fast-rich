@@ -18,7 +18,7 @@ Statuses:
   ERROR    raises another exception
   HANG     did not finish within the timeout
 
-Usage: python feature_test.py [--json OUT.json] [--only SUBSTR] [--timeout S]
+Usage: python feature_test.py [--json OUT.json] [--only SUBSTR] [--timeout S] [--fail-on-regression]
 """
 
 from __future__ import annotations
@@ -965,6 +965,8 @@ def main() -> int:
     ap.add_argument("--tty", action="store_true", help="run snippets in an 80x25 pseudo-terminal (POSIX)")
     ap.add_argument("--timeout", type=float, default=30)
     ap.add_argument("--jobs", type=int, default=min(8, (os.cpu_count() or 2)))
+    ap.add_argument("--fail-on-regression", action="store_true",
+                    help="exit 1 if any feature is not PASS (N/A excluded); use as a CI gate")
     a = ap.parse_args()
     global SHOW, TTY
     SHOW, TTY = a.show, a.tty
@@ -1000,6 +1002,11 @@ def main() -> int:
     if a.json:
         with open(a.json, "w", encoding="utf-8") as fh:
             json.dump(dict(env=env, results=results), fh, indent=1, ensure_ascii=False)
+    if a.fail_on_regression:
+        failing = [r["id"] for r in results if r["status"] not in ("PASS", "N/A")]
+        if failing:
+            print("== FAIL: " + ", ".join(failing))
+            return 1
     return 0
 
 

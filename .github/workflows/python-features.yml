@@ -1,57 +1,86 @@
-# Run the fast-rich feature test (bindings/python/docker/feature_test.py) on
-# Windows against the published PyPI wheels, with real `rich` as reference.
-# Linux runs the same test in Docker: bindings/python/docker/test-features.sh
+# Feature-by-feature test of the fast-rich Python package against real Rich
+# (bindings/python/docker/feature_test.py, 152 checks). Fails on any
+# regression, so it gates changes to the bindings and to the Rust crate.
+#
+# - push / pull request: build the wheel from this commit, then test it.
+# - workflow_dispatch with source=pypi: test a published version instead.
+# Linux is also covered in Docker (glibc/musl, amd64/arm64):
+#   bindings/python/docker/test-features.sh
 
-name: Python feature test (Windows)
+name: Python feature test
 
 on:
   push:
-    branches: [py-release]
+    branches: [dev-branch, py-release, py-fixes]
     paths:
-      - bindings/python/docker/feature_test.py
+      - bindings/python/**
+      - src/**
+      - Cargo.toml
       - .github/workflows/python-features.yml
+  pull_request:
+    paths:
+      - bindings/python/**
+      - src/**
+      - Cargo.toml
   workflow_dispatch:
     inputs:
+      source:
+        description: "build (this commit) or pypi"
+        default: build
       version:
-        description: fast-rich version to install from PyPI
-        default: "0.3.2"
+        description: fast-rich version to install when source=pypi
+        default: "0.4.0"
 
 permissions:
   contents: read
 
 jobs:
   features:
-    name: windows / py${{ matrix.python }}
-    runs-on: windows-latest
+    name: ${{ matrix.os }} / py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python: ["3.10", "3.14"]
     env:
-      FAST_RICH_VERSION: ${{ inputs.version || '0.3.2' }}
       PYTHONUTF8: "1"
+      SOURCE: ${{ inputs.source || 'build' }}
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
-      - name: Remove Rust toolchain
+      - name: Build wheel from source
+        if: env.SOURCE == 'build'
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: bindings/python
+          args: --release --out dist
+      - name: Install fast-rich and reference rich
         run: |
-          rm -rf "$HOME/.cargo" "$HOME/.rustup"
-          for tool in cargo rustc rustup; do
-            while p=$(command -v "$tool"); do echo "removing $p"; rm -f "$p"; hash -r; done
-          done
-      - name: Install fast-rich (PyPI) and reference rich
-        run: python -m pip install --no-cache-dir "fast-rich==${FAST_RICH_VERSION}" rich==15.0.0
-      - name: Feature test
+          if [ "$SOURCE" = build ]; then
+            python -m pip install --no-index --find-links bindings/python/dist fast-rich
+          else
+            python -m pip install "fast-rich==${{ inputs.version }}"
+          fi
+          python -m pip install rich==15.0.0
+      - name: Feature test (piped)
         run: |
           cd "$RUNNER_TEMP"
-          TEST_IMAGE="windows-latest" python "$GITHUB_WORKSPACE/bindings/python/docker/feature_test.py" \
-            --timeout 60 --json "$RUNNER_TEMP/windows-py${{ matrix.python }}-pipe.json"
-      - uses: actions/upload-artifact@v4
+          python "$GITHUB_WORKSPACE/bindings/python/docker/feature_test.py" --timeout 60 \
+            --fail-on-regression --json "$RUNNER_TEMP/${{ matrix.os }}-py${{ matrix.python }}-pipe.json"
+      - name: Feature test (terminal)
+        if: runner.os != 'Windows'
+        run: |
+          cd "$RUNNER_TEMP"
+          python "$GITHUB_WORKSPACE/bindings/python/docker/feature_test.py" --timeout 60 --tty \
+            --fail-on-regression --json "$RUNNER_TEMP/${{ matrix.os }}-py${{ matrix.python }}-tty.json"
+      - uses: actions/upload-artifact@v7
+        if: always()
         with:
-          name: features-windows-py${{ matrix.python }}
-          path: ${{ runner.temp }}/windows-py${{ matrix.python }}-pipe.json
+          name: features-${{ matrix.os }}-py${{ matrix.python }}
+          path: ${{ runner.temp }}/*.json

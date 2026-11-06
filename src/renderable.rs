@@ -126,12 +126,153 @@ impl Renderable for crate::text::Text {
     }
 
     fn max_width(&self) -> usize {
-        self.width()
+        // Natural width is the widest line, not the sum of all lines.
+        self.plain_text()
+            .split('\n')
+            .map(unicode_width::UnicodeWidthStr::width)
+            .max()
+            .unwrap_or(0)
     }
 }
 
 /// A boxed renderable for dynamic dispatch.
 pub type BoxedRenderable = Box<dyn Renderable + Send + Sync>;
+
+/// A shared renderable: what containers (`Panel`, `Table` cells, `Tree`
+/// labels) store so they stay `Clone`.
+pub type SharedRenderable = std::sync::Arc<dyn Renderable + Send + Sync>;
+
+impl Renderable for SharedRenderable {
+    fn render(&self, context: &RenderContext) -> Vec<Segment> {
+        (**self).render(context)
+    }
+
+    fn min_width(&self) -> usize {
+        (**self).min_width()
+    }
+
+    fn max_width(&self) -> usize {
+        (**self).max_width()
+    }
+}
+
+/// Split rendered segments into physical lines.
+///
+/// A line ends at a segment with `newline` set or at a `\n` inside a span,
+/// so renderables that emit raw multi-line strings are handled too.
+pub fn segments_to_lines(segments: Vec<Segment>) -> Vec<Vec<Span>> {
+    let mut lines = Vec::new();
+    let mut current: Vec<Span> = Vec::new();
+    let mut open = false;
+    for segment in segments {
+        for span in segment.spans {
+            if span.text.contains('\n') {
+                let mut parts = span.text.split('\n').peekable();
+                while let Some(part) = parts.next() {
+                    if !part.is_empty() {
+                        current.push(Span {
+                            text: part.to_string().into(),
+                            style: span.style,
+                            link: span.link.clone(),
+                        });
+                        open = true;
+                    }
+                    if parts.peek().is_some() {
+                        lines.push(std::mem::take(&mut current));
+                        open = false;
+                    }
+                }
+            } else {
+                if !span.text.is_empty() {
+                    open = true;
+                }
+                current.push(span);
+            }
+        }
+        if segment.newline {
+            lines.push(std::mem::take(&mut current));
+            open = false;
+        }
+    }
+    if open || !current.is_empty() {
+        lines.push(current);
+    }
+    lines
+}
+
+/// Render `renderable` at `width` and return its lines, each padded with
+/// spaces (in `pad_style`) or cropped to exactly `width` cells — like Rich's
+/// `Console.render_lines(pad=True)`.
+///
+/// ```
+/// use fast_rich::renderable::render_lines;
+/// use fast_rich::style::Style;
+/// use fast_rich::text::Text;
+/// let lines = render_lines(&Text::plain("ab\ncdef"), 3, Style::new());
+/// let plain: Vec<String> = lines
+///     .iter()
+///     .map(|l| l.iter().map(|s| s.text.as_ref()).collect())
+///     .collect();
+/// assert_eq!(plain, ["ab ", "cde", "f  "]);
+/// ```
+pub fn render_lines(
+    renderable: &dyn Renderable,
+    width: usize,
+    pad_style: crate::style::Style,
+) -> Vec<Vec<Span>> {
+    let context = RenderContext {
+        width,
+        height: None,
+    };
+    segments_to_lines(renderable.render(&context))
+        .into_iter()
+        .map(|line| fit_line(line, width, pad_style))
+        .collect()
+}
+
+/// Crop a line to at most `width` cells (never splitting a wide character)
+/// and pad it with spaces in `pad_style` up to exactly `width`.
+pub fn fit_line(line: Vec<Span>, width: usize, pad_style: crate::style::Style) -> Vec<Span> {
+    use unicode_segmentation::UnicodeSegmentation;
+    use unicode_width::UnicodeWidthStr;
+
+    let mut out = Vec::with_capacity(line.len() + 1);
+    let mut used = 0usize;
+    for span in line {
+        let w = span.width();
+        if used + w <= width {
+            used += w;
+            out.push(span);
+            continue;
+        }
+        let mut kept = String::new();
+        for g in span.text.graphemes(true) {
+            let gw = UnicodeWidthStr::width(g);
+            if used + gw > width {
+                break;
+            }
+            used += gw;
+            kept.push_str(g);
+        }
+        if !kept.is_empty() {
+            out.push(Span {
+                text: kept.into(),
+                style: span.style,
+                link: span.link,
+            });
+        }
+        break;
+    }
+    if used < width {
+        out.push(Span::styled(" ".repeat(width - used), pad_style));
+    }
+    out
+}
+
+/// Display width of a line of spans.
+pub fn line_width(line: &[Span]) -> usize {
+    line.iter().map(Span::width).sum()
+}
 
 impl Renderable for BoxedRenderable {
     fn render(&self, context: &RenderContext) -> Vec<Segment> {

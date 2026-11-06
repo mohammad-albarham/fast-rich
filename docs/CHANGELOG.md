@@ -96,6 +96,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the semantic colors (`primary`, `success`, ...).
 
 ### Added
+- **Panel**: any renderable as content (`Panel::renderable`), so tables,
+  trees and panels nest like in Rich; `width`, `title_align` /
+  `subtitle_align` (default center, like Rich), `content_style` (Rich's
+  `style`), `padding_spec` (four sides). Fit width and title placement now
+  follow Rich's algorithm exactly (`╭─ Title ─╮`), and `Panel` reports its
+  measured width.
+- **Renderable**: `render_lines`, `segments_to_lines`, `fit_line`,
+  `line_width` helpers and the `SharedRenderable` alias; `Text` measures its
+  widest line as its natural width (was the sum of all lines).
 - **Markup**: `markup::escape()`, the counterpart of Rich's `rich.markup.escape`.
 - **Theme**: named styles — `Theme::styles`, `Theme::add_style`,
   `Theme::lookup_style` (like Rich's `Theme({"warning": "bold red"})`).

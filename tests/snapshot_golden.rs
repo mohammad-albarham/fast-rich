@@ -30,10 +30,13 @@ fn assert_snapshot(name: &str, actual: &str) {
     }
 
     match fs::read_to_string(&path) {
-        Ok(expected) => assert_eq!(
-            actual, expected,
-            "snapshot {name} drifted; rerun with FAST_RICH_UPDATE_SNAPSHOTS=1 if intended"
-        ),
+        Ok(expected) => {
+            let expected = expected.replace("\r\n", "\n");
+            assert_eq!(
+                actual, expected,
+                "snapshot {name} drifted; rerun with FAST_RICH_UPDATE_SNAPSHOTS=1 if intended"
+            )
+        }
         Err(_) if !Path::new(&path).exists() => {
             panic!("snapshot {path} missing — generate with FAST_RICH_UPDATE_SNAPSHOTS=1")
         }

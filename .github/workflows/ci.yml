@@ -138,7 +138,9 @@ jobs:
     - uses: taiki-e/install-action@v2
       with:
         tool: cargo-audit
-    - run: cargo audit
+    # time >=0.3.47 and quick-xml >=0.41 (pulled transitively via syntect -> plist)
+    # require Rust 1.86–1.88, above our MSRV 1.81; Cargo.lock pins them for MSRV.
+    - run: cargo audit --ignore RUSTSEC-2026-0009 --ignore RUSTSEC-2026-0194 --ignore RUSTSEC-2026-0195
 
   publish-dry-run:
     name: Publish Dry Run

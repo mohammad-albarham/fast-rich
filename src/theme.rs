@@ -128,7 +128,10 @@ impl Theme {
             "error" => self.error,
             "info" => self.info,
             "muted" => self.muted,
-            _ => *self.custom.get(name)?,
+            _ => match self.custom.get(name) {
+                Some(color) => *color,
+                None => return builtin_style(name),
+            },
         };
         Some(Style::new().foreground(color))
     }
@@ -142,6 +145,43 @@ impl Theme {
     pub fn add_color(&mut self, name: impl Into<String>, color: Color) {
         self.custom.insert(name.into(), color);
     }
+}
+
+/// Rich's built-in named styles that every theme falls back to.
+///
+/// Currently the `repr.*` styles used by
+/// [`ReprHighlighter`](crate::highlighter::ReprHighlighter), with the
+/// values from Rich's `default_styles.py`. Override any of them with
+/// [`Theme::add_style`].
+pub fn builtin_style(name: &str) -> Option<Style> {
+    let s = Style::new();
+    let style = match name {
+        "repr.ellipsis" => s.foreground(Color::Yellow),
+        "repr.indent" => s.foreground(Color::Green).dim(),
+        "repr.error" => s.foreground(Color::Red).bold(),
+        "repr.str" => s.foreground(Color::Green),
+        "repr.brace" | "repr.comma" | "repr.tag_start" | "repr.tag_end" | "repr.attrib_equal" => {
+            s.bold()
+        }
+        "repr.ipv4" | "repr.ipv6" | "repr.eui48" | "repr.eui64" => {
+            s.foreground(Color::BrightGreen).bold()
+        }
+        "repr.tag_name" => s.foreground(Color::BrightMagenta).bold(),
+        "repr.tag_contents" => s.foreground(Color::Default),
+        "repr.attrib_name" => s.foreground(Color::Yellow),
+        "repr.attrib_value" => s.foreground(Color::Magenta),
+        "repr.number" | "repr.number_complex" => s.foreground(Color::Cyan).bold(),
+        "repr.bool_true" => s.foreground(Color::BrightGreen).italic(),
+        "repr.bool_false" => s.foreground(Color::BrightRed).italic(),
+        "repr.none" => s.foreground(Color::Magenta).italic(),
+        "repr.url" => s.foreground(Color::BrightBlue).underline(),
+        "repr.uuid" => s.foreground(Color::BrightYellow),
+        "repr.call" => s.foreground(Color::Magenta).bold(),
+        "repr.path" => s.foreground(Color::Magenta),
+        "repr.filename" => s.foreground(Color::BrightMagenta),
+        _ => return None,
+    };
+    Some(style)
 }
 
 impl Default for Theme {

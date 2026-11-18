@@ -102,6 +102,10 @@ path = "examples/syntax_highlighting.rs"
 required-features = ["syntax"]
 
 [[bench]]
+name = "highlight_benchmark"
+harness = false
+
+[[bench]]
 name = "render_benchmark"
 harness = false
 required-features = ["markdown", "syntax"]

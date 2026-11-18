@@ -12,8 +12,10 @@
 //! console.print("Hello, [bold magenta]World[/]!");
 //! ```
 
+use crate::highlighter::{self, Highlighter};
 use crate::markup;
 use crate::renderable::{Renderable, Segment};
+use crate::style::Style;
 use crate::text::{Overflow, Span, Text};
 
 use crossterm::{
@@ -43,6 +45,59 @@ const OSC8_CLOSE: &str = "\x1b]8;;\x07";
 
 /// A URI is safe to embed in an OSC 8 sequence only if it contains no
 /// control characters that could break out of the escape sequence.
+/// Convert highlighter spans (which must cover `text` exactly) into styled
+/// byte ranges. Returns `None` if the spans don't reproduce `text`.
+fn spans_to_ranges(text: &str, spans: &[Span]) -> Option<Vec<(usize, usize, Style)>> {
+    let mut ranges = Vec::new();
+    let mut pos = 0;
+    for span in spans {
+        let end = pos + span.text.len();
+        if text.get(pos..end)? != span.text.as_ref() {
+            return None;
+        }
+        if !span.style.is_empty() && end > pos {
+            ranges.push((pos, end, span.style));
+        }
+        pos = end;
+    }
+    (pos == text.len()).then_some(ranges)
+}
+
+/// Split `spans` at highlight range boundaries, layering each span's own
+/// style over the highlight style (markup wins, as in Rich).
+fn merge_highlight(spans: &[Span], ranges: &[(usize, usize, Style)]) -> Vec<Span> {
+    let mut out = Vec::with_capacity(spans.len() + ranges.len() * 2);
+    let mut offset = 0;
+    let mut r = 0;
+    for span in spans {
+        let text = span.text.as_ref();
+        let (start, end) = (offset, offset + text.len());
+        offset = end;
+        let mut pos = start;
+        while pos < end {
+            while r < ranges.len() && ranges[r].1 <= pos {
+                r += 1;
+            }
+            let (piece_end, base) = match ranges.get(r) {
+                Some(&(rs, re, style)) if rs <= pos => (re.min(end), Some(style)),
+                Some(&(rs, _, _)) => (rs.min(end), None),
+                None => (end, None),
+            };
+            let style = match base {
+                Some(base) => base.combine(&span.style),
+                None => span.style,
+            };
+            out.push(Span {
+                text: text[pos - start..piece_end - start].to_string().into(),
+                style,
+                link: span.link.clone(),
+            });
+            pos = piece_end;
+        }
+    }
+    out
+}
+
 fn is_safe_uri(url: &str) -> bool {
     !url.chars().any(|c| c.is_control())
 }
@@ -106,6 +161,10 @@ pub struct Console {
     soft_wrap: bool,
     /// Theme providing custom named colors for markup
     theme: crate::theme::Theme,
+    /// Whether `print`/`println` highlight strings (Rich's `highlight=True`)
+    highlight: bool,
+    /// Custom highlighter; `None` uses [`ReprHighlighter`] with the theme
+    highlighter: Option<SharedHighlighter>,
     /// Whether recording is enabled
     record: std::sync::Arc<std::sync::atomic::AtomicBool>,
     /// Buffer for recorded segments
@@ -117,6 +176,16 @@ enum ConsoleOutput {
     Stdout,
     Stderr,
     Buffer(std::sync::Arc<std::sync::Mutex<Vec<u8>>>),
+}
+
+/// A user-supplied highlighter shared between cloned consoles.
+#[derive(Clone)]
+struct SharedHighlighter(std::sync::Arc<dyn Highlighter + Send + Sync>);
+
+impl std::fmt::Debug for SharedHighlighter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("SharedHighlighter(..)")
+    }
 }
 
 struct BufferWriter {
@@ -158,6 +227,8 @@ impl Console {
             emoji: true,
             soft_wrap: true,
             theme: crate::theme::Theme::new(),
+            highlight: true,
+            highlighter: None,
             record: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             recording: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
         }
@@ -176,6 +247,8 @@ impl Console {
             emoji: true,
             soft_wrap: true,
             theme: crate::theme::Theme::new(),
+            highlight: true,
+            highlighter: None,
             record: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             recording: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
         }
@@ -195,6 +268,8 @@ impl Console {
             emoji: true,
             soft_wrap: true,
             theme: crate::theme::Theme::new(),
+            highlight: true,
+            highlighter: None,
             record: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             recording: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
         }
@@ -249,6 +324,43 @@ impl Console {
     /// When disabled, `:smile:` and friends are printed verbatim.
     pub fn emoji(mut self, enabled: bool) -> Self {
         self.emoji = enabled;
+        self
+    }
+
+    /// Enable or disable automatic highlighting of printed strings
+    /// (default: enabled, like Rich's `highlight=True`).
+    ///
+    /// Highlighting colors numbers, strings, booleans, `None`, URLs, paths,
+    /// UUIDs, IP addresses and more in [`print`](Self::print) /
+    /// [`println`](Self::println) output. Markup styles are applied on top,
+    /// so `[red]42[/]` is red. Renderables (tables, `Text`, ...) and the
+    /// `print_raw` family are never highlighted.
+    ///
+    /// ```
+    /// use fast_rich::Console;
+    /// let console = Console::capture().highlight(false);
+    /// console.print("42");
+    /// assert_eq!(console.get_captured_output(), "42");
+    /// ```
+    pub fn highlight(mut self, enabled: bool) -> Self {
+        self.highlight = enabled;
+        self
+    }
+
+    /// Replace the default [`ReprHighlighter`](crate::highlighter::ReprHighlighter)
+    /// with a custom highlighter.
+    ///
+    /// The highlighter must return spans that cover the input exactly;
+    /// output that doesn't is ignored.
+    ///
+    /// ```
+    /// use fast_rich::highlighter::ReprHighlighter;
+    /// use fast_rich::Console;
+    /// // Byte-for-byte Python Rich behavior (no Rust `true`/`false`).
+    /// let console = Console::new().highlighter(ReprHighlighter::new().rich_compatible());
+    /// ```
+    pub fn highlighter(mut self, highlighter: impl Highlighter + Send + Sync + 'static) -> Self {
+        self.highlighter = Some(SharedHighlighter(std::sync::Arc::new(highlighter)));
         self
     }
 
@@ -365,16 +477,51 @@ impl Console {
     /// [`Console::println`] for that). Interior newlines in the content are
     /// preserved as line breaks.
     pub fn print(&self, content: &str) {
-        let mut text = if self.markup {
-            markup::parse_with_theme(content, self.emoji, &self.theme)
-        } else {
-            Text::plain(content.to_string())
-        };
+        let mut text = self.render_str(content);
         if !self.soft_wrap {
             text.overflow = Overflow::Visible;
         }
 
         self.print_text(text);
+    }
+
+    /// Convert a string to [`Text`] the way [`print`](Self::print) does:
+    /// markup and emoji codes are parsed (when enabled) and the result is
+    /// highlighted (when enabled). Mirrors Rich's `Console.render_str`.
+    ///
+    /// ```
+    /// use fast_rich::Console;
+    /// let text = Console::capture().render_str("[bold]ok[/] 42");
+    /// assert_eq!(text.plain_text(), "ok 42");
+    /// ```
+    pub fn render_str(&self, content: &str) -> Text {
+        let text = if self.markup {
+            markup::parse_with_theme(content, self.emoji, &self.theme)
+        } else {
+            Text::plain(content.to_string())
+        };
+        if self.highlight {
+            self.apply_highlight(text)
+        } else {
+            text
+        }
+    }
+
+    /// Layer highlighter styles under the text's own (markup) styles.
+    fn apply_highlight(&self, text: Text) -> Text {
+        let plain: String = text.spans.iter().map(|s| s.text.as_ref()).collect();
+        let ranges = match &self.highlighter {
+            None => highlighter::styled_ranges(&plain, &self.theme, true),
+            Some(custom) => match spans_to_ranges(&plain, &custom.0.highlight(&plain)) {
+                Some(ranges) => ranges,
+                None => return text,
+            },
+        };
+        if ranges.is_empty() {
+            return text;
+        }
+        let spans = merge_highlight(&text.spans, &ranges);
+        Text { spans, ..text }
     }
 
     /// Print a line (with newline at the end).

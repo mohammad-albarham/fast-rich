@@ -103,7 +103,6 @@ pub mod console;
 pub mod constrain;
 pub mod emoji;
 pub mod group;
-#[cfg(feature = "json")]
 pub mod highlighter;
 pub mod markup;
 pub mod measure;

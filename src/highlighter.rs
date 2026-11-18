@@ -1,9 +1,19 @@
 //! Highlighters for pattern-based text styling.
 //!
-//! Provides regex-based highlighting and built-in highlighters for common patterns.
+//! [`ReprHighlighter`] (always available) reproduces Rich's default
+//! highlighting of printed strings. With the `json` feature, regex-based
+//! `RegexHighlighter` and `JsonHighlighter` are also available.
 
+mod engine;
+mod repr;
+
+pub(crate) use repr::styled_ranges;
+pub use repr::{HighlightRegion, ReprHighlighter};
+
+#[cfg(feature = "json")]
 use crate::style::Style;
 use crate::text::{Span, Text};
+#[cfg(feature = "json")]
 use regex::Regex;
 
 /// Trait for text highlighters.
@@ -12,12 +22,14 @@ pub trait Highlighter {
     fn highlight(&self, text: &str) -> Vec<Span>;
 }
 
+#[cfg(feature = "json")]
 /// A regex-based highlighter that applies styles to matched patterns.
 #[derive(Debug, Clone)]
 pub struct RegexHighlighter {
     patterns: Vec<(Regex, Style)>,
 }
 
+#[cfg(feature = "json")]
 impl RegexHighlighter {
     /// Create a new empty regex highlighter.
     pub fn new() -> Self {
@@ -65,12 +77,14 @@ impl RegexHighlighter {
     }
 }
 
+#[cfg(feature = "json")]
 impl Default for RegexHighlighter {
     fn default() -> Self {
         Self::new()
     }
 }
 
+#[cfg(feature = "json")]
 impl Highlighter for RegexHighlighter {
     fn highlight(&self, text: &str) -> Vec<Span> {
         if self.patterns.is_empty() {
@@ -132,6 +146,7 @@ pub fn highlight_text(text: &str, highlighter: &impl Highlighter) -> Text {
 // JSON Highlighter
 // =============================================================================
 
+#[cfg(feature = "json")]
 /// Highlighter specifically designed for JSON syntax.
 ///
 /// Applies distinct colors to:
@@ -154,6 +169,7 @@ struct JsonPatterns {
     hex_re: Regex,
 }
 
+#[cfg(feature = "json")]
 static JSON_PATTERNS: std::sync::LazyLock<JsonPatterns> =
     std::sync::LazyLock::new(|| JsonPatterns {
         string_re: Regex::new(r#""(?:[^"\\]|\\.)*""#).expect("static regex"),
@@ -165,6 +181,7 @@ static JSON_PATTERNS: std::sync::LazyLock<JsonPatterns> =
         hex_re: Regex::new(r"0x[0-9a-fA-F]+\b").expect("static regex"),
     });
 
+#[cfg(feature = "json")]
 /// A JSON highlighter. Instances are cheap: the regex patterns are compiled
 /// once per process and shared.
 #[derive(Debug, Clone)]
@@ -179,12 +196,14 @@ pub struct JsonHighlighter {
     brace_style: Style,
 }
 
+#[cfg(feature = "json")]
 impl Default for JsonHighlighter {
     fn default() -> Self {
         Self::new()
     }
 }
 
+#[cfg(feature = "json")]
 impl JsonHighlighter {
     /// Create a new JSON highlighter with default colors.
     pub fn new() -> Self {
@@ -222,6 +241,7 @@ impl JsonHighlighter {
     }
 }
 
+#[cfg(feature = "json")]
 impl Highlighter for JsonHighlighter {
     fn highlight(&self, text: &str) -> Vec<Span> {
         // Collect all matches with their positions and styles
@@ -336,6 +356,7 @@ impl Highlighter for JsonHighlighter {
     }
 }
 
+#[cfg(feature = "json")]
 #[cfg(test)]
 mod tests {
     use super::*;

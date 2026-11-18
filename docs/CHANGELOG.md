@@ -7,7 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Automatic highlighting** (Rich's `highlight=True`): `Console::print` /
+  `println` and the `print!`/`println!` macros now color numbers, strings,
+  booleans, `None`, URLs, paths, UUIDs, IP/MAC addresses, `key=value`,
+  `<tags>`, calls and brackets. Matches Rich 15's `ReprHighlighter`
+  character for character on 830 golden cases
+  (`tests/highlight_parity.rs`, regenerate with
+  `scripts/gen_highlight_golden.py`). Also colors Rust's `true` / `false`.
+- **`highlighter::ReprHighlighter`**: always available (no `regex`
+  dependency, no feature flag). A small backtracking matcher reproduces
+  Python `re` semantics (lookbehind, lazy repeats); pruning guards keep
+  inputs that are quadratic in Rich linear (20k digits: ~5 ms vs ~9 s).
+- **`Console::highlight(bool)`**, **`Console::highlighter(impl Highlighter)`**
+  and **`Console::render_str`** (markup + emoji + highlighting to `Text`).
+- **Theme**: Rich's `repr.*` default styles (`theme::builtin_style`),
+  overridable with `Theme::add_style` and usable as markup
+  (`[repr.number]`).
+
 ### Changed
+- `print`/`println` output now includes highlight styling. Use
+  `Console::highlight(false)` or the `*_raw` variants for the old output.
+- The `highlighter` module is no longer gated behind the `json` feature;
+  `RegexHighlighter` and `JsonHighlighter` still are.
 - **MSRV raised to Rust 1.86** (was 1.81), required by `unicode-segmentation`
   1.13 and `criterion` 0.8. `rust-version`, the CI MSRV job and the README
   badge are updated.

@@ -173,6 +173,7 @@ cargo run --example logging --features logging
 | Layouts | ✅ | ✅ |
 | Tracebacks | ✅ | ✅ |
 | Inspect | ✅ | ✅ |
+| Auto-highlighting of printed values | ✅ | ✅ |
 
 ## Contributing
 

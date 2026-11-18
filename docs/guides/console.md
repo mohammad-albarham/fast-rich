@@ -36,6 +36,34 @@ console.println("[green]Line 1[/]");
 console.println("[blue]Line 2[/]");
 ```
 
+### Automatic Highlighting
+
+Like Python Rich, `print()` / `println()` color common patterns in plain
+strings automatically: numbers, `'strings'`, `True`/`False`/`None` (and Rust's
+`true`/`false`), URLs, file paths, UUIDs, IPv4/IPv6/MAC addresses,
+`key=value` pairs, `<tags>`, calls like `Some(` and brackets.
+
+```rust
+console.println("GET https://api.example.com/v1 -> 404 in 3.5s, retry=true");
+```
+
+The token rules are the same as Rich's `ReprHighlighter`, checked
+character by character against Rich 15 output (`tests/highlight_parity.rs`).
+
+- **Markup wins**: `"[red]42[/]"` is red (and bold, from the number style).
+- **Turn it off**: `Console::new().highlight(false)`. The `print_raw` /
+  `println_raw` methods and macros, and renderables such as `Text` or
+  `Table`, are never highlighted.
+- **Restyle it**: override the `repr.*` theme styles, e.g.
+  `theme.add_style("repr.number", Style::parse("bold yellow"))`.
+- **Replace it**: `Console::new().highlighter(my_highlighter)` with any type
+  implementing `fast_rich::highlighter::Highlighter`.
+- **Exact Rich behavior**:
+  `.highlighter(ReprHighlighter::new().rich_compatible())` skips Rust's
+  lowercase `true`/`false`.
+- **Inspect the result**: `console.render_str("...")` returns the styled
+  `Text` that `print` would write.
+
 ### `print_renderable()` - Complex Objects
 
 For tables, panels, trees, and other renderables:

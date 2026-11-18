@@ -1,10 +1,11 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use fast_rich::console::RenderContext;
 use fast_rich::markup;
 use fast_rich::panel::Panel;
 use fast_rich::prelude::*;
 use fast_rich::table::Table;
 use fast_rich::tree::Tree;
+use std::hint::black_box;
 
 fn bench_markup_parsing(c: &mut Criterion) {
     let markup = "[bold red]Hello[/] [blue]World[/]! ".repeat(50);

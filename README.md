@@ -10,7 +10,7 @@
   [![Build Status](https://github.com/mohammad-albarham/fast-rich/workflows/CI/badge.svg)](https://github.com/mohammad-albarham/fast-rich/actions)
   [![codecov](https://codecov.io/gh/mohammad-albarham/fast-rich/branch/main/graph/badge.svg)](https://codecov.io/gh/mohammad-albarham/fast-rich)
   [![License](https://img.shields.io/crates/l/fast-rich.svg)](https://github.com/mohammad-albarham/fast-rich/blob/main/LICENSE)
-  ![Rust Version](https://img.shields.io/badge/rust-1.81%2B-blue.svg)
+  ![Rust Version](https://img.shields.io/badge/rust-1.86%2B-blue.svg)
 
   <!-- Secondary Badges: Activity and Social -->
   [![Downloads](https://img.shields.io/crates/d/fast-rich.svg)](https://crates.io/crates/fast-rich)

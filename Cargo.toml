@@ -2,7 +2,7 @@
 name = "fast-rich"
 version = "0.4.0"
 edition = "2021"
-rust-version = "1.81"
+rust-version = "1.86"
 license = "MIT OR Apache-2.0"
 description = "A Rust port of Python's Rich library for beautiful terminal formatting"
 repository = "https://github.com/mohammad-albarham/fast-rich"
@@ -14,17 +14,17 @@ exclude = ["docs/**", "logo.png", "Makefile", "scripts/**", "benchmarks/**"]
 
 [dependencies]
 # Core dependencies
-unicode-width = "0.2"
-unicode-segmentation = "1.10"
-crossterm = "0.28"
+unicode-width = "0.2.3"
+unicode-segmentation = "1.13.3"
+crossterm = "0.29.0"
 
 # Optional dependencies
-pulldown-cmark = { version = "0.12", optional = true }
-syntect = { version = "5.2", optional = true }
-log = { version = "0.4", optional = true }
-regex = { version = "1.12.2", optional = true }
-serde = { version = "1.0", features = ["derive"], optional = true }
-serde_json = { version = "1.0", features = ["preserve_order"], optional = true }
+pulldown-cmark = { version = "0.13.6", optional = true }
+syntect = { version = "5.3.0", optional = true }
+log = { version = "0.4.35", optional = true }
+regex = { version = "1.13.1", optional = true }
+serde = { version = "1.0.229", features = ["derive"], optional = true }
+serde_json = { version = "1.0.154", features = ["preserve_order"], optional = true }
 
 [features]
 default = []
@@ -35,7 +35,7 @@ json = ["dep:regex", "dep:serde", "dep:serde_json"]
 full = ["markdown", "syntax", "logging", "json"]
 
 [dev-dependencies]
-criterion = "0.5"
+criterion = "0.8.2"
 
 [[example]]
 name = "hello"

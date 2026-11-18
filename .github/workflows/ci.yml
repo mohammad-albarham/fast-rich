@@ -85,7 +85,7 @@ jobs:
       run: cargo test ${{ matrix.features }}
 
   msrv:
-    name: MSRV (1.81)
+    name: MSRV (1.86)
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -93,7 +93,7 @@ jobs:
     - name: Install Rust ${{ env.MSRV }}
       uses: dtolnay/rust-toolchain@master
       with:
-        toolchain: 1.81
+        toolchain: 1.86
 
     - name: Cache cargo
       uses: actions/cache@v4
@@ -139,7 +139,7 @@ jobs:
       with:
         tool: cargo-audit
     # time >=0.3.47 and quick-xml >=0.41 (pulled transitively via syntect -> plist)
-    # require Rust 1.86–1.88, above our MSRV 1.81; Cargo.lock pins them for MSRV.
+    # require Rust 1.88, above our MSRV 1.86; Cargo.lock pins them for MSRV.
     - run: cargo audit --ignore RUSTSEC-2026-0009 --ignore RUSTSEC-2026-0194 --ignore RUSTSEC-2026-0195
 
   publish-dry-run:

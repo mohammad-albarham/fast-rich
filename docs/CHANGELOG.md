@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **MSRV raised to Rust 1.86** (was 1.81), required by `unicode-segmentation`
+  1.13 and `criterion` 0.8. `rust-version`, the CI MSRV job and the README
+  badge are updated.
+- **Dependencies**: `crossterm` 0.29, `pulldown-cmark` 0.13, `syntect` 5.3,
+  `unicode-segmentation` 1.13, `unicode-width` 0.2.3, `criterion` 0.8 (dev);
+  patch bumps for `log`, `regex`, `serde`, `serde_json`.
+- **Benches**: use `std::hint::black_box` (criterion's is deprecated).
+
 ## [0.4.0] - 2026-11-06
 
 ### Fixed

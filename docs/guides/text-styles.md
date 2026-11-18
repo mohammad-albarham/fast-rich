@@ -197,6 +197,87 @@ console.print_renderable(&right);
 
 ---
 
+## Working with Text
+
+`Text` has the same editing methods as Python Rich's `Text`. Offsets are
+**byte offsets** (what `str::find` returns); an offset inside a multibyte
+character snaps down to its start. Widths are terminal cells.
+
+### Styling ranges
+
+```rust
+use fast_rich::prelude::*;
+
+let mut text = Text::plain("Error: disk full on /dev/sda1");
+text.stylize(Style::new().bold().foreground(Color::Red), 0, 5); // on top
+text.stylize_before(Style::new().italic(), 0, usize::MAX);     // underneath
+text.highlight_words(["disk"], Style::new().underline(), false);
+
+// Ranges you found yourself (no regex needed):
+let plain = text.plain_text();
+let ranges = plain.match_indices("/dev").map(|(i, m)| i..i + m.len());
+text.highlight_matches(ranges.collect::<Vec<_>>(), Style::new().foreground(Color::Cyan));
+
+assert!(text.get_style_at_offset(0).bold);
+```
+
+With the `regex` feature: `text.highlight_regex(&Regex::new(r"\d+")?, style)`.
+
+### Building and joining
+
+```rust
+use fast_rich::prelude::*;
+
+let mut line = Text::assemble([Text::from(Span::styled("key", Style::new().bold())), Text::from("=")]);
+line.append_tokens([("42", Style::new().foreground(Color::Cyan))]);
+line.append_text(&Text::plain(" (ok)"));
+
+let list = Text::plain(", ").join([Text::plain("a"), Text::plain("b")]);
+assert_eq!(list.plain_text(), "a, b");
+```
+
+### Cutting, cropping and padding
+
+| Method | Does |
+|:-------|:-----|
+| `divide(offsets)` | Cut at byte offsets into `offsets.len() + 1` pieces |
+| `split(sep, include_separator)` | Split on a separator, keeping styles |
+| `fit(width)` | Split into lines, each exactly `width` cells |
+| `truncate(width, overflow, pad)` | Crop to `width` cells (`Overflow::Ellipsis` adds `…`) |
+| `set_length(width)` | Crop or pad with spaces to exactly `width` cells |
+| `right_crop(n)` | Drop the last `n` characters |
+| `pad(n, c)`, `pad_left`, `pad_right` | Add `n` copies of `c` |
+| `rstrip()`, `rstrip_end(width)` | Drop trailing whitespace (all, or only beyond `width`) |
+| `remove_suffix(s)` | Drop `s` from the end if present |
+
+```rust
+use fast_rich::prelude::*;
+use fast_rich::text::Overflow;
+
+let mut name = Text::plain("a_very_long_file_name.rs");
+name.truncate(10, Some(Overflow::Ellipsis), false);
+assert_eq!(name.plain_text(), "a_very_lo…");
+```
+
+### Code helpers
+
+```rust
+use fast_rich::prelude::*;
+
+let mut code = Text::plain("fn main() {\n\tprintln!(\"hi\");\n}");
+code.expand_tabs(4);
+assert_eq!(code.detect_indentation(), 4);
+let guided = code.with_indent_guides(None, '│', Style::new().dim());
+console.print_renderable(&guided);
+```
+
+Differences from Rich: `set_length` and `fit` count cells (Rich counts
+characters, so CJK text does not line up there); `right_crop(0)` and
+`remove_suffix("")` do nothing (Rich empties the text); `highlight_regex`
+does not turn named groups into theme styles.
+
+---
+
 ## Real Terminal Output
 
 !!! example "Run the styles demo"

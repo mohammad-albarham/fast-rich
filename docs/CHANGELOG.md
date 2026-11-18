@@ -21,6 +21,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inputs that are quadratic in Rich linear (20k digits: ~5 ms vs ~9 s).
 - **`Console::highlight(bool)`**, **`Console::highlighter(impl Highlighter)`**
   and **`Console::render_str`** (markup + emoji + highlighting to `Text`).
+- **`Text` editing API (Rich `Text` parity)**: `stylize`,
+  `stylize_before`, `highlight_words`, `highlight_matches`,
+  `highlight_regex` (new `regex` feature), `assemble`, `append_text`,
+  `append_tokens`, `join`, `divide`, `split`, `fit`, `right_crop`,
+  `truncate`, `pad` / `pad_left` / `pad_right`, `set_length`,
+  `expand_tabs`, `rstrip`, `rstrip_end`, `remove_suffix`, `copy_styles`,
+  `get_style_at_offset`, `detect_indentation`, `with_indent_guides`, plus
+  `Text::len` and `From<Span> for Text`. Offsets are byte offsets (snapped
+  down to a char boundary, never panicking); widths are terminal cells.
+  Matches Rich 15 on 657 golden cases (`tests/text_parity.rs`, regenerate
+  with `scripts/gen_text_golden.py`).
+- **`regex` cargo feature**: enables `Text::highlight_regex`; `json` now
+  enables it.
 - **Theme**: Rich's `repr.*` default styles (`theme::builtin_style`),
   overridable with `Theme::add_style` and usable as markup
   (`[repr.number]`).

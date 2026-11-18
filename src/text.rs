@@ -2,6 +2,13 @@
 //!
 //! This module provides `Text` - a container for styled text that supports
 //! word wrapping, alignment, and combining multiple styled spans.
+//!
+//! `Text` also has Python Rich's editing API (`stylize`, `divide`, `split`,
+//! `truncate`, `join`, `expand_tabs`, ...). Those methods take **byte
+//! offsets** and measure widths in terminal cells; see the methods on
+//! [`Text`] for details.
+
+mod ops;
 
 use crate::style::Style;
 use std::borrow::Cow;

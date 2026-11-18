@@ -174,6 +174,7 @@ cargo run --example logging --features logging
 | Tracebacks | ✅ | ✅ |
 | Inspect | ✅ | ✅ |
 | Auto-highlighting of printed values | ✅ | ✅ |
+| Text editing API (stylize, divide, truncate, join, …) | ✅ | ✅ |
 
 ## Contributing
 

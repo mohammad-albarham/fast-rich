@@ -46,6 +46,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   256 levels is kept as raw text, so it never panics or overflows the
   stack. Matches Rich 15 on 598 golden cases (`tests/pretty_parity.rs`,
   regenerate with `scripts/gen_pretty_golden.py`).
+- **Exact pretty printing from serde / valuable** (new optional features
+  `serde` and `valuable`): `Pretty::from_serialize` /
+  `pretty_repr_serialize` and `Pretty::from_valuable` /
+  `pretty_repr_valuable` build the pretty tree from the value's real
+  structure instead of parsing `Debug` text, so types with hand-written
+  `Debug` impls still expand by field. Derived types print the same as the
+  `Debug` path; both also pass the Rich golden cases (sets excepted: serde
+  and valuable hand them over as sequences, so they print as `[..]`).
+  valuable has no `Option` (`Some(x)` shows as `x`). The `json` feature now
+  enables `serde`.
 - **Theme**: Rich's `repr.*` default styles (`theme::builtin_style`),
   overridable with `Theme::add_style` and usable as markup
   (`[repr.number]`).

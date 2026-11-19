@@ -28,6 +28,25 @@
 //! [`Console::print_debug`](crate::Console::print_debug) and
 //! [`inspect`](crate::inspect::inspect) use [`Pretty`].
 //!
+//! # Exact structure: serde and valuable
+//!
+//! `Debug` output is text, so the parser has to guess at custom `Debug`
+//! impls. Two optional features read a value's real structure instead and
+//! build the same tree (same layout, options and highlighting):
+//!
+//! - **`serde`**: [`Pretty::from_serialize`] and [`pretty_repr_serialize`]
+//!   for any `serde::Serialize` type. Most data types already derive it.
+//!   serde attributes apply (`#[serde(rename)]` changes the shown name,
+//!   `#[serde(skip)]` hides a field), and sets serialize as lists, so they
+//!   print as `[..]` instead of `{..}`.
+//! - **`valuable`**: [`Pretty::from_valuable`] and [`pretty_repr_valuable`]
+//!   for any `valuable::Valuable` type (`#[derive(Valuable)]`). It shows
+//!   the real Rust shape with no attributes in between, but valuable has no
+//!   `Option`: `Some(x)` shows as `x` and `None` as `None`. Sets also print
+//!   as `[..]`.
+//!
+//! For derived types without those quirks, all three give the same output.
+//!
 //! # Differences from Rich
 //!
 //! - Values are shown with Rust's `Debug` syntax, not Python's `repr`:
@@ -46,7 +65,8 @@
 //!   output is malformed (unbalanced brackets, an unterminated string) it is
 //!   shown as one atom.
 //! - Containers nested deeper than 256 levels are kept as one atom of raw
-//!   text, so very deep values cannot overflow the stack.
+//!   text (`...` with serde / valuable), so very deep values cannot
+//!   overflow the stack.
 
 use std::fmt::Debug;
 use std::sync::Arc;
@@ -63,6 +83,11 @@ use crate::theme::Theme;
 /// Containers nested deeper than this are kept as raw text, which bounds
 /// the recursion of the layout code.
 const MAX_PARSE_DEPTH: usize = 256;
+
+#[cfg(feature = "serde")]
+mod from_serde;
+#[cfg(feature = "valuable")]
+mod from_valuable;
 
 // ============================================================================
 // Options
@@ -834,6 +859,49 @@ pub fn pretty_repr<T: Debug + ?Sized>(value: &T, options: &PrettyOptions) -> Str
     layout(&parse(&format!("{value:?}")), options)
 }
 
+/// Like [`pretty_repr`], but reads the value's structure through
+/// `serde::Serialize` instead of parsing `Debug` output (feature `serde`).
+///
+/// ```
+/// use fast_rich::pretty::{pretty_repr_serialize, PrettyOptions};
+/// use serde::Serialize;
+///
+/// #[derive(Serialize)]
+/// struct Point { x: i32, y: i32 }
+///
+/// let out = pretty_repr_serialize(&Point { x: 1, y: 2 }, &PrettyOptions::new().max_width(8));
+/// assert_eq!(out, "Point {\n    x: 1,\n    y: 2\n}");
+/// ```
+#[cfg(feature = "serde")]
+pub fn pretty_repr_serialize<T: serde::Serialize + ?Sized>(
+    value: &T,
+    options: &PrettyOptions,
+) -> String {
+    layout(&from_serde::to_value(value), options)
+}
+
+/// Like [`pretty_repr`], but reads the value's structure through
+/// `valuable::Valuable` instead of parsing `Debug` output (feature
+/// `valuable`).
+///
+/// ```
+/// use fast_rich::pretty::{pretty_repr_valuable, PrettyOptions};
+/// use valuable::Valuable;
+///
+/// #[derive(Valuable)]
+/// enum Shape { Rect { w: u8, h: u8 } }
+///
+/// let out = pretty_repr_valuable(&Shape::Rect { w: 2, h: 3 }, &PrettyOptions::new());
+/// assert_eq!(out, "Rect { w: 2, h: 3 }");
+/// ```
+#[cfg(feature = "valuable")]
+pub fn pretty_repr_valuable<T: valuable::Valuable + ?Sized>(
+    value: &T,
+    options: &PrettyOptions,
+) -> String {
+    layout(&from_valuable::to_value(value), options)
+}
+
 /// Pretty print a value to stdout at the terminal width (Rich's `pprint`).
 ///
 /// `options.max_width` is ignored: the console width is used. Lines are
@@ -906,9 +974,51 @@ impl Pretty {
     /// assert_eq!(pretty.text(80).plain_text(), "Some((1, \"a\"))");
     /// ```
     pub fn new<T: Debug + ?Sized>(value: &T) -> Self {
+        Self::from_tree(parse(&format!("{value:?}")), std::any::type_name::<T>())
+    }
+
+    /// Pretty print a `serde::Serialize` value from its real structure
+    /// (feature `serde`), instead of parsing its `Debug` output.
+    ///
+    /// ```
+    /// use fast_rich::pretty::Pretty;
+    /// use serde::Serialize;
+    ///
+    /// #[derive(Serialize)]
+    /// struct Config { path: String, retries: u8 }
+    ///
+    /// let config = Config { path: "/etc/app.toml".into(), retries: 3 };
+    /// let text = Pretty::from_serialize(&config).text(80);
+    /// assert_eq!(text.plain_text(), "Config { path: \"/etc/app.toml\", retries: 3 }");
+    /// ```
+    #[cfg(feature = "serde")]
+    pub fn from_serialize<T: serde::Serialize + ?Sized>(value: &T) -> Self {
+        Self::from_tree(from_serde::to_value(value), std::any::type_name::<T>())
+    }
+
+    /// Pretty print a `valuable::Valuable` value from its real structure
+    /// (feature `valuable`), instead of parsing its `Debug` output.
+    ///
+    /// ```
+    /// use fast_rich::pretty::Pretty;
+    /// use valuable::Valuable;
+    ///
+    /// #[derive(Valuable)]
+    /// struct Config { path: String, retries: u8 }
+    ///
+    /// let config = Config { path: "/etc/app.toml".into(), retries: 3 };
+    /// let text = Pretty::from_valuable(&config).text(80);
+    /// assert_eq!(text.plain_text(), "Config { path: \"/etc/app.toml\", retries: 3 }");
+    /// ```
+    #[cfg(feature = "valuable")]
+    pub fn from_valuable<T: valuable::Valuable + ?Sized>(value: &T) -> Self {
+        Self::from_tree(from_valuable::to_value(value), std::any::type_name::<T>())
+    }
+
+    fn from_tree(value: Value, type_name: &'static str) -> Self {
         Pretty {
-            value: parse(&format!("{value:?}")),
-            type_name: std::any::type_name::<T>(),
+            value,
+            type_name,
             options: PrettyOptions::default(),
             highlighter: None,
             highlight: true,

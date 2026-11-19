@@ -6,13 +6,16 @@
 //! with Rust types (Vec, tuples, BTreeMap/HashMap, BTreeSet, &str), laid out
 //! with fast-rich's `pretty_repr` and compared with Rich's output.
 //!
+//! With the `serde` / `valuable` features the same cases also run through
+//! `pretty_repr_serialize` / `pretty_repr_valuable`, except the set cases
+//! (both libraries hand sets over as sequences, so they print as `[..]`).
+//!
 //! Python quotes strings with `'` and Rust with `"`, so every `'` in the
 //! expected output is replaced with `"` before comparing. The generator
 //! only uses values where that is the only difference (no quotes or
 //! backslashes in strings, no booleans or None, no empty sets).
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::fmt::Debug;
 
 use fast_rich::pretty::{pretty_repr, PrettyOptions};
 
@@ -26,54 +29,141 @@ fn set(items: &[i32]) -> BTreeSet<i32> {
     items.iter().copied().collect()
 }
 
-/// The Rust version of each value in `VALUES` of the generator.
-fn value(id: &str) -> Box<dyn Debug> {
-    match id {
-        "empty_list" => Box::new(Vec::<i32>::new()),
-        "empty_dict" => Box::new(BTreeMap::<i32, i32>::new()),
-        "empty_tuple" => Box::new(()),
-        "nested_empty" => Box::new(vec![vec![], vec![Vec::<i32>::new()]]),
-        "empties_tuple" => Box::new((Vec::<i32>::new(), BTreeMap::<i32, i32>::new(), ())),
-        "ints" => Box::new((0..12).collect::<Vec<i32>>()),
-        "negatives" => Box::new(vec![-1, -20, 300, 4000]),
-        "floats" => Box::new(vec![1.5, -2.25, 0.0, 100.125]),
-        "tuple1" => Box::new((1,)),
-        "tuple1_nested" => Box::new((vec![1, 2, 3],)),
-        "tuple_of_tuple1" => Box::new(((1,), (2,))),
-        "tuple_mixed" => Box::new((1, "two", vec![3, 4], map(vec![("five", 5)]))),
-        "strings" => Box::new(vec!["alpha", "beta", "gamma", "delta", "epsilon"]),
-        "unicode" => Box::new(vec!["é日本🎉", "naïve", "x"]),
-        "brackets" => Box::new(vec!["[a]", "{b}", "(c)", "d, e: f", "]"]),
-        "dict" => Box::new(map(vec![
-            ("apple", vec![1, 2]),
-            ("banana", vec![3, 4, 5]),
-            ("cherry", vec![]),
-        ])),
-        "dict_nested" => Box::new(map(vec![(
-            "outer",
-            map(vec![("inner", map(vec![("deep", vec![1, 2, 3])]))]),
-        )])),
-        "dict_tuple_keys" => Box::new(map(vec![((1, 2), "a"), ((3, 4), "b")])),
-        "dict_one" => {
-            // One key, so HashMap's order is deterministic.
-            let mut m = HashMap::new();
-            m.insert("key", vec![10, 20, 30]);
-            Box::new(m)
+/// Run `$body` with `$v` bound to a reference to the Rust version of the
+/// value `$id` from `VALUES` in the generator. A macro (not a function
+/// returning `Box<dyn Debug>`) so the same value can also go through
+/// `Serialize` and `Valuable`.
+macro_rules! with_value {
+    ($id:expr, |$v:ident| $body:expr) => {
+        match $id {
+            "empty_list" => {
+                let $v = &Vec::<i32>::new();
+                $body
+            }
+            "empty_dict" => {
+                let $v = &BTreeMap::<i32, i32>::new();
+                $body
+            }
+            "empty_tuple" => {
+                let $v = &();
+                $body
+            }
+            "nested_empty" => {
+                let $v = &vec![vec![], vec![Vec::<i32>::new()]];
+                $body
+            }
+            "empties_tuple" => {
+                let $v = &(Vec::<i32>::new(), BTreeMap::<i32, i32>::new(), ());
+                $body
+            }
+            "ints" => {
+                let $v = &(0..12).collect::<Vec<i32>>();
+                $body
+            }
+            "negatives" => {
+                let $v = &vec![-1, -20, 300, 4000];
+                $body
+            }
+            "floats" => {
+                let $v = &vec![1.5, -2.25, 0.0, 100.125];
+                $body
+            }
+            "tuple1" => {
+                let $v = &(1,);
+                $body
+            }
+            "tuple1_nested" => {
+                let $v = &(vec![1, 2, 3],);
+                $body
+            }
+            "tuple_of_tuple1" => {
+                let $v = &((1,), (2,));
+                $body
+            }
+            "tuple_mixed" => {
+                let $v = &(1, "two", vec![3, 4], map(vec![("five", 5)]));
+                $body
+            }
+            "strings" => {
+                let $v = &vec!["alpha", "beta", "gamma", "delta", "epsilon"];
+                $body
+            }
+            "unicode" => {
+                let $v = &vec!["é日本🎉", "naïve", "x"];
+                $body
+            }
+            "brackets" => {
+                let $v = &vec!["[a]", "{b}", "(c)", "d, e: f", "]"];
+                $body
+            }
+            "dict" => {
+                let $v = &map(vec![
+                    ("apple", vec![1, 2]),
+                    ("banana", vec![3, 4, 5]),
+                    ("cherry", vec![]),
+                ]);
+                $body
+            }
+            "dict_nested" => {
+                let $v = &map(vec![(
+                    "outer",
+                    map(vec![("inner", map(vec![("deep", vec![1, 2, 3])]))]),
+                )]);
+                $body
+            }
+            "dict_tuple_keys" => {
+                let $v = &map(vec![((1, 2), "a"), ((3, 4), "b")]);
+                $body
+            }
+            "dict_one" => {
+                // One key, so HashMap's order is deterministic.
+                let mut m = HashMap::new();
+                m.insert("key", vec![10, 20, 30]);
+                let $v = &m;
+                $body
+            }
+            "set" => {
+                let $v = &set(&[1, 2, 3, 5, 8, 13]);
+                $body
+            }
+            "list_of_sets" => {
+                let $v = &vec![set(&[1, 2]), set(&[3])];
+                $body
+            }
+            "matrix" => {
+                let $v = &vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
+                $body
+            }
+            "records" => {
+                let $v = &vec![("alice", vec![1, 2]), ("bob", vec![3])];
+                $body
+            }
+            "long_strings" => {
+                let $v = &vec![
+                    "Lorem ipsum dolor sit amet",
+                    "consectetur adipiscing elit",
+                    "sed do eiusmod tempor",
+                ];
+                $body
+            }
+            "string" => {
+                let $v = &"hello world";
+                $body
+            }
+            "deep" => {
+                let $v = &vec![vec![vec![vec![vec![vec![1]]]]]];
+                $body
+            }
+            other => {
+                panic!("unknown value id {other:?}: update with_value! in tests/pretty_parity.rs")
+            }
         }
-        "set" => Box::new(set(&[1, 2, 3, 5, 8, 13])),
-        "list_of_sets" => Box::new(vec![set(&[1, 2]), set(&[3])]),
-        "matrix" => Box::new(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]),
-        "records" => Box::new(vec![("alice", vec![1, 2]), ("bob", vec![3])]),
-        "long_strings" => Box::new(vec![
-            "Lorem ipsum dolor sit amet",
-            "consectetur adipiscing elit",
-            "sed do eiusmod tempor",
-        ]),
-        "string" => Box::new("hello world"),
-        "deep" => Box::new(vec![vec![vec![vec![vec![vec![1]]]]]]),
-        other => panic!("unknown value id {other:?}: update value() in tests/pretty_parity.rs"),
-    }
+    };
 }
+
+/// Sets go through serde and valuable as sequences, so they print as
+/// `[..]`; only the Debug path matches Rich's `{..}` for them.
+const SET_IDS: &[&str] = &["set", "list_of_sets"];
 
 fn hex(s: &str) -> String {
     if s == "-" {
@@ -129,25 +219,28 @@ fn cases() -> Vec<Case> {
     cases
 }
 
-#[test]
-fn pretty_repr_matches_rich() {
+/// Compare one way of building the tree against every golden case.
+fn check(path: &str, render: impl Fn(&Case) -> Option<String>) {
     let cases = cases();
     assert!(cases.len() > 500, "golden file looks truncated");
     let mut failures = Vec::new();
+    let mut checked = 0;
     for case in &cases {
-        let actual = pretty_repr(&*value(&case.id), &case.options);
+        let Some(actual) = render(case) else { continue };
+        checked += 1;
         if actual != case.expected {
             failures.push(format!(
-                "{} {:?}\n--- rich ---\n{}\n--- fast-rich ---\n{}",
+                "{} {:?}\n--- rich ---\n{}\n--- fast-rich ({path}) ---\n{}",
                 case.id, case.options, case.expected, actual
             ));
         }
     }
+    assert!(checked > 500, "{path}: only {checked} cases checked");
     assert!(
         failures.is_empty(),
-        "{} of {} cases differ from Rich:\n\n{}",
+        "{} of {} cases differ from Rich ({path}):\n\n{}",
         failures.len(),
-        cases.len(),
+        checked,
         failures
             .iter()
             .take(5)
@@ -158,9 +251,45 @@ fn pretty_repr_matches_rich() {
 }
 
 #[test]
+fn pretty_repr_matches_rich() {
+    check("Debug", |case| {
+        Some(with_value!(case.id.as_str(), |v| pretty_repr(
+            v,
+            &case.options
+        )))
+    });
+}
+
+#[cfg(feature = "serde")]
+#[test]
+fn pretty_repr_serialize_matches_rich() {
+    use fast_rich::pretty::pretty_repr_serialize;
+    check("serde", |case| {
+        (!SET_IDS.contains(&case.id.as_str())).then(|| {
+            with_value!(case.id.as_str(), |v| pretty_repr_serialize(
+                v,
+                &case.options
+            ))
+        })
+    });
+}
+
+#[cfg(feature = "valuable")]
+#[test]
+fn pretty_repr_valuable_matches_rich() {
+    use fast_rich::pretty::pretty_repr_valuable;
+    check("valuable", |case| {
+        (!SET_IDS.contains(&case.id.as_str()))
+            .then(|| with_value!(case.id.as_str(), |v| pretty_repr_valuable(v, &case.options)))
+    });
+}
+
+#[test]
 fn every_value_id_is_known() {
-    // `value()` panics on unknown ids; touch each id once.
+    // `with_value!` panics on unknown ids; touch each id once.
     for case in cases() {
-        let _ = value(&case.id);
+        with_value!(case.id.as_str(), |v| {
+            let _ = v;
+        });
     }
 }

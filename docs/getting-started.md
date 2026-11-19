@@ -34,6 +34,10 @@ Add `fast-rich` to your `Cargo.toml`:
 | `syntax` | Syntax highlighting for code (adds `syntect` dependency) |
 | `markdown` | Markdown rendering (adds `pulldown-cmark` dependency) |
 | `logging` | Integration with Rust's `log` crate |
+| `json` | JSON pretty printing (adds `serde_json`; enables `regex` and `serde`) |
+| `regex` | `Text::highlight_regex` (adds `regex`) |
+| `serde` | Exact pretty printing of `Serialize` types: `Pretty::from_serialize` (adds `serde`) |
+| `valuable` | Exact pretty printing of `Valuable` types: `Pretty::from_valuable` (adds `valuable`) |
 | `full` | Enables all features above |
 
 ## Your First Program

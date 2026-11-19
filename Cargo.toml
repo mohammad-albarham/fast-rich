@@ -25,6 +25,7 @@ log = { version = "0.4.35", optional = true }
 regex = { version = "1.13.1", optional = true }
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 serde_json = { version = "1.0.154", features = ["preserve_order"], optional = true }
+valuable = { version = "0.1.1", features = ["derive"], optional = true }
 
 [features]
 default = []
@@ -32,8 +33,10 @@ markdown = ["dep:pulldown-cmark", "syntax"]
 syntax = ["dep:syntect"]
 logging = ["dep:log"]
 regex = ["dep:regex"]
-json = ["regex", "dep:serde", "dep:serde_json"]
-full = ["markdown", "syntax", "logging", "json"]
+json = ["regex", "serde", "dep:serde_json"]
+serde = ["dep:serde"]
+valuable = ["dep:valuable"]
+full = ["markdown", "syntax", "logging", "json", "serde", "valuable"]
 
 [dev-dependencies]
 criterion = "0.8.2"

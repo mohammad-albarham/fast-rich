@@ -61,6 +61,8 @@ jobs:
           - --no-default-features --features json
           - --no-default-features --features markdown,syntax
           - --no-default-features --features logging,json
+          - --no-default-features --features serde
+          - --no-default-features --features valuable
           - --all-features
 
     steps:

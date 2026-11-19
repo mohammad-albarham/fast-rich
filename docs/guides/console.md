@@ -143,6 +143,38 @@ assert_eq!(s, "[\n    (1, \"one\"),\n    (2, \"two\")\n]");
 | `expand_all` | Expand every container, even ones that fit |
 | `indent_guides` | Draw `│` guides in the `repr.indent` style |
 
+### Exact structure with serde or valuable
+
+`Debug` output is text, so a hand-written `Debug` impl can hide a value's
+structure (it is then printed as one piece). With the `serde` or
+`valuable` feature, `Pretty` can read the real structure instead:
+
+```toml
+fast-rich = { version = "0.4", features = ["serde"] }   # or "valuable"
+```
+
+```rust
+use fast_rich::prelude::*;
+
+#[derive(serde::Serialize)]          // or #[derive(valuable::Valuable)]
+struct Matrix { rows: Vec<Vec<i32>> }
+
+let m = Matrix { rows: vec![vec![1, 2, 3], vec![4, 5, 6]] };
+let console = Console::new();
+console.print_renderable(&Pretty::from_serialize(&m));   // or from_valuable
+let s = pretty_repr_serialize(&m, &PrettyOptions::new().max_width(20));
+```
+
+| | `Pretty::new` (Debug) | `from_serialize` (serde) | `from_valuable` (valuable) |
+|:--|:--|:--|:--|
+| Works with | any `Debug` type | `Serialize` types | `Valuable` types |
+| Custom `Debug` impls | printed as text | real fields | real fields |
+| `Option` | `Some(x)` / `None` | `Some(x)` / `None` | `x` / `None` |
+| Sets | `{1, 2}` | `[1, 2]` | `[1, 2]` |
+| Renames | — | `#[serde(rename)]`, `skip` apply | — |
+
+For derived types (apart from those rows) all three print the same.
+
 Differences from Rich, since the input is Rust `Debug` output: strings use
 `"` quotes, booleans are `true`/`false`, structs keep Rust syntax
 (`Point { x: 1, y: 2 }`), and enum variants such as `Some(1)` are laid out

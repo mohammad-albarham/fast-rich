@@ -2,6 +2,8 @@
 //! and `pprint`, a port of Rich's `rich.pretty`.
 //!
 //! Run: cargo run --example pretty_demo
+//! With section 7 (exact structure via serde / valuable):
+//!     cargo run --example pretty_demo --features serde,valuable
 
 use std::collections::BTreeMap;
 
@@ -16,6 +18,20 @@ struct User {
     roles: Vec<String>,
     active: bool,
     metadata: BTreeMap<String, String>,
+}
+
+/// A matrix with a hand-written Debug that hides its structure.
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "valuable", derive(valuable::Valuable))]
+struct Matrix {
+    rows: Vec<Vec<i32>>,
+}
+
+impl std::fmt::Debug for Matrix {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let n = self.rows.len();
+        write!(f, "Matrix {n}x{n} {:?}", self.rows)
+    }
 }
 
 fn main() {
@@ -83,4 +99,26 @@ fn main() {
         &Some(Ok::<_, String>((1.5, 'x', "done"))),
         PrettyOptions::default(),
     );
+
+    // 7. Exact structure: serde / valuable ----------------------------------
+    console.println("\n[bold]7. Custom Debug vs. serde / valuable (width 24)[/]");
+    let matrix = Matrix {
+        rows: vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]],
+    };
+    // Before: the hand-written Debug text is one opaque atom; it can't expand.
+    console.println("[dim]Pretty::new (Debug):[/]");
+    console.print_renderable(&Constrain::new(Pretty::new(&matrix), Some(24)));
+    // After: the real fields, laid out like any other struct.
+    #[cfg(feature = "serde")]
+    {
+        console.println("[dim]Pretty::from_serialize:[/]");
+        console.print_renderable(&Constrain::new(Pretty::from_serialize(&matrix), Some(24)));
+    }
+    #[cfg(feature = "valuable")]
+    {
+        console.println("[dim]Pretty::from_valuable:[/]");
+        console.print_renderable(&Constrain::new(Pretty::from_valuable(&matrix), Some(24)));
+    }
+    #[cfg(not(any(feature = "serde", feature = "valuable")))]
+    console.println("[dim](enable --features serde,valuable for the structured versions)[/]");
 }

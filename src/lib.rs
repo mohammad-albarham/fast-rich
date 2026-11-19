@@ -155,6 +155,10 @@ pub use live::Live;
 pub use measure::Measurement;
 pub use padding::Padding;
 pub use panel::{BorderStyle, Panel};
+#[cfg(feature = "serde")]
+pub use pretty::pretty_repr_serialize;
+#[cfg(feature = "valuable")]
+pub use pretty::pretty_repr_valuable;
 pub use pretty::{pprint, pretty_repr, Pretty, PrettyOptions};
 pub use renderable::{Renderable, Segment};
 pub use rule::Rule;
@@ -460,6 +464,10 @@ pub mod prelude {
     pub use crate::log::ConsoleLog;
     pub use crate::padding::Padding;
     pub use crate::panel::{BorderStyle, Panel};
+    #[cfg(feature = "serde")]
+    pub use crate::pretty::pretty_repr_serialize;
+    #[cfg(feature = "valuable")]
+    pub use crate::pretty::pretty_repr_valuable;
     pub use crate::pretty::{pprint, pretty_repr, Pretty, PrettyOptions};
     pub use crate::progress::{track, Progress, ProgressBar, Spinner, SpinnerStyle, Status};
     pub use crate::renderable::{Renderable, Segment};

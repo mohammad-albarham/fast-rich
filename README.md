@@ -175,7 +175,7 @@ cargo run --example logging --features logging
 | Inspect | ✅ | ✅ |
 | Auto-highlighting of printed values | ✅ | ✅ |
 | Text editing API (stylize, divide, truncate, join, …) | ✅ | ✅ |
-| Pretty printing (`Pretty`, `pretty_repr`, `pprint`) | ✅ | ✅ (from `Debug` output) |
+| Pretty printing (`Pretty`, `pretty_repr`, `pprint`) | ✅ | ✅ (from `Debug`, or exact via `serde` / `valuable` features) |
 
 ## Contributing
 

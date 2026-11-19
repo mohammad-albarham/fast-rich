@@ -78,6 +78,77 @@ console.print_renderable(&table);
 
 ---
 
+## Pretty Printing
+
+`print_debug` lays out a value's `Debug` output the way Rich's
+`rich.pretty` does: a container stays on one line if it fits the console
+width, otherwise it is expanded one item per line and the same check runs
+again for each item. The result is highlighted like other printed values.
+
+```rust
+use fast_rich::prelude::*;
+use std::collections::BTreeMap;
+
+let console = Console::new();
+let mut stock = BTreeMap::new();
+stock.insert("fruit", vec![("apple", 3), ("banana", 12), ("cherry", 40)]);
+stock.insert("veg", vec![("leek", 1)]);
+console.print_debug(&stock);
+```
+
+At 30 columns this prints:
+
+```text
+{
+    "fruit": [
+        ("apple", 3),
+        ("banana", 12),
+        ("cherry", 40)
+    ],
+    "veg": [("leek", 1)]
+}
+```
+
+For more control, use the `Pretty` renderable, `pretty_repr` (a plain
+`String`) or `pprint` (print to stdout):
+
+```rust
+use fast_rich::prelude::*;
+
+let console = Console::new();
+let numbers: Vec<u32> = (1..=100).collect();
+
+// [1, 2, 3, 4, 5, ... +95]
+console.print_renderable(&Pretty::new(&numbers).max_length(5));
+
+// ["Lorem ipsum"+44]
+let quote = vec!["Lorem ipsum dolor sit amet, consectetur adipiscing elit"];
+console.print_renderable(&Pretty::new(&quote).max_string(11));
+
+// Indent guides (dim green │), every container expanded
+console.print_renderable(&Pretty::new(&numbers[..3]).indent_guides(true).expand_all(true));
+
+// A String, laid out for 20 cells
+let s = pretty_repr(&vec![(1, "one"), (2, "two")], &PrettyOptions::new().max_width(20));
+assert_eq!(s, "[\n    (1, \"one\"),\n    (2, \"two\")\n]");
+```
+
+| Option | Effect |
+|:-------|:-------|
+| `max_width` | Width to fit (`pretty_repr` only; `Pretty` uses the render width) |
+| `indent_size` | Spaces per level (default 4) |
+| `max_length` | Show the first N items of a list, tuple, map or set, then `... +K` |
+| `max_string` | Crop longer strings: `"abc"+5` |
+| `max_depth` | Containers at this depth or deeper become `[...]` / `Name { ... }` |
+| `expand_all` | Expand every container, even ones that fit |
+| `indent_guides` | Draw `│` guides in the `repr.indent` style |
+
+Differences from Rich, since the input is Rust `Debug` output: strings use
+`"` quotes, booleans are `true`/`false`, structs keep Rust syntax
+(`Point { x: 1, y: 2 }`), and enum variants such as `Some(1)` are laid out
+like Rich lays out a namedtuple. Output the parser does not recognize
+(custom `Debug` impls such as `1.5s`) is printed verbatim.
+
 ## Decorative Methods
 
 ### `rule()` - Horizontal Divider

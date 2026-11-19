@@ -815,26 +815,27 @@ impl Console {
         self.newline();
     }
 
-    /// Pretty print a debug-printable object.
+    /// Pretty print a debug-printable object (like Rich's
+    /// `console.print(obj)` for a non-string object).
     ///
-    /// Uses syntax highlighting if the `syntax` feature is enabled.
-    pub fn print_debug<T: std::fmt::Debug>(&self, obj: &T) {
-        let content = format!("{:#?}", obj);
-
-        #[cfg(feature = "syntax")]
-        {
-            let syntax = crate::syntax::Syntax::new(&content, "rust");
-            self.print_renderable(&syntax);
-        }
-
-        #[cfg(not(feature = "syntax"))]
-        {
-            // Use Text::plain to avoid parsing brackets as markup
-            let text = Text::plain(content);
-            self.print_renderable(&text);
-        }
-
-        self.newline();
+    /// The value's `Debug` output is laid out to the console width with
+    /// [`Pretty`](crate::pretty::Pretty): containers that fit stay on one
+    /// line, others are expanded one item per line. The result is
+    /// highlighted with the console's theme.
+    ///
+    /// ```
+    /// use fast_rich::console::{ColorSystem, Console};
+    /// let console = Console::capture().width(12).color_system(ColorSystem::NoColor);
+    /// console.print_debug(&vec!["a", "b"]);
+    /// console.print_debug(&vec!["alpha", "beta"]);
+    /// assert_eq!(
+    ///     console.get_captured_output(),
+    ///     "[\"a\", \"b\"]\n[\n    \"alpha\",\n    \"beta\"\n]\n"
+    /// );
+    /// ```
+    pub fn print_debug<T: std::fmt::Debug + ?Sized>(&self, obj: &T) {
+        let pretty = crate::pretty::Pretty::new(obj).theme(self.theme.clone());
+        self.print_renderable(&pretty);
     }
 
     /// Export a renderable as plain text.

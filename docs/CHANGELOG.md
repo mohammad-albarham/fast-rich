@@ -34,11 +34,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with `scripts/gen_text_golden.py`).
 - **`regex` cargo feature**: enables `Text::highlight_regex`; `json` now
   enables it.
+- **Pretty printing (`pretty` module, Rich's `rich.pretty`)**: `Pretty`
+  (a renderable that fits the render width, highlights with
+  `ReprHighlighter` and can draw indent guides), `pretty_repr` (the
+  layout as a `String`) and `pprint`, with Rich's options `max_width`,
+  `indent_size`, `max_length` (`... +K`), `max_string` (`"abc"+5`),
+  `max_depth` (`[...]`), `expand_all` and `indent_guides`
+  (`PrettyOptions`). The input is a value's `{:?}` output, parsed into
+  lists, tuples, maps, sets, structs and enum variants; structs keep Rust
+  syntax. Unparseable output is shown verbatim and nesting deeper than
+  256 levels is kept as raw text, so it never panics or overflows the
+  stack. Matches Rich 15 on 598 golden cases (`tests/pretty_parity.rs`,
+  regenerate with `scripts/gen_pretty_golden.py`).
 - **Theme**: Rich's `repr.*` default styles (`theme::builtin_style`),
   overridable with `Theme::add_style` and usable as markup
   (`[repr.number]`).
 
 ### Changed
+- **`Console::print_debug`** now pretty prints with `Pretty` (Rich's
+  layout at the console width, highlighted) instead of `{:#?}` through
+  `Syntax` / plain text, and no longer adds a blank line after the value.
+  It also accepts unsized values (`T: ?Sized`).
+- **`inspect`** shows the value with `Pretty`, fitted to the panel width,
+  instead of `{:#?}` (which was also parsed as markup, so `[red]` inside a
+  value was swallowed).
 - `print`/`println` output now includes highlight styling. Use
   `Console::highlight(false)` or the `*_raw` variants for the old output.
 - The `highlighter` module is no longer gated behind the `json` feature;

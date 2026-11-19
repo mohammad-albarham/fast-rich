@@ -5,10 +5,7 @@ use fast_rich::renderable::Renderable;
 use fast_rich::table::Table;
 
 fn render<T: Renderable>(item: &T) -> String {
-    let context = RenderContext {
-        width: 40,
-        height: None,
-    };
+    let context = RenderContext::new(40);
     let segments = item.render(&context);
     segments
         .iter()

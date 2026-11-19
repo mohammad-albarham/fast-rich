@@ -99,8 +99,10 @@ use std::cell::RefCell;
 pub mod align;
 pub mod bar;
 pub mod box_drawing;
+mod color_names;
 pub mod console;
 pub mod constrain;
+mod default_styles;
 pub mod emoji;
 pub mod group;
 pub mod highlighter;
@@ -512,11 +514,6 @@ mod tests {
         table.add_row_strs(&["a", "b"]);
 
         // Table should have columns and rows
-        assert!(!table
-            .render(&console::RenderContext {
-                width: 40,
-                height: None
-            })
-            .is_empty());
+        assert!(!table.render(&console::RenderContext::new(40)).is_empty());
     }
 }

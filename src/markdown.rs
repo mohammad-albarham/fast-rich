@@ -11,15 +11,21 @@
 use crate::box_drawing::{BoxStyle, Line};
 use crate::console::RenderContext;
 use crate::panel::{BorderStyle, Panel};
-use crate::renderable::{render_lines, Renderable, Segment};
+use crate::renderable::{render_lines_with, Renderable, Segment};
 use crate::rule::Rule;
-use crate::style::{Color, Style};
+use crate::style::Style;
 use crate::syntax::Syntax;
 use crate::table::{Cell, Column, Row, Table};
 use crate::text::{Alignment, Span, Text};
+use crate::theme::Theme;
 use pulldown_cmark::{Alignment as MdAlign, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
+use std::sync::Arc;
 
 /// Markdown rendering configuration. Defaults are Rich's markdown styles.
+///
+/// Without an explicit [`Markdown::config`], the styles are taken from the
+/// console theme by Rich's names (`markdown.h1`, `markdown.code`, ...; see
+/// [`MarkdownConfig::from_theme`]). An explicit config is used as is.
 #[derive(Debug, Clone)]
 pub struct MarkdownConfig {
     /// Fallback style for code blocks (used when no syntax colours apply)
@@ -34,8 +40,11 @@ pub struct MarkdownConfig {
     pub strong_style: Style,
     /// Style for strikethrough
     pub strike_style: Style,
-    /// Style for links
+    /// Style for links (Rich's `markdown.link_url`: the link text when
+    /// hyperlinks are on, the `(url)` when they are off)
     pub link_style: Style,
+    /// Style for link text when hyperlinks are off (Rich's `markdown.link`)
+    pub link_text_style: Style,
     /// Style for blockquotes (text and the `▌` bar)
     pub quote_style: Style,
     /// Style for unordered list bullets
@@ -60,33 +69,53 @@ pub struct MarkdownConfig {
 }
 
 impl Default for MarkdownConfig {
+    /// Rich's default markdown styles.
     fn default() -> Self {
+        MarkdownConfig::from_theme(&crate::theme::Theme::new())
+    }
+}
+
+impl MarkdownConfig {
+    /// Styles from `theme`, by Rich's names: `markdown.code_block`,
+    /// `markdown.code`, `markdown.h1`..`markdown.h6`, `markdown.em`,
+    /// `markdown.strong`, `markdown.s`, `markdown.link_url`,
+    /// `markdown.link`, `markdown.block_quote`, `markdown.item.bullet`,
+    /// `markdown.item.number`, `markdown.hr`, `markdown.table.border` and
+    /// `markdown.table.header`.
+    ///
+    /// ```
+    /// use fast_rich::markdown::MarkdownConfig;
+    /// use fast_rich::style::Color;
+    /// use fast_rich::theme::Theme;
+    /// let theme = Theme::from_styles([("markdown.h2", "bold green")]);
+    /// let config = MarkdownConfig::from_theme(&theme);
+    /// assert_eq!(config.heading_styles[1].foreground, Some(Color::Green));
+    /// assert!(config.heading_styles[0].underline); // Rich's markdown.h1
+    /// ```
+    pub fn from_theme(theme: &crate::theme::Theme) -> Self {
+        let s = |name: &str| theme.style(name);
         MarkdownConfig {
-            code_style: Style::new()
-                .foreground(Color::Cyan)
-                .background(Color::Black),
-            inline_code_style: Style::new()
-                .foreground(Color::Cyan)
-                .background(Color::Black)
-                .bold(),
+            code_style: s("markdown.code_block"),
+            inline_code_style: s("markdown.code"),
             heading_styles: [
-                Style::new().bold().underline(),
-                Style::new().foreground(Color::Magenta).underline(),
-                Style::new().foreground(Color::Magenta).bold(),
-                Style::new().foreground(Color::Magenta).italic(),
-                Style::new().italic(),
-                Style::new().dim(),
+                s("markdown.h1"),
+                s("markdown.h2"),
+                s("markdown.h3"),
+                s("markdown.h4"),
+                s("markdown.h5"),
+                s("markdown.h6"),
             ],
-            emphasis_style: Style::new().italic(),
-            strong_style: Style::new().bold(),
-            strike_style: Style::new().strikethrough(),
-            link_style: Style::new().foreground(Color::Blue).underline(),
-            quote_style: Style::new().foreground(Color::Magenta),
-            list_bullet_style: Style::new().bold(),
-            list_number_style: Style::new().foreground(Color::Cyan),
-            hr_style: Style::new().dim(),
-            table_border_style: Style::new().foreground(Color::Cyan),
-            table_header_style: Style::new().foreground(Color::Cyan),
+            emphasis_style: s("markdown.em"),
+            strong_style: s("markdown.strong"),
+            strike_style: s("markdown.s"),
+            link_style: s("markdown.link_url"),
+            link_text_style: s("markdown.link"),
+            quote_style: s("markdown.block_quote"),
+            list_bullet_style: s("markdown.item.bullet"),
+            list_number_style: s("markdown.item.number"),
+            hr_style: s("markdown.hr"),
+            table_border_style: s("markdown.table.border"),
+            table_header_style: s("markdown.table.header"),
             code_block_panel: false,
             syntax_theme: crate::syntax::Theme::Monokai,
             hyperlinks: true,
@@ -94,6 +123,10 @@ impl Default for MarkdownConfig {
         }
     }
 }
+
+/// Parsed blocks and the theme they were styled with (`None` for an
+/// explicit config).
+type CachedBlocks = (Option<Arc<Theme>>, Vec<Block>);
 
 /// A parsed block element.
 #[derive(Debug, Clone)]
@@ -141,8 +174,11 @@ impl Block {
 #[derive(Debug)]
 pub struct Markdown {
     source: String,
-    config: MarkdownConfig,
-    cache: std::sync::Mutex<Option<Vec<Block>>>,
+    /// Explicit config; `None` takes the styles from the render theme.
+    config: Option<MarkdownConfig>,
+    /// Parsed blocks and the theme they were styled with (`None` for an
+    /// explicit config).
+    cache: std::sync::Mutex<Option<CachedBlocks>>,
 }
 
 impl Clone for Markdown {
@@ -212,24 +248,40 @@ impl Markdown {
     pub fn new(source: &str) -> Self {
         Markdown {
             source: source.to_string(),
-            config: MarkdownConfig::default(),
+            config: None,
             cache: std::sync::Mutex::new(None),
         }
     }
 
-    /// Set the rendering configuration.
+    /// Set the rendering configuration. It is used as is: theme styles
+    /// no longer apply (start from [`MarkdownConfig::from_theme`] to keep
+    /// them).
     pub fn config(mut self, config: MarkdownConfig) -> Self {
-        self.config = config;
+        self.config = Some(config);
         self.cache = std::sync::Mutex::new(None);
         self
     }
 
-    fn blocks(&self) -> Vec<Block> {
-        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
-        if cache.is_none() {
-            *cache = Some(self.parse());
+    /// The config to render with: the explicit one, or one from `theme`.
+    fn resolved_config(&self, theme: &Theme) -> MarkdownConfig {
+        match &self.config {
+            Some(config) => config.clone(),
+            None => MarkdownConfig::from_theme(theme),
         }
-        cache.clone().unwrap_or_default()
+    }
+
+    fn blocks(&self, cfg: &MarkdownConfig, theme: &Arc<Theme>) -> Vec<Block> {
+        let key = self.config.is_none().then(|| theme.clone());
+        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
+        let fresh = match (&*cache, &key) {
+            (Some((None, _)), None) => true,
+            (Some((Some(cached), _)), Some(theme)) => Arc::ptr_eq(cached, theme),
+            _ => false,
+        };
+        if !fresh {
+            *cache = Some((key, self.parse(cfg)));
+        }
+        cache.as_ref().map(|(_, b)| b.clone()).unwrap_or_default()
     }
 
     /// Append a finished block to the innermost open container.
@@ -241,8 +293,7 @@ impl Markdown {
         }
     }
 
-    fn parse(&self) -> Vec<Block> {
-        let cfg = &self.config;
+    fn parse(&self, cfg: &MarkdownConfig) -> Vec<Block> {
         let options =
             Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH | Options::ENABLE_TASKLISTS;
         let mut root: Vec<Block> = Vec::new();
@@ -437,7 +488,7 @@ impl Markdown {
                             i.styles.push(cfg.link_style);
                             i.links.push(Some(dest_url.to_string()));
                         } else {
-                            i.styles.push(Style::new().foreground(Color::BrightBlue));
+                            i.styles.push(cfg.link_text_style);
                             i.links.push(None);
                             let start = i.text.spans.len();
                             i.plain_links.push((start, dest_url.to_string()));
@@ -516,10 +567,15 @@ impl Markdown {
     }
 
     /// Children of a list item or quote: no blank lines between them.
-    fn render_children(&self, blocks: &[Block], width: usize) -> Vec<Vec<Span>> {
+    fn render_children(
+        &self,
+        cfg: &MarkdownConfig,
+        blocks: &[Block],
+        context: &RenderContext,
+    ) -> Vec<Vec<Span>> {
         blocks
             .iter()
-            .flat_map(|b| self.render_block(b, width))
+            .flat_map(|b| self.render_block(cfg, b, context))
             .collect()
     }
 
@@ -539,13 +595,18 @@ impl Markdown {
             .collect()
     }
 
-    fn render_block(&self, block: &Block, width: usize) -> Vec<Vec<Span>> {
-        let cfg = &self.config;
+    fn render_block(
+        &self,
+        cfg: &MarkdownConfig,
+        block: &Block,
+        context: &RenderContext,
+    ) -> Vec<Vec<Span>> {
+        let width = context.width;
         match block {
             Block::Paragraph(text) => {
                 let mut text = text.clone();
                 text.alignment = cfg.justify;
-                render_lines(&text, width, Style::new())
+                render_lines_with(&text, &context.child(width), Style::new())
             }
             Block::Heading(level, text) => {
                 let mut text = text.clone();
@@ -554,11 +615,12 @@ impl Markdown {
                 } else {
                     Alignment::Left
                 };
-                render_lines(&text, width, Style::new())
+                render_lines_with(&text, &context.child(width), Style::new())
             }
-            Block::Code { lang, code } => self.render_code(lang, code.trim_end(), width),
+            Block::Code { lang, code } => self.render_code(cfg, lang, code.trim_end(), context),
             Block::Quote(children) => {
-                let lines = self.render_children(children, width.saturating_sub(4));
+                let lines =
+                    self.render_children(cfg, children, &context.child(width.saturating_sub(4)));
                 let lines: Vec<Vec<Span>> = lines
                     .into_iter()
                     .map(|l| crate::renderable::fit_line(l, width.saturating_sub(4), Style::new()))
@@ -571,7 +633,11 @@ impl Markdown {
                 match start {
                     None => {
                         for item in items {
-                            let lines = self.render_children(item, width.saturating_sub(3));
+                            let lines = self.render_children(
+                                cfg,
+                                item,
+                                &context.child(width.saturating_sub(3)),
+                            );
                             out.extend(Self::prefixed(
                                 lines,
                                 Span::styled(" • ", cfg.list_bullet_style),
@@ -584,8 +650,11 @@ impl Markdown {
                         let last = first + items.len() as u64;
                         let number_width = last.to_string().len() + 2;
                         for (i, item) in items.iter().enumerate() {
-                            let lines =
-                                self.render_children(item, width.saturating_sub(number_width));
+                            let lines = self.render_children(
+                                cfg,
+                                item,
+                                &context.child(width.saturating_sub(number_width)),
+                            );
                             let numeral =
                                 format!("{:>w$} ", first + i as u64, w = number_width - 1);
                             out.extend(Self::prefixed(
@@ -617,6 +686,9 @@ impl Markdown {
                 let mut table = Table::new()
                     .border_style(BorderStyle::Custom(simple))
                     .style(cfg.table_border_style)
+                    // Rich's markdown.table.header is "not bold cyan": it
+                    // cancels table.header's bold.
+                    .header_style(Style::new())
                     .pad_edge(false)
                     .collapse_padding(true)
                     .show_edge(true);
@@ -640,11 +712,11 @@ impl Markdown {
                 for row in rows {
                     table.add_row_obj(Row::cells(row.iter().cloned().map(Cell::Text)));
                 }
-                render_lines(&table, width, Style::new())
+                render_lines_with(&table, &context.child(width), Style::new())
             }
             Block::Rule => {
                 let rule = Rule::line().characters("-").style(cfg.hr_style);
-                let mut lines = render_lines(&rule, width, Style::new());
+                let mut lines = render_lines_with(&rule, &context.child(width), Style::new());
                 lines.push(Vec::new());
                 lines
             }
@@ -652,8 +724,14 @@ impl Markdown {
     }
 
     /// Rich's code block: `Syntax(code, lexer, word_wrap=True, padding=1)`.
-    fn render_code(&self, lang: &str, code: &str, width: usize) -> Vec<Vec<Span>> {
-        let cfg = &self.config;
+    fn render_code(
+        &self,
+        cfg: &MarkdownConfig,
+        lang: &str,
+        code: &str,
+        context: &RenderContext,
+    ) -> Vec<Vec<Span>> {
+        let width = context.width;
         let lexer = if lang.is_empty() { "text" } else { lang };
         let syntax = Syntax::new(code, lexer)
             .line_numbers(false)
@@ -667,7 +745,7 @@ impl Markdown {
         for line in lines {
             // word_wrap=True: long lines wrap inside the padding.
             let text = Text::from_spans(line);
-            for wrapped in render_lines(&text, inner, bg) {
+            for wrapped in render_lines_with(&text, &context.child(inner), bg) {
                 let mut row = vec![Span::styled(" ", bg)];
                 row.extend(wrapped.into_iter().map(|mut s| {
                     s.style = bg.combine(&s.style);
@@ -690,7 +768,7 @@ impl Markdown {
                 }
             }
             let panel = Panel::new(text).title(lexer).padding(0, 0);
-            return render_lines(&panel, width, Style::new());
+            return render_lines_with(&panel, &context.child(width), Style::new());
         }
         out
     }
@@ -701,15 +779,15 @@ impl Renderable for Markdown {
     /// element closed last had `new_line` set (blocks with child elements
     /// always do; rules don't).
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
-        let width = context.width;
+        let cfg = self.resolved_config(&context.theme);
         let mut out: Vec<Segment> = Vec::new();
         let mut new_line = false;
-        for block in self.blocks() {
+        for block in self.blocks(&cfg, &context.theme) {
             if new_line || block.has_child_elements() {
                 out.push(Segment::empty_line());
             }
             out.extend(
-                self.render_block(&block, width)
+                self.render_block(&cfg, &block, context)
                     .into_iter()
                     .map(Segment::line),
             );
@@ -722,13 +800,11 @@ impl Renderable for Markdown {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::style::Color;
 
     fn plain(md: &str, width: usize) -> Vec<String> {
         Markdown::new(md)
-            .render(&RenderContext {
-                width,
-                height: None,
-            })
+            .render(&RenderContext::new(width))
             .iter()
             .map(|s| s.plain_text().trim_end().to_string())
             .collect()
@@ -805,10 +881,7 @@ mod tests {
     #[test]
     fn test_inline_styles_and_links() {
         let md = Markdown::new("**b** *i* `c` [l](https://x.y)");
-        let segs = md.render(&RenderContext {
-            width: 40,
-            height: None,
-        });
+        let segs = md.render(&RenderContext::new(40));
         let spans: Vec<&Span> = segs.iter().flat_map(|s| s.spans.iter()).collect();
         let find = |t: &str| spans.iter().find(|s| s.text == t).copied();
         assert!(find("b").is_some_and(|s| s.style.bold));

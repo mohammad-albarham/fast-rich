@@ -37,10 +37,7 @@ impl Measurement {
 
     /// Measure a renderable at a given width.
     pub fn of(renderable: &impl Renderable, width: usize) -> Self {
-        let context = RenderContext {
-            width,
-            height: None,
-        };
+        let context = RenderContext::new(width);
         let segments = renderable.render(&context);
 
         let lines = segments.len();

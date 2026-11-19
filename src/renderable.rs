@@ -220,15 +220,32 @@ pub fn render_lines(
     width: usize,
     pad_style: crate::style::Style,
 ) -> Vec<Vec<Span>> {
+    render_lines_with(renderable, &RenderContext::new(width), pad_style)
+}
+
+/// [`render_lines`] with a full [`RenderContext`]: renders at
+/// `context.width` with `context.theme`. Containers use it to pass their
+/// theme on to children.
+///
+/// ```
+/// use fast_rich::console::RenderContext;
+/// use fast_rich::renderable::render_lines_with;
+/// use fast_rich::style::Style;
+/// use fast_rich::text::Text;
+/// let lines = render_lines_with(&Text::plain("abc"), &RenderContext::new(5), Style::new());
+/// assert_eq!(lines.len(), 1);
+/// ```
+pub fn render_lines_with(
+    renderable: &dyn Renderable,
+    context: &RenderContext,
+    pad_style: crate::style::Style,
+) -> Vec<Vec<Span>> {
+    let width = context.width;
     // Like Rich's Console.render: no space, nothing to render.
     if width == 0 {
         return Vec::new();
     }
-    let context = RenderContext {
-        width,
-        height: None,
-    };
-    segments_to_lines(renderable.render(&context))
+    segments_to_lines(renderable.render(context))
         .into_iter()
         .map(|line| fit_line(line, width, pad_style))
         .collect()
@@ -311,10 +328,7 @@ mod tests {
     #[test]
     fn test_string_renderable() {
         let s = "Hello, World!".to_string();
-        let context = RenderContext {
-            width: 80,
-            height: None,
-        };
+        let context = RenderContext::new(80);
         let segments = s.render(&context);
         assert_eq!(segments.len(), 1);
         assert_eq!(segments[0].plain_text(), "Hello, World!");

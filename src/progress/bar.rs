@@ -6,6 +6,7 @@ use crate::progress::columns::{
 use crate::renderable::{Renderable, Segment};
 use crate::style::{Color, Style};
 use crate::text::Span;
+use crate::theme::Theme;
 use std::io::{self, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -318,16 +319,12 @@ impl Progress {
     ///
     /// Uses the configured console width when available, else 80 columns.
     pub fn render_to_string(&self) -> String {
-        let width = self
+        let context = self
             .inner
             .console
             .as_ref()
-            .map(|c| c.get_width())
-            .unwrap_or(80);
-        let context = RenderContext {
-            width,
-            height: None,
-        };
+            .map(|c| c.render_context())
+            .unwrap_or_default();
         let segments = self.render(&context);
 
         let mut result = String::new();
@@ -512,11 +509,8 @@ fn refresh_shared(inner: &ProgressInner) {
     }
 
     // Get render context with terminal width
-    let width = console.get_width();
-    let context = RenderContext {
-        width,
-        height: None,
-    };
+    let context = console.render_context();
+    let width = context.width;
 
     let segments = inner.render(&context);
 
@@ -549,7 +543,7 @@ fn refresh_shared(inner: &ProgressInner) {
 impl ProgressInner {
     /// Render one task row, giving expandable columns their share of the
     /// width left over after the natural widths of all columns.
-    fn render_row(&self, task: &Task, total_width: usize) -> Vec<Span> {
+    fn render_row(&self, task: &Task, total_width: usize, theme: &Theme) -> Vec<Span> {
         let separators = self.columns.len().saturating_sub(1);
         let naturals: Vec<usize> = self
             .columns
@@ -585,7 +579,7 @@ impl ProgressInner {
             if i > 0 {
                 spans.push(Span::raw(" "));
             }
-            spans.extend(column.render_with_width(task, Some(widths[i])));
+            spans.extend(column.render_themed(task, Some(widths[i]), theme));
         }
 
         spans
@@ -604,7 +598,7 @@ impl Renderable for ProgressInner {
         let mut segments = Vec::new();
 
         for task in tasks.iter() {
-            let spans = self.render_row(task, context.width);
+            let spans = self.render_row(task, context.width, &context.theme);
             segments.push(Segment::line(spans));
         }
 
@@ -672,7 +666,7 @@ mod tests {
             refresh_thread: None,
         };
         let task = Task::new(0, "ab", Some(100));
-        let row = inner.inner.render_row(&task, 50);
+        let row = inner.inner.render_row(&task, 50, &Theme::new());
         let row_width: usize = row.iter().map(|s| s.width()).sum::<usize>();
         assert_eq!(row_width, 50, "expandable row should fill the given width");
     }

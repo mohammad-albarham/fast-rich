@@ -84,10 +84,7 @@ fn main() {
         Layout::new().with_ratio(1),
     ]);
     // calculate_splits is private; render at tiny width instead.
-    let segs = layout.render(&fast_rich::console::RenderContext {
-        width: 2,
-        height: None,
-    });
+    let segs = layout.render(&fast_rich::console::RenderContext::new(2));
     println!(
         "NOW: renders fine ({} segment(s)), no panic",
         segs.len().max(1)

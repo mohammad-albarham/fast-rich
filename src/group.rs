@@ -84,10 +84,7 @@ impl Renderable for RenderGroup {
             // Render the item
             let item_context = match self.fit {
                 Fit::Fill => context.clone(),
-                Fit::Shrink => RenderContext {
-                    width: renderable.min_width().min(context.width),
-                    height: None,
-                },
+                Fit::Shrink => context.child(renderable.min_width().min(context.width)),
             };
 
             let segments = renderable.render(&item_context);

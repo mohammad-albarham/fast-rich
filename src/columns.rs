@@ -4,7 +4,7 @@
 
 use crate::align::Align;
 use crate::console::RenderContext;
-use crate::renderable::{fit_line, render_lines, Renderable, Segment, SharedRenderable};
+use crate::renderable::{fit_line, render_lines_with, Renderable, Segment, SharedRenderable};
 use crate::style::Style;
 use crate::text::{Alignment, Span, Text};
 use std::sync::Arc;
@@ -292,9 +292,9 @@ impl Renderable for Columns {
                             match self.align {
                                 Some(a) => {
                                     let aligned = Align::new(item.clone(), a);
-                                    render_lines(&aligned, w, Style::new())
+                                    render_lines_with(&aligned, &context.child(w), Style::new())
                                 }
-                                None => render_lines(&**item, w, Style::new()),
+                                None => render_lines_with(&**item, &context.child(w), Style::new()),
                             }
                         }
                         None => Vec::new(),
@@ -347,10 +347,7 @@ mod tests {
         let items = vec!["a", "b", "c", "d", "e", "f"];
         let columns = Columns::new(items).num_columns(3);
 
-        let context = RenderContext {
-            width: 30,
-            height: None,
-        };
+        let context = RenderContext::new(30);
         let segments = columns.render(&context);
 
         // Should have 2 rows (6 items / 3 cols)
@@ -362,10 +359,7 @@ mod tests {
         let items = vec!["short", "items", "here"];
         let columns = Columns::new(items);
 
-        let context = RenderContext {
-            width: 40,
-            height: None,
-        };
+        let context = RenderContext::new(40);
         let segments = columns.render(&context);
 
         // Should auto-calculate columns
@@ -375,10 +369,7 @@ mod tests {
     #[test]
     fn test_columns_empty() {
         let columns = Columns::new(Vec::<&str>::new());
-        let context = RenderContext {
-            width: 40,
-            height: None,
-        };
+        let context = RenderContext::new(40);
         let segments = columns.render(&context);
         assert!(segments.is_empty());
     }

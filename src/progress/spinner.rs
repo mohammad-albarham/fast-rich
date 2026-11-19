@@ -8,7 +8,7 @@
 //! https://github.com/sindresorhus/cli-spinners
 
 use super::spinner_data::*;
-use crate::style::{Color, Style};
+use crate::style::Style;
 use crate::text::Span;
 use std::time::Instant;
 
@@ -573,8 +573,8 @@ pub struct Spinner {
     start_time: Instant,
     /// Text to display after the spinner
     text: String,
-    /// Style for the spinner character
-    spinner_style: Style,
+    /// Style for the spinner character (`None`: theme's `status.spinner`)
+    spinner_style: Option<Style>,
     /// Style for the text
     text_style: Style,
 }
@@ -586,7 +586,7 @@ impl Spinner {
             style: SpinnerStyle::Dots,
             start_time: Instant::now(),
             text: text.to_string(),
-            spinner_style: Style::new().foreground(Color::Cyan),
+            spinner_style: None,
             text_style: Style::new(),
         }
     }
@@ -607,9 +607,10 @@ impl Spinner {
         })
     }
 
-    /// Set the spinner character style.
+    /// Set the spinner character style (default: the theme's
+    /// `status.spinner`, green like Rich).
     pub fn spinner_style(mut self, style: Style) -> Self {
-        self.spinner_style = style;
+        self.spinner_style = Some(style);
         self
     }
 
@@ -655,10 +656,29 @@ impl Spinner {
         frames[idx]
     }
 
-    /// Render the spinner to spans.
+    /// Render the spinner to spans, with Rich's default styles.
     pub fn render(&self) -> Vec<Span> {
+        self.render_themed(&crate::theme::shared_default())
+    }
+
+    /// Render the spinner to spans, taking the spinner style from
+    /// `theme`'s `status.spinner` unless one was set with
+    /// [`spinner_style`](Self::spinner_style).
+    ///
+    /// ```
+    /// use fast_rich::progress::Spinner;
+    /// use fast_rich::style::Color;
+    /// use fast_rich::theme::Theme;
+    /// let theme = Theme::from_styles([("status.spinner", "magenta")]);
+    /// let spans = Spinner::new("work").render_themed(&theme);
+    /// assert_eq!(spans[0].style.foreground, Some(Color::Magenta));
+    /// ```
+    pub fn render_themed(&self, theme: &crate::theme::Theme) -> Vec<Span> {
+        let spinner_style = self
+            .spinner_style
+            .unwrap_or_else(|| theme.style("status.spinner"));
         vec![
-            Span::styled(self.current_frame().to_string(), self.spinner_style),
+            Span::styled(self.current_frame().to_string(), spinner_style),
             Span::raw(" "),
             Span::styled(self.text.clone(), self.text_style),
         ]

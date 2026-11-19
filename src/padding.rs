@@ -3,7 +3,7 @@
 //! Adds configurable padding (spaces) around any renderable content.
 
 use crate::console::RenderContext;
-use crate::renderable::{render_lines, BoxedRenderable, Renderable, Segment};
+use crate::renderable::{render_lines_with, BoxedRenderable, Renderable, Segment};
 use crate::style::Style;
 use crate::text::Span;
 
@@ -120,7 +120,7 @@ impl Renderable for Padding {
         let blank = || Segment::line(vec![Span::styled(" ".repeat(width), self.style)]);
         let mut result = Vec::new();
         result.extend((0..self.spec.top).map(|_| blank()));
-        for line in render_lines(&*self.child, child_width, self.style) {
+        for line in render_lines_with(&*self.child, &context.child(child_width), self.style) {
             let mut spans = Vec::with_capacity(line.len() + 2);
             if self.spec.left > 0 {
                 spans.push(Span::styled(" ".repeat(self.spec.left), self.style));
@@ -166,10 +166,7 @@ mod tests {
     #[test]
     fn test_padding_render_pads_to_column_edge() {
         let padded = Padding::all(Text::plain("hi".to_string()), 1);
-        let segments = padded.render(&RenderContext {
-            width: 40,
-            height: None,
-        });
+        let segments = padded.render(&RenderContext::new(40));
         assert!(!segments.is_empty());
         let text: String = segments.iter().map(|s| s.plain_text()).collect();
         assert!(text.contains(" hi "), "got {text:?}");

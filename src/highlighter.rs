@@ -205,20 +205,34 @@ impl Default for JsonHighlighter {
 
 #[cfg(feature = "json")]
 impl JsonHighlighter {
-    /// Create a new JSON highlighter with default colors.
+    /// Create a new JSON highlighter with Rich's default `json.*` styles.
     pub fn new() -> Self {
-        use crate::style::Color;
+        Self::from_theme(&crate::theme::shared_default())
+    }
 
+    /// A JSON highlighter with styles from `theme`, by Rich's names:
+    /// `json.key`, `json.str`, `json.number`, `json.bool_true`,
+    /// `json.bool_false`, `json.null` and `json.brace`.
+    ///
+    /// ```
+    /// use fast_rich::highlighter::{Highlighter, JsonHighlighter};
+    /// use fast_rich::style::Color;
+    /// use fast_rich::theme::Theme;
+    /// let theme = Theme::from_styles([("json.number", "red")]);
+    /// let spans = JsonHighlighter::from_theme(&theme).highlight("[1]");
+    /// let one = spans.iter().find(|s| s.text.as_ref() == "1").unwrap();
+    /// assert_eq!(one.style.foreground, Some(Color::Red));
+    /// ```
+    pub fn from_theme(theme: &crate::theme::Theme) -> Self {
         JsonHighlighter {
             patterns: &JSON_PATTERNS,
-            // Styles
-            key_style: Style::new().foreground(Color::Blue).bold(),
-            string_style: Style::new().foreground(Color::Green),
-            number_style: Style::new().foreground(Color::Cyan),
-            bool_true_style: Style::new().foreground(Color::BrightGreen),
-            bool_false_style: Style::new().foreground(Color::BrightRed),
-            null_style: Style::new().foreground(Color::Magenta).italic(),
-            brace_style: Style::new().foreground(Color::White).dim(),
+            key_style: theme.style("json.key"),
+            string_style: theme.style("json.str"),
+            number_style: theme.style("json.number"),
+            bool_true_style: theme.style("json.bool_true"),
+            bool_false_style: theme.style("json.bool_false"),
+            null_style: theme.style("json.null"),
+            brace_style: theme.style("json.brace"),
         }
     }
 
@@ -519,12 +533,9 @@ mod tests {
                 ch
             );
             let brace_span = brace_span.unwrap();
-            assert_eq!(
-                brace_span.style.foreground,
-                Some(Color::White),
-                "Brace should be white"
-            );
-            assert!(brace_span.style.dim, "Brace should be dim");
+            // Rich's json.brace: "bold".
+            assert_eq!(brace_span.style.foreground, None);
+            assert!(brace_span.style.bold, "Brace should be bold");
         }
     }
 
@@ -537,12 +548,8 @@ mod tests {
         let paren_span = spans.iter().find(|s| s.text == "(");
         assert!(paren_span.is_some(), "Opening parenthesis should be found");
         let paren_span = paren_span.unwrap();
-        assert_eq!(
-            paren_span.style.foreground,
-            Some(Color::White),
-            "Parenthesis should be white"
-        );
-        assert!(paren_span.style.dim, "Parenthesis should be dim");
+        // Rich's json.brace: "bold".
+        assert!(paren_span.style.bold, "Parenthesis should be bold");
     }
 
     #[test]

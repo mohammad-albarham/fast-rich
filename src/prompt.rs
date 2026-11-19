@@ -47,6 +47,7 @@ pub struct Prompt<T> {
     show_default: bool,
     show_choices: bool,
     case_sensitive: bool,
+    theme: Option<crate::theme::Theme>,
 }
 
 impl<T> Prompt<T>
@@ -64,7 +65,22 @@ where
             show_default: true,
             show_choices: true,
             case_sensitive: true,
+            theme: None,
         }
+    }
+
+    /// Style the prompt with `theme`: Rich's `prompt`, `prompt.choices`,
+    /// `prompt.default`, `prompt.invalid` and `prompt.invalid.choice`.
+    ///
+    /// ```
+    /// use fast_rich::prompt::Prompt;
+    /// use fast_rich::theme::Theme;
+    /// let prompt = Prompt::<String>::new("Name")
+    ///     .theme(Theme::from_styles([("prompt.default", "bold green")]));
+    /// ```
+    pub fn theme(mut self, theme: crate::theme::Theme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     /// Set a default value.
@@ -133,7 +149,10 @@ where
     where
         F: FnMut() -> io::Result<String>,
     {
-        let console = Console::new();
+        let console = match &self.theme {
+            Some(theme) => Console::new().theme(theme.clone()),
+            None => Console::new(),
+        };
 
         loop {
             self.render_prompt(&console);
@@ -168,14 +187,14 @@ where
                     if let Some(ref choices) = self.choices {
                         if !self.choice_matches(choices, &val) {
                             console
-                                .print("[bold red]Please select one of the available options[/]");
+                                .print("[prompt.invalid.choice]Please select one of the available options[/]");
                             continue;
                         }
                     }
                     return Ok(val);
                 }
                 Err(_) => {
-                    console.print("[bold red]Please enter a valid value[/]");
+                    console.print("[prompt.invalid]Please enter a valid value[/]");
                 }
             }
         }
@@ -193,20 +212,25 @@ where
     }
 
     fn render_prompt(&self, console: &Console) {
-        let mut text = String::new();
+        // Rich's prompt styles, resolved through the console theme.
+        let mut text = String::from("[prompt]");
         text.push_str(&self.prompt);
+        text.push_str("[/]");
 
         if self.show_choices {
             if let Some(ref choices) = self.choices {
                 let choices_str: Vec<String> = choices.iter().map(|c| c.to_string()).collect();
-                text.push_str(&format!(" [bold magenta][{}][/]", choices_str.join("/")));
+                text.push_str(&format!(
+                    " [prompt.choices]\\[{}][/]",
+                    choices_str.join("/")
+                ));
             }
         }
 
         if self.show_default {
             if let Some(ref def) = self.default {
                 if !self.password {
-                    text.push_str(&format!(" [bold cyan]({:?})[/]", def.to_string()));
+                    text.push_str(&format!(" [prompt.default]({:?})[/]", def.to_string()));
                 }
             }
         }

@@ -20,6 +20,7 @@ use crate::renderable::{Renderable, Segment};
 #[cfg(test)]
 use crate::text::Overflow;
 use crate::text::Text;
+use crate::theme::Theme;
 use serde::Serialize;
 use serde_json::{self, Value};
 use std::fmt;
@@ -225,8 +226,14 @@ impl Json {
         })
     }
 
-    /// Render the JSON value to styled Text.
+    /// Render the JSON value to styled Text with Rich's default styles.
     fn render_value(value: &Value, options: &JsonOptions) -> Text {
+        Self::render_value_themed(value, options, &crate::theme::shared_default())
+    }
+
+    /// Render the JSON value to styled Text, highlighted with `theme`'s
+    /// `json.*` styles.
+    fn render_value_themed(value: &Value, options: &JsonOptions, theme: &Theme) -> Text {
         // Sort keys if requested. Without sorting, format directly from a
         // borrowed value — no deep clone of the tree.
         let sorted;
@@ -244,7 +251,7 @@ impl Json {
 
         // Apply highlighting (patterns are compiled once per process)
         let mut text = if options.highlight {
-            let highlighter = JsonHighlighter::new();
+            let highlighter = JsonHighlighter::from_theme(theme);
             let spans = highlighter.highlight(&formatted);
             Text::from_spans(spans)
         } else {
@@ -367,8 +374,16 @@ impl Json {
 }
 
 impl Renderable for Json {
+    /// Highlighted with the context theme's `json.*` styles (the text
+    /// built at construction uses Rich's defaults and is reused when the
+    /// theme is the default one).
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
-        self.text.render(context)
+        if !self.options.highlight
+            || std::sync::Arc::ptr_eq(&context.theme, &crate::theme::shared_default())
+        {
+            return self.text.render(context);
+        }
+        Self::render_value_themed(&self.value, &self.options, &context.theme).render(context)
     }
 }
 

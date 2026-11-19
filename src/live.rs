@@ -1,4 +1,4 @@
-use crate::console::{Console, RenderContext};
+use crate::console::Console;
 use crate::renderable::{Renderable, Segment};
 
 /// Live display context manager.
@@ -93,11 +93,7 @@ impl<'a> Live<'a> {
         }
 
         // 2. Render content at terminal width
-        let width = self.console.get_width();
-        let context = RenderContext {
-            width,
-            height: None,
-        };
+        let context = self.console.render_context();
 
         let segments = self.renderable.render(&context);
 
@@ -112,7 +108,7 @@ impl<'a> Live<'a> {
             }
         }
 
-        let new_height = count_terminal_lines(&segments, width);
+        let new_height = count_terminal_lines(&segments, context.width);
 
         // 4. If we shrank, clear the lines below (that were part of old height)
         if self.height > new_height {

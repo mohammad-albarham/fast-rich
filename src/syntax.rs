@@ -930,10 +930,7 @@ mod tests {
     #[test]
     fn test_syntax_basic() {
         let syntax = Syntax::new("let x = 42;", "rust");
-        let context = RenderContext {
-            width: 60,
-            height: None,
-        };
+        let context = RenderContext::new(60);
         let segments = syntax.render(&context);
 
         assert!(!segments.is_empty());
@@ -942,10 +939,7 @@ mod tests {
     #[test]
     fn test_syntax_without_panel() {
         let syntax = Syntax::new("print('hello')", "python").panel(false);
-        let context = RenderContext {
-            width: 60,
-            height: None,
-        };
+        let context = RenderContext::new(60);
         let segments = syntax.render(&context);
 
         assert!(!segments.is_empty());
@@ -954,10 +948,7 @@ mod tests {
     #[test]
     fn test_syntax_without_line_numbers() {
         let syntax = Syntax::new("x = 1", "python").line_numbers(false);
-        let context = RenderContext {
-            width: 60,
-            height: None,
-        };
+        let context = RenderContext::new(60);
         let segments = syntax.render(&context);
 
         assert!(!segments.is_empty());
@@ -966,10 +957,7 @@ mod tests {
     #[test]
     fn test_syntax_themes() {
         let syntax = Syntax::new("let x = 42;", "rust").theme(Theme::SolarizedDark);
-        let context = RenderContext {
-            width: 60,
-            height: None,
-        };
+        let context = RenderContext::new(60);
         let segments = syntax.render(&context);
 
         assert!(!segments.is_empty());
@@ -977,10 +965,7 @@ mod tests {
 
     #[test]
     fn test_language_name_lookup_is_case_insensitive() {
-        let context = RenderContext {
-            width: 40,
-            height: None,
-        };
+        let context = RenderContext::new(40);
         let colored = |lang: &str| {
             Syntax::new("def f():\n    return 1\n", lang)
                 .line_numbers(false)
@@ -997,10 +982,7 @@ mod tests {
 
     fn plain(syntax: &Syntax, width: usize) -> Vec<String> {
         syntax
-            .render(&RenderContext {
-                width,
-                height: None,
-            })
+            .render(&RenderContext::new(width))
             .iter()
             .map(|s| s.plain_text().trim_end().to_string())
             .collect()
@@ -1043,10 +1025,7 @@ mod tests {
         // Rich's measurement: numbers column (1 digit + 2) + 1 + longest
         // line ("    return n", 12 cells).
         assert_eq!(syntax.max_width(), 3 + 1 + 12);
-        let lines = syntax.render(&RenderContext {
-            width: 30,
-            height: None,
-        });
+        let lines = syntax.render(&RenderContext::new(30));
         assert!(
             lines.iter().all(|l| l.width() == 30),
             "code area is padded to the width"

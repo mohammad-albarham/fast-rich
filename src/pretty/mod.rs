@@ -1192,6 +1192,13 @@ impl Pretty {
     /// assert_eq!(text.plain_text(), "[1, 2]");
     /// ```
     pub fn text(&self, width: usize) -> Text {
+        self.text_themed(width, &crate::theme::shared_default())
+    }
+
+    /// [`text`](Self::text), highlighting with `fallback` unless a theme
+    /// was set with [`theme`](Self::theme).
+    fn text_themed(&self, width: usize, fallback: &Theme) -> Text {
+        let theme = self.theme.as_ref().unwrap_or(fallback);
         let repr = self.repr(width);
         let mut text = if repr.is_empty() {
             Text::styled(
@@ -1201,20 +1208,14 @@ impl Pretty {
         } else if !self.highlight {
             Text::plain(repr)
         } else {
-            let spans = match (&self.highlighter, &self.theme) {
-                (Some(custom), _) => custom.highlight(&repr),
-                (None, Some(theme)) => ReprHighlighter::new().theme(theme.clone()).highlight(&repr),
-                (None, None) => ReprHighlighter::new().highlight(&repr),
+            let spans = match &self.highlighter {
+                Some(custom) => custom.highlight(&repr),
+                None => ReprHighlighter::new().theme(theme.clone()).highlight(&repr),
             };
             Text::from_spans(spans)
         };
         if self.options.indent_guides && self.options.indent_size > 0 {
-            let style = self
-                .theme
-                .as_ref()
-                .and_then(|t| t.lookup_style("repr.indent"))
-                .or_else(|| crate::theme::builtin_style("repr.indent"))
-                .unwrap_or_default();
+            let style = theme.style("repr.indent");
             text = text.with_indent_guides(Some(self.options.indent_size), '│', style);
         }
         if let Some(overflow) = self.overflow {
@@ -1230,7 +1231,9 @@ fn widest_line(s: &str) -> usize {
 
 impl Renderable for Pretty {
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
-        self.text(context.width).render(context)
+        // An explicit `theme` wins over the console theme.
+        self.text_themed(context.width, &context.theme)
+            .render(context)
     }
 
     /// The widest line when every container is expanded.

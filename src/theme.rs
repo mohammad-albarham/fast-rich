@@ -4,6 +4,7 @@
 
 use crate::style::{Color, Style};
 use std::collections::HashMap;
+use std::sync::{Arc, OnceLock};
 
 /// A theme defines colors and styles for different semantic elements.
 #[derive(Debug, Clone)]
@@ -136,9 +137,71 @@ impl Theme {
         Some(Style::new().foreground(color))
     }
 
-    /// Add a named style to the theme (used by markup like `[name]`).
+    /// Resolve a named style, or an empty style for unknown names (Rich's
+    /// `Console.get_style` without the parse fallback). Theme styles win
+    /// over Rich's defaults ([`builtin_style`]).
+    ///
+    /// ```
+    /// use fast_rich::style::{Color, Style};
+    /// use fast_rich::theme::Theme;
+    /// let theme = Theme::new().with_style("table.header", Style::parse("bold magenta"));
+    /// assert_eq!(theme.style("table.header").foreground, Some(Color::Magenta));
+    /// assert!(theme.style("table.title").italic); // Rich's default
+    /// assert!(theme.style("unknown").is_empty());
+    /// ```
+    pub fn style(&self, name: &str) -> Style {
+        self.lookup_style(name).unwrap_or_default()
+    }
+
+    /// Add a named style to the theme (used by markup like `[name]` and by
+    /// components such as `table.header`). Overrides Rich's default for
+    /// that name.
+    ///
+    /// ```
+    /// use fast_rich::style::Style;
+    /// use fast_rich::theme::Theme;
+    /// let mut theme = Theme::new();
+    /// theme.add_style("rule.line", Style::parse("red"));
+    /// assert!(theme.style("rule.line").foreground.is_some());
+    /// ```
     pub fn add_style(&mut self, name: impl Into<String>, style: Style) {
         self.styles.insert(name.into(), style);
+    }
+
+    /// Builder form of [`add_style`](Self::add_style).
+    ///
+    /// ```
+    /// use fast_rich::style::Style;
+    /// use fast_rich::theme::Theme;
+    /// let theme = Theme::new().with_style("log.time", Style::parse("bold"));
+    /// assert!(theme.style("log.time").bold);
+    /// ```
+    pub fn with_style(mut self, name: impl Into<String>, style: Style) -> Self {
+        self.add_style(name, style);
+        self
+    }
+
+    /// Build a theme from `(name, style string)` pairs, like Rich's
+    /// `Theme({"table.header": "bold magenta"})`. Names not given keep
+    /// Rich's defaults.
+    ///
+    /// ```
+    /// use fast_rich::style::Color;
+    /// use fast_rich::theme::Theme;
+    /// let theme = Theme::from_styles([("table.header", "bold magenta"), ("bar.complete", "cyan")]);
+    /// assert_eq!(theme.style("bar.complete").foreground, Some(Color::Cyan));
+    /// ```
+    pub fn from_styles<I, K, V>(styles: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: AsRef<str>,
+    {
+        let mut theme = Theme::new();
+        for (name, style) in styles {
+            theme.add_style(name, Style::parse(style.as_ref()));
+        }
+        theme
     }
 
     /// Add a custom color to the theme.
@@ -149,39 +212,55 @@ impl Theme {
 
 /// Rich's built-in named styles that every theme falls back to.
 ///
-/// Currently the `repr.*` styles used by
-/// [`ReprHighlighter`](crate::highlighter::ReprHighlighter), with the
-/// values from Rich's `default_styles.py`. Override any of them with
-/// [`Theme::add_style`].
+/// All 154 names of Rich's `DEFAULT_STYLES` (`rich/default_styles.py`):
+/// `table.header`, `bar.complete`, `log.time`, `repr.number`,
+/// `markdown.h1`, ... with Rich's values. Components look their styles up by
+/// these names through the console theme, so any of them can be restyled
+/// with [`Theme::add_style`]. Returns `None` for names Rich doesn't define.
+///
+/// Rich's `not bold` (attribute explicitly off) becomes "bold not set",
+/// since [`Style`] has no separate "unset" state; `blink2`, `underline2`,
+/// `frame`, `encircle` and `overline` are dropped (no `Style` field).
+///
+/// ```
+/// use fast_rich::style::Color;
+/// use fast_rich::theme::builtin_style;
+/// assert!(builtin_style("table.header").unwrap().bold);
+/// assert_eq!(builtin_style("bar.back").unwrap().foreground, Some(Color::Ansi256(237)));
+/// assert!(builtin_style("no.such.style").is_none());
+/// ```
 pub fn builtin_style(name: &str) -> Option<Style> {
-    let s = Style::new();
-    let style = match name {
-        "repr.ellipsis" => s.foreground(Color::Yellow),
-        "repr.indent" => s.foreground(Color::Green).dim(),
-        "repr.error" => s.foreground(Color::Red).bold(),
-        "repr.str" => s.foreground(Color::Green),
-        "repr.brace" | "repr.comma" | "repr.tag_start" | "repr.tag_end" | "repr.attrib_equal" => {
-            s.bold()
-        }
-        "repr.ipv4" | "repr.ipv6" | "repr.eui48" | "repr.eui64" => {
-            s.foreground(Color::BrightGreen).bold()
-        }
-        "repr.tag_name" => s.foreground(Color::BrightMagenta).bold(),
-        "repr.tag_contents" => s.foreground(Color::Default),
-        "repr.attrib_name" => s.foreground(Color::Yellow),
-        "repr.attrib_value" => s.foreground(Color::Magenta),
-        "repr.number" | "repr.number_complex" => s.foreground(Color::Cyan).bold(),
-        "repr.bool_true" => s.foreground(Color::BrightGreen).italic(),
-        "repr.bool_false" => s.foreground(Color::BrightRed).italic(),
-        "repr.none" => s.foreground(Color::Magenta).italic(),
-        "repr.url" => s.foreground(Color::BrightBlue).underline(),
-        "repr.uuid" => s.foreground(Color::BrightYellow),
-        "repr.call" => s.foreground(Color::Magenta).bold(),
-        "repr.path" => s.foreground(Color::Magenta),
-        "repr.filename" => s.foreground(Color::BrightMagenta),
-        _ => return None,
-    };
-    Some(style)
+    static STYLES: OnceLock<HashMap<&'static str, Style>> = OnceLock::new();
+    STYLES
+        .get_or_init(|| {
+            crate::default_styles::DEFAULT_STYLES
+                .iter()
+                .map(|(name, style)| (*name, Style::parse(style)))
+                .collect()
+        })
+        .get(name)
+        .copied()
+}
+
+/// The names of Rich's default styles, in Rich's order (see
+/// [`builtin_style`]).
+///
+/// ```
+/// let names: Vec<&str> = fast_rich::theme::builtin_style_names().collect();
+/// assert_eq!(names.len(), 154);
+/// assert!(names.contains(&"progress.percentage"));
+/// ```
+pub fn builtin_style_names() -> impl Iterator<Item = &'static str> {
+    crate::default_styles::DEFAULT_STYLES
+        .iter()
+        .map(|(name, _)| *name)
+}
+
+/// A shared, empty [`Theme::new`] (Rich's defaults only), so default
+/// render contexts don't allocate a theme each time.
+pub(crate) fn shared_default() -> Arc<Theme> {
+    static DEFAULT: OnceLock<Arc<Theme>> = OnceLock::new();
+    DEFAULT.get_or_init(|| Arc::new(Theme::new())).clone()
 }
 
 impl Default for Theme {

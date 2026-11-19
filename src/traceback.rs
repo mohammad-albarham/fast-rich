@@ -19,8 +19,9 @@ pub struct TracebackConfig {
     pub context_lines: usize,
     /// Panel style
     pub border_style: BorderStyle,
-    /// Error style
-    pub error_style: Style,
+    /// Style of the `Error:` label (`None`: the theme's
+    /// `traceback.exc_type`, bold bright red like Rich)
+    pub error_style: Option<Style>,
 }
 
 impl Default for TracebackConfig {
@@ -29,7 +30,7 @@ impl Default for TracebackConfig {
             show_source: true,
             context_lines: 3,
             border_style: BorderStyle::Heavy,
-            error_style: Style::new().foreground(Color::Red).bold(),
+            error_style: None,
         }
     }
 }
@@ -81,14 +82,18 @@ impl Traceback {
         self
     }
 
-    fn build_content(&self) -> Text {
+    fn build_content(&self, context: &RenderContext) -> Text {
         let mut text = Text::new();
 
-        // Error header
-        text.push_styled("Error: ", Style::new().foreground(Color::Red).bold());
+        // Error header: Rich's exception type and value styles.
+        let exc_type = self
+            .config
+            .error_style
+            .unwrap_or_else(|| context.style("traceback.exc_type"));
+        text.push_styled("Error: ", exc_type);
         text.push_styled(
             format!("{}\n", self.message),
-            Style::new().foreground(Color::White),
+            context.style("traceback.exc_value"),
         );
 
         // Location
@@ -149,12 +154,13 @@ impl Traceback {
 
 impl Renderable for Traceback {
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
-        let content = self.build_content();
+        let content = self.build_content(context);
 
         let panel = Panel::new(content)
             .title("Traceback")
+            .title_style(context.style("traceback.title"))
             .border_style(self.config.border_style)
-            .style(Style::new().foreground(Color::Red));
+            .style(context.style("traceback.border"));
 
         panel.render(context)
     }
@@ -226,10 +232,7 @@ mod tests {
     #[test]
     fn test_traceback_render() {
         let tb = Traceback::from_error("Test error");
-        let context = RenderContext {
-            width: 60,
-            height: None,
-        };
+        let context = RenderContext::new(60);
         let segments = tb.render(&context);
 
         // Should produce output

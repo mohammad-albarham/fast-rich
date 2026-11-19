@@ -10,10 +10,7 @@ fn test_bar_chart_creation() {
     let mut chart = BarChart::new();
     chart.bar("Test", 50.0);
 
-    let context = RenderContext {
-        width: 60,
-        height: None,
-    };
+    let context = RenderContext::new(60);
     let segments = chart.render(&context);
 
     assert_eq!(segments.len(), 1);
@@ -41,10 +38,7 @@ fn test_multiple_bars() {
     chart.bar("Second", 50.0);
     chart.bar("Third", 75.0);
 
-    let context = RenderContext {
-        width: 60,
-        height: None,
-    };
+    let context = RenderContext::new(60);
     let segments = chart.render(&context);
 
     assert_eq!(segments.len(), 3);
@@ -53,10 +47,7 @@ fn test_multiple_bars() {
 #[test]
 fn test_empty_chart() {
     let chart = BarChart::new();
-    let context = RenderContext {
-        width: 60,
-        height: None,
-    };
+    let context = RenderContext::new(60);
     let segments = chart.render(&context);
 
     assert_eq!(segments.len(), 1); // Empty line

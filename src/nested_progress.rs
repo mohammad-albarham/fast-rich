@@ -5,7 +5,6 @@
 
 use crate::console::RenderContext;
 use crate::renderable::{Renderable, Segment};
-use crate::style::{Color, Style};
 use crate::text::Span;
 
 /// The width of the bar drawn for each node.
@@ -61,7 +60,10 @@ impl NestedProgress {
     }
 
     /// Render this node (and descendants) into segments.
-    fn render_node(&self, segments: &mut Vec<Segment>, depth: usize) {
+    /// Styles come from the theme like the progress bar columns:
+    /// `progress.description`, `bar.complete` (`bar.finished` at 100%),
+    /// `bar.back` and `progress.percentage`.
+    fn render_node(&self, context: &RenderContext, segments: &mut Vec<Segment>, depth: usize) {
         let indent = "  ".repeat(depth);
         let percent = self.percent();
         let filled = ((BAR_WIDTH as f64 * percent / 100.0).round() as usize).min(BAR_WIDTH);
@@ -70,39 +72,38 @@ impl NestedProgress {
         let mut spans = Vec::new();
         spans.push(Span::styled(
             format!("{indent}{}", self.description),
-            Style::new(),
+            context.style("progress.description"),
         ));
+        let bar_style = if filled == BAR_WIDTH {
+            context.style("bar.finished")
+        } else {
+            context.style("bar.complete")
+        };
         spans.push(Span::raw(" "));
         if filled > 0 {
-            spans.push(Span::styled(
-                "━".repeat(filled),
-                Style::new().foreground(Color::Green),
-            ));
+            spans.push(Span::styled("━".repeat(filled), bar_style));
         }
         if empty > 0 {
-            spans.push(Span::styled(
-                "─".repeat(empty),
-                Style::new().foreground(Color::BrightBlack),
-            ));
+            spans.push(Span::styled("─".repeat(empty), context.style("bar.back")));
         }
         spans.push(Span::raw(" "));
         spans.push(Span::styled(
             format!("{percent:>3.0}%"),
-            Style::new().foreground(Color::Cyan),
+            context.style("progress.percentage"),
         ));
 
         segments.push(Segment::line(spans));
 
         for child in &self.children {
-            child.render_node(segments, depth + 1);
+            child.render_node(context, segments, depth + 1);
         }
     }
 }
 
 impl Renderable for NestedProgress {
-    fn render(&self, _context: &RenderContext) -> Vec<Segment> {
+    fn render(&self, context: &RenderContext) -> Vec<Segment> {
         let mut segments = Vec::new();
-        self.render_node(&mut segments, 0);
+        self.render_node(context, &mut segments, 0);
         segments
     }
 }
@@ -149,10 +150,7 @@ mod tests {
         }
         root.update(40);
 
-        let context = RenderContext {
-            width: 80,
-            height: None,
-        };
+        let context = RenderContext::new(80);
         let segments = root.render(&context);
         assert_eq!(segments.len(), 4, "one line per node");
 

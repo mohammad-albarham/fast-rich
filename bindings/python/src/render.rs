@@ -34,10 +34,7 @@ pub fn render(
     if width == 0 {
         return Ok(Vec::new());
     }
-    let context = RenderContext {
-        width,
-        height: None,
-    };
+    let context = RenderContext::new(width);
     let segments = native.render(&context);
     if let Some(err) = bridge::take_error() {
         return Err(err);

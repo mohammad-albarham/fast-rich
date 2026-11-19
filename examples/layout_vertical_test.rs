@@ -45,10 +45,7 @@ fn main() {
     // Header: 3 lines
     // Footer: 3 lines
     // Body: 20 - 3 - 3 = 14 lines
-    let context = RenderContext {
-        width: 80,
-        height: Some(20),
-    };
+    let context = RenderContext::new(80).with_height(Some(20));
 
     let segments = root.render(&context);
 

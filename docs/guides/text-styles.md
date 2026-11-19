@@ -278,6 +278,57 @@ does not turn named groups into theme styles.
 
 ---
 
+## Theme Style Names
+
+Every built-in component looks its styles up by name in the console theme,
+using Rich's names and Rich's default values (`rich/default_styles.py`,
+154 styles). Override a name to restyle the component everywhere, like
+Rich's `Console(theme=Theme({"table.header": "bold magenta"}))`:
+
+```rust
+use fast_rich::prelude::*;
+
+let theme = Theme::from_styles([
+    ("table.header", "bold magenta"),
+    ("table.border", "bright_black"),
+    ("bar.complete", "cyan"),
+    ("rule.line", "dark_orange3"),
+    ("logging.level.warning", "black on yellow"),
+    ("repr.number", "bold magenta"),
+]);
+let console = Console::new().theme(theme);
+console.rule("Results"); // dark orange line
+```
+
+The same names work as markup tags (`[repr.number]42[/]`), and a style set
+on the component itself (`Table::header_style`, `Rule::style`,
+`BarColumn::complete_style`, ...) still wins over the theme.
+
+| Group | Names | Used by |
+|:------|:------|:--------|
+| `table.*` | `header`, `title`, `caption`, `cell`, `border` (fast-rich only, empty) | `Table` |
+| `rule.*` | `line` (bright green), `text` | `Rule`, `console.rule` |
+| `tree`, `tree.line` | base label style, guide lines | `Tree` |
+| `bar.*` | `complete`, `finished`, `pulse`, `back` | `BarColumn`, `NestedProgress` |
+| `progress.*` | `description`, `percentage`, `elapsed`, `remaining`, `data.speed`, `download`, `filesize`, `filesize.total`, `spinner` | progress columns |
+| `status.spinner` | spinner frame | `Spinner` |
+| `log.*`, `logging.level.*` | `time`, `level`, `message`, `path`; `debug`, `info`, `warning`, `error` | `LogMessage`, `console.log`, `RichLogger` |
+| `traceback.*` | `border`, `title`, `exc_type`, `exc_value` | `Traceback` |
+| `markdown.*` | `h1`..`h6`, `em`, `strong`, `s`, `code`, `code_block`, `link`, `link_url`, `block_quote`, `item.bullet`, `item.number`, `hr`, `table.border`, `table.header` | `Markdown` |
+| `json.*` | `key`, `str`, `number`, `bool_true`, `bool_false`, `null`, `brace` | `Json`, `JsonHighlighter` |
+| `prompt.*` | `prompt`, `choices`, `default`, `invalid`, `invalid.choice` | `Prompt` |
+| `repr.*` | numbers, strings, URLs, ... | automatic highlighting, `Pretty` |
+
+`theme::builtin_style_names()` lists all names. Style strings also accept
+Rich's 256 named colors (`grey23`, `dark_orange3`, ...).
+
+Differences from Rich: fast-rich styles have two states per attribute, so
+Rich's `not bold` means "bold off" rather than "explicitly unset"; and
+`blink2`, `underline2`, `frame`, `encircle` and `overline` are not
+supported yet.
+
+---
+
 ## Real Terminal Output
 
 !!! example "Run the styles demo"

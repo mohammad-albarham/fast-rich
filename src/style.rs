@@ -73,9 +73,19 @@ impl Color {
     ///
     /// Supports:
     /// - Named colors: "red", "blue", "bright_red", etc.
+    /// - Rich's 256-palette names: "grey23", "dark_orange3", ... (all of
+    ///   `rich.color.ANSI_COLOR_NAMES`)
     /// - Hex colors: "#ff0000", "#f00"
     /// - RGB: "rgb(255, 0, 0)"
     /// - 256-color: "color(196)"
+    ///
+    /// ```
+    /// use fast_rich::style::Color;
+    /// assert_eq!(Color::parse("grey23"), Some(Color::Ansi256(237)));
+    /// assert_eq!(Color::parse("dark_orange3"), Some(Color::Ansi256(166)));
+    /// assert_eq!(Color::parse("bright_red"), Some(Color::BrightRed));
+    /// assert_eq!(Color::parse("no_such_color"), None);
+    /// ```
     pub fn parse(s: &str) -> Option<Self> {
         let s = s.trim().to_lowercase();
 
@@ -99,6 +109,18 @@ impl Color {
             "bright_cyan" | "brightcyan" => return Some(Color::BrightCyan),
             "bright_white" | "brightwhite" => return Some(Color::BrightWhite),
             _ => {}
+        }
+
+        // Rich's named 256-palette colors (grey23, dark_orange3, ...).
+        if let Ok(i) = crate::color_names::ANSI_COLOR_NAMES
+            .binary_search_by(|(name, _)| (*name).cmp(s.as_str()))
+        {
+            let index = crate::color_names::ANSI_COLOR_NAMES[i].1;
+            return Some(if index < 16 {
+                Self::from_ansi_standard_code(index)
+            } else {
+                Color::Ansi256(index)
+            });
         }
 
         // Hex colors: #rgb or #rrggbb
@@ -645,7 +667,18 @@ impl Style {
     ///
     /// Supports space-separated attributes: "bold red on blue". The `not`
     /// modifier removes the following attribute ("not bold"), and unknown
-    /// words are ignored (matching Rich's lenient markup).
+    /// words are ignored (matching Rich's lenient markup). Rich's
+    /// attribute names and abbreviations are accepted (`b`, `d`, `i`, `u`,
+    /// `r`, `s`, `conceal`/`c` for [`hidden`](Self::hidden)), as are Rich's
+    /// named colors such as `grey23`.
+    ///
+    /// ```
+    /// use fast_rich::style::{Color, Style};
+    /// let s = Style::parse("bold grey23 on dark_blue");
+    /// assert!(s.bold);
+    /// assert_eq!(s.foreground, Some(Color::Ansi256(237)));
+    /// assert_eq!(s.background, Some(Color::Ansi256(18)));
+    /// ```
     pub fn parse(s: &str) -> Self {
         let mut style = Style::new();
         let mut on_background = false;
@@ -668,12 +701,12 @@ impl Style {
             let mut matched = true;
             match part_lower.as_str() {
                 "bold" | "b" => style.bold = !negate_next,
-                "dim" => style.dim = !negate_next,
+                "dim" | "d" => style.dim = !negate_next,
                 "italic" | "i" => style.italic = !negate_next,
                 "underline" | "u" => style.underline = !negate_next,
                 "blink" => style.blink = !negate_next,
-                "reverse" => style.reverse = !negate_next,
-                "hidden" => style.hidden = !negate_next,
+                "reverse" | "r" => style.reverse = !negate_next,
+                "hidden" | "conceal" | "c" => style.hidden = !negate_next,
                 "strike" | "strikethrough" | "s" => style.strikethrough = !negate_next,
                 _ => {
                     matched = false;

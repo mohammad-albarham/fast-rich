@@ -17,10 +17,10 @@ pub struct Rule {
     title: Option<Text>,
     /// Characters repeated to draw the line
     characters: String,
-    /// Style for the rule
-    style: Style,
-    /// Style for the title
-    title_style: Style,
+    /// Style for the line (`None`: theme's `rule.line`, bright green)
+    style: Option<Style>,
+    /// Style for the title (`None`: theme's `rule.text`)
+    title_style: Option<Style>,
     /// Alignment of the title
     align: crate::text::Alignment,
 }
@@ -42,8 +42,8 @@ impl Rule {
                 Some(crate::markup::parse(title))
             },
             characters: "─".to_string(),
-            style: Style::new(),
-            title_style: Style::new(),
+            style: None,
+            title_style: None,
             align: crate::text::Alignment::Center,
         }
     }
@@ -53,8 +53,8 @@ impl Rule {
         Rule {
             title: None,
             characters: "─".to_string(),
-            style: Style::new(),
-            title_style: Style::new(),
+            style: None,
+            title_style: None,
             align: crate::text::Alignment::Center,
         }
     }
@@ -84,15 +84,16 @@ impl Rule {
         self
     }
 
-    /// Set the style for the rule line.
+    /// Set the style for the rule line. Defaults to the theme's
+    /// `rule.line` (bright green, like Rich).
     pub fn style(mut self, style: Style) -> Self {
-        self.style = style;
+        self.style = Some(style);
         self
     }
 
-    /// Set the style for the title.
+    /// Set the style for the title. Defaults to the theme's `rule.text`.
     pub fn title_style(mut self, style: Style) -> Self {
-        self.title_style = style;
+        self.title_style = Some(style);
         self
     }
 
@@ -136,7 +137,11 @@ impl Renderable for Rule {
     /// Rich's `Rule.__rich_console__`.
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
         let width = context.width;
-        let line = |n: usize| Span::styled(repeat_to_width(&self.characters, n), self.style);
+        let line_style = self.style.unwrap_or_else(|| context.style("rule.line"));
+        let title_style = self
+            .title_style
+            .unwrap_or_else(|| context.style("rule.text"));
+        let line = |n: usize| Span::styled(repeat_to_width(&self.characters, n), line_style);
         let title = match &self.title {
             Some(t) => t,
             None => return vec![Segment::line(vec![line(width)])],
@@ -157,7 +162,7 @@ impl Renderable for Rule {
             if span.text.contains('\n') {
                 span.text = span.text.replace('\n', " ").into();
             }
-            span.style = self.title_style.combine(&span.style);
+            span.style = title_style.combine(&span.style);
         }
         title.overflow = Overflow::Ellipsis;
         let title_spans: Vec<Span> = title
@@ -174,10 +179,10 @@ impl Renderable for Rule {
                 let left = repeat_to_width(&self.characters, side.saturating_sub(1));
                 let right_len =
                     width.saturating_sub(UnicodeWidthStr::width(left.as_str()) + title_width);
-                spans.push(Span::styled(format!("{left} "), self.style));
+                spans.push(Span::styled(format!("{left} "), line_style));
                 spans.extend(title_spans);
                 let right = repeat_to_width(&self.characters, right_len.saturating_sub(1));
-                spans.push(Span::styled(format!(" {right}"), self.style));
+                spans.push(Span::styled(format!(" {right}"), line_style));
             }
             Alignment::Left => {
                 spans.extend(title_spans);
@@ -209,10 +214,7 @@ mod tests {
     #[test]
     fn test_rule_simple() {
         let rule = Rule::line();
-        let context = RenderContext {
-            width: 10,
-            height: None,
-        };
+        let context = RenderContext::new(10);
         let segments = rule.render(&context);
         assert_eq!(segments.len(), 1);
         assert_eq!(segments[0].plain_text(), "──────────");
@@ -221,10 +223,7 @@ mod tests {
     #[test]
     fn test_rule_with_title() {
         let rule = Rule::new("Title");
-        let context = RenderContext {
-            width: 20,
-            height: None,
-        };
+        let context = RenderContext::new(20);
         let segments = rule.render(&context);
         let text = segments[0].plain_text();
         assert!(text.contains("Title"));
@@ -235,10 +234,7 @@ mod tests {
     #[test]
     fn test_rule_custom_char() {
         let rule = Rule::line().character('=');
-        let context = RenderContext {
-            width: 5,
-            height: None,
-        };
+        let context = RenderContext::new(5);
         let segments = rule.render(&context);
         assert_eq!(segments[0].plain_text(), "=====");
     }
@@ -246,10 +242,7 @@ mod tests {
     #[test]
     fn test_matches_rich() {
         let render = |rule: Rule| {
-            let context = RenderContext {
-                width: 20,
-                height: None,
-            };
+            let context = RenderContext::new(20);
             let segs = rule.render(&context);
             assert!(
                 segs.iter().all(|s| s.newline),

@@ -4,7 +4,7 @@
 
 use crate::console::{Console, RenderContext};
 use crate::renderable::{Renderable, Segment};
-use crate::style::{Color, Style};
+use crate::style::Style;
 use crate::text::Span;
 use std::time::SystemTime;
 
@@ -40,13 +40,32 @@ pub enum LogLevel {
 }
 
 impl LogLevel {
-    /// Get the style for this log level.
+    /// Rich's default style for this level ([`style_name`](Self::style_name)
+    /// in the default theme): debug green, info blue, warning yellow,
+    /// error bold red. Rendering uses the console theme instead.
+    ///
+    /// ```
+    /// use fast_rich::log::LogLevel;
+    /// assert!(LogLevel::Error.style().bold);
+    /// ```
     pub fn style(&self) -> Style {
+        crate::theme::builtin_style(self.style_name()).unwrap_or_default()
+    }
+
+    /// The theme style name for this level, like Rich's `RichHandler`:
+    /// `logging.level.debug`, `logging.level.info`,
+    /// `logging.level.warning` or `logging.level.error`.
+    ///
+    /// ```
+    /// use fast_rich::log::LogLevel;
+    /// assert_eq!(LogLevel::Warning.style_name(), "logging.level.warning");
+    /// ```
+    pub fn style_name(&self) -> &'static str {
         match self {
-            LogLevel::Debug => Style::new().foreground(Color::Magenta),
-            LogLevel::Info => Style::new().foreground(Color::Blue),
-            LogLevel::Warning => Style::new().foreground(Color::Yellow),
-            LogLevel::Error => Style::new().foreground(Color::Red).bold(),
+            LogLevel::Debug => "logging.level.debug",
+            LogLevel::Info => "logging.level.info",
+            LogLevel::Warning => "logging.level.warning",
+            LogLevel::Error => "logging.level.error",
         }
     }
 
@@ -122,36 +141,41 @@ impl LogMessage {
 }
 
 impl Renderable for LogMessage {
-    fn render(&self, _context: &RenderContext) -> Vec<Segment> {
+    /// Styles come from the theme, by Rich's names: `log.time`,
+    /// `log.level` + `logging.level.<level>`, `log.message` and `log.path`.
+    fn render(&self, context: &RenderContext) -> Vec<Segment> {
         let mut spans = Vec::new();
 
         // Timestamp
         if self.show_time {
             spans.push(Span::styled(
                 format!("[{}]", self.format_time()),
-                Style::new().dim(),
+                context.style("log.time"),
             ));
             spans.push(Span::raw(" "));
         }
 
         // Level
+        let level_style = context
+            .style("log.level")
+            .combine(&context.style(self.level.style_name()));
         spans.push(Span::styled(
             format!("{:5}", self.level.label()),
-            self.level.style(),
+            level_style,
         ));
 
         spans.push(Span::raw(" "));
 
         // Message
-        spans.push(Span::raw(self.message.clone()));
+        spans.push(Span::styled(
+            self.message.clone(),
+            context.style("log.message"),
+        ));
 
         // Location
         if let Some(location) = self.format_location() {
             spans.push(Span::raw(" "));
-            spans.push(Span::styled(
-                location,
-                Style::new().foreground(Color::Cyan).dim(),
-            ));
+            spans.push(Span::styled(location, context.style("log.path")));
         }
 
         vec![Segment::line(spans)]
@@ -368,10 +392,7 @@ mod tests {
     #[test]
     fn test_log_message_render() {
         let msg = LogMessage::new("Hello").level(LogLevel::Info);
-        let context = RenderContext {
-            width: 80,
-            height: None,
-        };
+        let context = RenderContext::new(80);
         let segments = msg.render(&context);
 
         assert_eq!(segments.len(), 1);

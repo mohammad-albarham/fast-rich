@@ -24,6 +24,7 @@ use crossterm::{
     terminal,
 };
 use std::io::{self, Write};
+use std::sync::Arc;
 
 /// Escape HTML special characters.
 fn html_escape(s: &str) -> String {
@@ -103,20 +104,122 @@ fn is_safe_uri(url: &str) -> bool {
 }
 
 /// Rendering context passed to Renderable objects.
+///
+/// Carries the available size and the console [`Theme`](crate::theme::Theme),
+/// so renderables can look their styles up by Rich's names (`table.header`,
+/// `bar.complete`, ...). Containers (Panel, Table, Layout, ...) pass the
+/// theme on to their children.
+///
+/// The struct is `#[non_exhaustive]`: build it with
+/// [`RenderContext::new`] and the `with_*` helpers.
+///
+/// ```
+/// use fast_rich::console::RenderContext;
+/// use fast_rich::style::Style;
+/// use fast_rich::theme::Theme;
+/// let theme = Theme::new().with_style("rule.line", Style::parse("red"));
+/// let context = RenderContext::new(40).with_height(Some(10)).with_theme(theme);
+/// assert_eq!(context.width, 40);
+/// assert!(context.style("rule.line").foreground.is_some());
+/// ```
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct RenderContext {
     /// Available width for rendering.
     pub width: usize,
     /// Available height for rendering (optional).
     pub height: Option<usize>,
+    /// Theme used to resolve named styles (defaults to [`Theme::new`],
+    /// i.e. Rich's default styles).
+    ///
+    /// [`Theme::new`]: crate::theme::Theme::new
+    pub theme: Arc<crate::theme::Theme>,
+}
+
+impl RenderContext {
+    /// A context of `width` cells, no height limit and the default theme.
+    ///
+    /// ```
+    /// use fast_rich::console::RenderContext;
+    /// let context = RenderContext::new(60);
+    /// assert_eq!((context.width, context.height), (60, None));
+    /// ```
+    pub fn new(width: usize) -> Self {
+        RenderContext {
+            width,
+            height: None,
+            theme: crate::theme::shared_default(),
+        }
+    }
+
+    /// Set the available width.
+    ///
+    /// ```
+    /// use fast_rich::console::RenderContext;
+    /// assert_eq!(RenderContext::new(80).with_width(20).width, 20);
+    /// ```
+    pub fn with_width(mut self, width: usize) -> Self {
+        self.width = width;
+        self
+    }
+
+    /// Set the available height.
+    ///
+    /// ```
+    /// use fast_rich::console::RenderContext;
+    /// assert_eq!(RenderContext::new(80).with_height(Some(5)).height, Some(5));
+    /// ```
+    pub fn with_height(mut self, height: Option<usize>) -> Self {
+        self.height = height;
+        self
+    }
+
+    /// Set the theme (a [`Theme`](crate::theme::Theme) or an
+    /// `Arc<Theme>`).
+    ///
+    /// ```
+    /// use fast_rich::console::RenderContext;
+    /// use fast_rich::theme::Theme;
+    /// let context = RenderContext::new(80).with_theme(Theme::from_styles([("table.header", "red")]));
+    /// assert!(!context.style("table.header").bold);
+    /// ```
+    pub fn with_theme(mut self, theme: impl Into<Arc<crate::theme::Theme>>) -> Self {
+        self.theme = theme.into();
+        self
+    }
+
+    /// A context for a child renderable: `width` cells, no height limit,
+    /// same theme. Containers use it to pass the theme on.
+    ///
+    /// ```
+    /// use fast_rich::console::RenderContext;
+    /// let parent = RenderContext::new(80).with_height(Some(3));
+    /// let child = parent.child(76);
+    /// assert_eq!((child.width, child.height), (76, None));
+    /// ```
+    pub fn child(&self, width: usize) -> Self {
+        RenderContext {
+            width,
+            height: None,
+            theme: self.theme.clone(),
+        }
+    }
+
+    /// Resolve a named style through the theme (Rich's default when the
+    /// theme doesn't override it; empty for unknown names).
+    ///
+    /// ```
+    /// use fast_rich::console::RenderContext;
+    /// assert!(RenderContext::new(80).style("table.header").bold);
+    /// ```
+    pub fn style(&self, name: &str) -> Style {
+        self.theme.style(name)
+    }
 }
 
 impl Default for RenderContext {
     fn default() -> Self {
-        RenderContext {
-            width: 80,
-            height: None,
-        }
+        RenderContext::new(80)
     }
 }
 
@@ -159,8 +262,8 @@ pub struct Console {
     emoji: bool,
     /// Soft wrap text at terminal width
     soft_wrap: bool,
-    /// Theme providing custom named colors for markup
-    theme: crate::theme::Theme,
+    /// Theme for markup names, highlighting and component styles
+    theme: Arc<crate::theme::Theme>,
     /// Whether `print`/`println` highlight strings (Rich's `highlight=True`)
     highlight: bool,
     /// Custom highlighter; `None` uses [`ReprHighlighter`] with the theme
@@ -226,7 +329,7 @@ impl Console {
             markup: true,
             emoji: true,
             soft_wrap: true,
-            theme: crate::theme::Theme::new(),
+            theme: crate::theme::shared_default(),
             highlight: true,
             highlighter: None,
             record: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
@@ -246,7 +349,7 @@ impl Console {
             markup: true,
             emoji: true,
             soft_wrap: true,
-            theme: crate::theme::Theme::new(),
+            theme: crate::theme::shared_default(),
             highlight: true,
             highlighter: None,
             record: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
@@ -267,7 +370,7 @@ impl Console {
             markup: true,
             emoji: true,
             soft_wrap: true,
-            theme: crate::theme::Theme::new(),
+            theme: crate::theme::shared_default(),
             highlight: true,
             highlighter: None,
             record: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
@@ -376,14 +479,39 @@ impl Console {
     ///
     /// Colors registered in `theme.custom` become usable as markup colors,
     /// e.g. `theme.custom.insert("brand", color)` enables `[brand]text[/]`.
+    /// Styles named like Rich's defaults (`table.header`, `bar.complete`,
+    /// `log.time`, ...) restyle the built-in components, like Rich's
+    /// `Console(theme=Theme({...}))`.
+    ///
+    /// ```
+    /// use fast_rich::prelude::*;
+    /// let console = Console::capture()
+    ///     .width(30)
+    ///     .force_color(true)
+    ///     .theme(Theme::from_styles([("rule.line", "red")]));
+    /// console.rule("");
+    /// // The line is red (palette color 1) instead of Rich's bright green.
+    /// assert!(console.get_captured_output().starts_with("\x1b[38;5;1m"));
+    /// ```
     pub fn theme(mut self, theme: crate::theme::Theme) -> Self {
-        self.theme = theme;
+        self.theme = Arc::new(theme);
         self
     }
 
     /// The console's theme.
     pub fn get_theme(&self) -> &crate::theme::Theme {
         &self.theme
+    }
+
+    /// A [`RenderContext`] for this console: its width and theme.
+    ///
+    /// ```
+    /// use fast_rich::prelude::*;
+    /// let console = Console::new().width(42);
+    /// assert_eq!(console.render_context().width, 42);
+    /// ```
+    pub fn render_context(&self) -> RenderContext {
+        RenderContext::new(self.get_width()).with_theme(self.theme.clone())
     }
 
     /// Enable or disable recording of output.
@@ -552,10 +680,7 @@ impl Console {
 
     /// Print any renderable object.
     pub fn print_renderable(&self, renderable: &dyn Renderable) {
-        let context = RenderContext {
-            width: self.get_width(),
-            height: None,
-        };
+        let context = self.render_context();
 
         let segments = renderable.render(&context);
         self.write_segments(&segments);
@@ -563,10 +688,7 @@ impl Console {
 
     /// Render `text` and write it without a trailing newline.
     fn print_text(&self, text: Text) {
-        let context = RenderContext {
-            width: self.get_width(),
-            height: None,
-        };
+        let context = self.render_context();
         let mut segments = text.render(&context);
         // std print! parity: interior line breaks stay, trailing one goes.
         if let Some(last) = segments.last_mut() {
@@ -834,7 +956,7 @@ impl Console {
     /// );
     /// ```
     pub fn print_debug<T: std::fmt::Debug + ?Sized>(&self, obj: &T) {
-        let pretty = crate::pretty::Pretty::new(obj).theme(self.theme.clone());
+        let pretty = crate::pretty::Pretty::new(obj);
         self.print_renderable(&pretty);
     }
 
@@ -842,10 +964,7 @@ impl Console {
     ///
     /// Returns the plain text representation without any ANSI codes.
     pub fn export_text(&self, renderable: &dyn Renderable) -> String {
-        let context = RenderContext {
-            width: self.get_width(),
-            height: None,
-        };
+        let context = self.render_context();
         let segments = renderable.render(&context);
         self.segments_to_text(&segments)
     }
@@ -865,10 +984,7 @@ impl Console {
     ///
     /// Returns an HTML string with styled `<span>` elements.
     pub fn export_html(&self, renderable: &dyn Renderable) -> String {
-        let context = RenderContext {
-            width: self.get_width(),
-            height: None,
-        };
+        let context = self.render_context();
         let segments = renderable.render(&context);
         self.segments_to_html(&segments)
     }
@@ -909,10 +1025,7 @@ impl Console {
     ///
     /// Returns an SVG string with text elements.
     pub fn export_svg(&self, renderable: &dyn Renderable) -> String {
-        let context = RenderContext {
-            width: self.get_width(),
-            height: None,
-        };
+        let context = self.render_context();
         let segments = renderable.render(&context);
         self.segments_to_svg(&segments)
     }

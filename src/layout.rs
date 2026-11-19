@@ -213,10 +213,7 @@ impl Renderable for Layout {
                     }
 
                     // Render child with constrained height
-                    let child_ctx = RenderContext {
-                        width: context.width,
-                        height: Some(h),
-                    };
+                    let child_ctx = context.child(context.width).with_height(Some(h));
                     let child_segments = child.render(&child_ctx);
 
                     // Ensure we output exactly `h` lines
@@ -266,10 +263,7 @@ impl Renderable for Layout {
                 }
 
                 // Pass through the parent's height constraint to children
-                let child_ctx = RenderContext {
-                    width: w,
-                    height: target_height,
-                };
+                let child_ctx = context.child(w).with_height(target_height);
                 let child_segs = child.render(&child_ctx);
                 max_lines = std::cmp::max(max_lines, child_segs.len());
                 columns_output.push(child_segs);
@@ -434,10 +428,7 @@ mod tests {
         ]);
 
         // Mock context with height
-        let context = RenderContext {
-            width: 80,
-            height: Some(10),
-        };
+        let context = RenderContext::new(80).with_height(Some(10));
         let segments = layout.render(&context);
 
         // Should have 10 lines total
@@ -457,10 +448,7 @@ mod tests {
         ]);
 
         // Unconstrained height
-        let context = RenderContext {
-            width: 80,
-            height: None,
-        };
+        let context = RenderContext::new(80);
         let segments = layout.render(&context);
 
         // Each leaf layout renders 1 blank line by default if empty
@@ -476,10 +464,7 @@ mod tests {
         ]);
 
         // If we pass a height, it should be enforced on children (columns)
-        let context = RenderContext {
-            width: 80,
-            height: Some(5),
-        };
+        let context = RenderContext::new(80).with_height(Some(5));
         let segments = layout.render(&context);
 
         // Should have 5 lines

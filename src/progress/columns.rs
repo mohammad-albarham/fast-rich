@@ -1,8 +1,9 @@
 use crate::progress::Task;
 // use crate::progress::bar::ProgressBar;
 use crate::progress::spinner::{Spinner, SpinnerStyle};
-use crate::style::{Color, Style};
+use crate::style::Style;
 use crate::text::Span;
+use crate::theme::Theme;
 use std::fmt::Debug;
 use std::time::Duration;
 
@@ -20,6 +21,34 @@ pub trait ProgressColumn: Send + Sync + Debug {
         self.render(task)
     }
 
+    /// Render the column with a width hint and the console theme.
+    ///
+    /// `Progress` calls this, passing the theme of its console. The
+    /// built-in columns resolve their default styles through it by Rich's
+    /// names (`bar.complete`, `progress.percentage`, ...), so a console
+    /// theme restyles them; a style set on the column wins over the theme.
+    /// The default implementation ignores the theme and calls
+    /// [`render_with_width`](Self::render_with_width).
+    ///
+    /// ```
+    /// use fast_rich::progress::{PercentageColumn, ProgressColumn, Task};
+    /// use fast_rich::style::Color;
+    /// use fast_rich::theme::Theme;
+    /// let theme = Theme::from_styles([("progress.percentage", "blue")]);
+    /// let task = Task::new(0, "x", Some(10));
+    /// let spans = PercentageColumn::new().render_themed(&task, None, &theme);
+    /// assert_eq!(spans[0].style.foreground, Some(Color::Blue));
+    /// ```
+    fn render_themed(
+        &self,
+        task: &Task,
+        available_width: Option<usize>,
+        theme: &Theme,
+    ) -> Vec<Span> {
+        let _ = theme;
+        self.render_with_width(task, available_width)
+    }
+
     /// Returns true if this column should expand to fill available width.
     fn is_expandable(&self) -> bool {
         false
@@ -29,6 +58,16 @@ pub trait ProgressColumn: Send + Sync + Debug {
     fn min_width(&self) -> usize {
         0
     }
+}
+
+/// The explicit style if one was set, else the theme's `name`.
+fn pick(explicit: Option<Style>, theme: &Theme, name: &str) -> Style {
+    explicit.unwrap_or_else(|| theme.style(name))
+}
+
+/// Render with Rich's default styles (no console theme at hand).
+fn default_theme() -> std::sync::Arc<Theme> {
+    crate::theme::shared_default()
 }
 
 /// Renders a static text string or text based on task properties.
@@ -56,14 +95,17 @@ impl TextColumn {
 
 impl ProgressColumn for TextColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
-        // Simple interpolation for now task.description
-        let text = if self.text == "[progress.description]" {
-            &task.description
-        } else {
-            &self.text
-        };
+        self.render_themed(task, None, &default_theme())
+    }
 
-        vec![Span::styled(text.clone(), self.style)]
+    fn render_themed(&self, task: &Task, _width: Option<usize>, theme: &Theme) -> Vec<Span> {
+        // `[progress.description]` shows the task description in Rich's
+        // `progress.description` style, under the column's own style.
+        if self.text == "[progress.description]" {
+            let style = theme.style("progress.description").combine(&self.style);
+            return vec![Span::styled(task.description.clone(), style)];
+        }
+        vec![Span::styled(self.text.clone(), self.style)]
     }
 }
 
@@ -88,14 +130,14 @@ pub struct BarColumn {
     pub incomplete_char: char,
     /// Optional edge pointer character (default: Some('╸'))
     pub edge_char: Option<char>,
-    /// Style for completed portion
-    pub complete_style: Style,
-    /// Style for finished tasks
+    /// Style for completed portion (`None`: theme's `bar.complete`)
+    pub complete_style: Option<Style>,
+    /// Style for finished tasks (`None`: theme's `bar.finished`)
     pub finished_style: Option<Style>,
-    /// Style for unfilled portion
-    pub incomplete_style: Style,
-    /// Style for pulse animation (indeterminate)
-    pub pulse_style: Style,
+    /// Style for unfilled portion (`None`: theme's `bar.back`)
+    pub incomplete_style: Option<Style>,
+    /// Style for pulse animation (`None`: theme's `bar.pulse`)
+    pub pulse_style: Option<Style>,
     /// If true, expand to fill available width
     pub expand: bool,
     /// If true, use sub-character (8th-block) Unicode for smoother progress
@@ -115,10 +157,10 @@ impl BarColumn {
             complete_char: '━',   // Heavy horizontal
             incomplete_char: '─', // Light horizontal (distinct!)
             edge_char: Some('╸'), // Heavy left (pointer)
-            complete_style: Style::new().foreground(Color::Magenta),
-            finished_style: Some(Style::new().foreground(Color::Green)),
-            incomplete_style: Style::new().foreground(Color::Ansi256(237)), // Dark grey
-            pulse_style: Style::new().foreground(Color::Cyan),
+            complete_style: None,
+            finished_style: None,
+            incomplete_style: None,
+            pulse_style: None,
             expand: false,
             use_sub_blocks: false,
         }
@@ -142,15 +184,46 @@ impl BarColumn {
         self
     }
 
-    /// Set the style for completed portion
+    /// Set the style for completed portion (default: the theme's
+    /// `bar.complete`, Rich's `rgb(249,38,114)`).
     pub fn complete_style(mut self, style: Style) -> Self {
-        self.complete_style = style;
+        self.complete_style = Some(style);
         self
     }
 
-    /// Set the style for finished tasks
+    /// Set the style for finished tasks (default: the theme's
+    /// `bar.finished`, Rich's `rgb(114,156,31)`). `None` goes back to the
+    /// theme's style.
     pub fn finished_style(mut self, style: Option<Style>) -> Self {
         self.finished_style = style;
+        self
+    }
+
+    /// Set the style for the unfilled portion (default: the theme's
+    /// `bar.back`, Rich's `grey23`).
+    ///
+    /// ```
+    /// use fast_rich::progress::BarColumn;
+    /// use fast_rich::style::Style;
+    /// let bar = BarColumn::new(10).incomplete_style(Style::parse("grey50"));
+    /// assert!(bar.incomplete_style.is_some());
+    /// ```
+    pub fn incomplete_style(mut self, style: Style) -> Self {
+        self.incomplete_style = Some(style);
+        self
+    }
+
+    /// Set the style of the pulse shown while the total is unknown
+    /// (default: the theme's `bar.pulse`).
+    ///
+    /// ```
+    /// use fast_rich::progress::BarColumn;
+    /// use fast_rich::style::Style;
+    /// let bar = BarColumn::new(10).pulse_style(Style::parse("cyan"));
+    /// assert!(bar.pulse_style.is_some());
+    /// ```
+    pub fn pulse_style(mut self, style: Style) -> Self {
+        self.pulse_style = Some(style);
         self
     }
 
@@ -189,10 +262,12 @@ impl BarColumn {
     }
 
     /// Render the bar with a specific width
-    fn render_bar(&self, task: &Task, width: usize) -> Vec<Span> {
+    fn render_bar(&self, task: &Task, width: usize, theme: &Theme) -> Vec<Span> {
+        let back = pick(self.incomplete_style, theme, "bar.back");
         // Handle indeterminate progress (no total)
         if task.total.is_none() && !task.finished {
-            return self.render_pulse_with_width(task, width);
+            let pulse = pick(self.pulse_style, theme, "bar.pulse");
+            return self.render_pulse_with_width(task, width, pulse, back);
         }
 
         let total = task.total.unwrap_or(100) as f64;
@@ -200,14 +275,14 @@ impl BarColumn {
         let percentage = (completed / total).clamp(0.0, 1.0);
 
         let style = if task.finished {
-            self.finished_style.unwrap_or(self.complete_style)
+            pick(self.finished_style, theme, "bar.finished")
         } else {
-            self.complete_style
+            pick(self.complete_style, theme, "bar.complete")
         };
 
         // Use sub-block rendering if enabled
         if self.use_sub_blocks && !task.finished && percentage < 1.0 {
-            return self.render_sub_blocks(percentage, width, style);
+            return self.render_sub_blocks(percentage, width, style, back);
         }
 
         // Calculate filled width, accounting for optional edge character
@@ -242,7 +317,7 @@ impl BarColumn {
         if empty_width > 0 {
             spans.push(Span::styled(
                 self.incomplete_char.to_string().repeat(empty_width),
-                self.incomplete_style,
+                back,
             ));
         }
 
@@ -250,7 +325,13 @@ impl BarColumn {
     }
 
     /// Render progress bar with sub-character (8th-block) precision.
-    fn render_sub_blocks(&self, percentage: f64, width: usize, style: Style) -> Vec<Span> {
+    fn render_sub_blocks(
+        &self,
+        percentage: f64,
+        width: usize,
+        style: Style,
+        back: Style,
+    ) -> Vec<Span> {
         // Calculate the exact fractional position
         let exact_filled = width as f64 * percentage;
         let full_blocks = exact_filled as usize;
@@ -276,14 +357,20 @@ impl BarColumn {
         let used_width = full_blocks + if eighths > 0 { 1 } else { 0 };
         let empty_width = width.saturating_sub(used_width);
         if empty_width > 0 {
-            spans.push(Span::styled(" ".repeat(empty_width), self.incomplete_style));
+            spans.push(Span::styled(" ".repeat(empty_width), back));
         }
 
         spans
     }
 
     /// Render pulse animation with a specific width
-    fn render_pulse_with_width(&self, task: &Task, width: usize) -> Vec<Span> {
+    fn render_pulse_with_width(
+        &self,
+        task: &Task,
+        width: usize,
+        pulse: Style,
+        back: Style,
+    ) -> Vec<Span> {
         let pulse_width = 6.min(width / 3);
 
         let elapsed_ms = task.elapsed().as_millis() as usize;
@@ -306,20 +393,20 @@ impl BarColumn {
         if pulse_start > 0 {
             spans.push(Span::styled(
                 self.incomplete_char.to_string().repeat(pulse_start),
-                self.incomplete_style,
+                back,
             ));
         }
 
         spans.push(Span::styled(
             self.complete_char.to_string().repeat(pulse_width),
-            self.pulse_style,
+            pulse,
         ));
 
         let after_pulse = width.saturating_sub(pulse_end);
         if after_pulse > 0 {
             spans.push(Span::styled(
                 self.incomplete_char.to_string().repeat(after_pulse),
-                self.incomplete_style,
+                back,
             ));
         }
 
@@ -329,10 +416,19 @@ impl BarColumn {
 
 impl ProgressColumn for BarColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
-        self.render_bar(task, self.bar_width)
+        self.render_themed(task, None, &default_theme())
     }
 
     fn render_with_width(&self, task: &Task, available_width: Option<usize>) -> Vec<Span> {
+        self.render_themed(task, available_width, &default_theme())
+    }
+
+    fn render_themed(
+        &self,
+        task: &Task,
+        available_width: Option<usize>,
+        theme: &Theme,
+    ) -> Vec<Span> {
         let width = if self.expand {
             available_width
                 .unwrap_or(self.bar_width)
@@ -340,7 +436,7 @@ impl ProgressColumn for BarColumn {
         } else {
             self.bar_width
         };
-        self.render_bar(task, width)
+        self.render_bar(task, width, theme)
     }
 
     fn is_expandable(&self) -> bool {
@@ -352,9 +448,10 @@ impl ProgressColumn for BarColumn {
     }
 }
 
-/// Renders the percentage complete (e.g. "50%").
+/// Renders the percentage complete (e.g. "50%"). The style defaults to the
+/// theme's `progress.percentage` (magenta, like Rich); `Some` overrides it.
 #[derive(Debug)]
-pub struct PercentageColumn(pub Style);
+pub struct PercentageColumn(pub Option<Style>);
 
 impl Default for PercentageColumn {
     fn default() -> Self {
@@ -364,14 +461,32 @@ impl Default for PercentageColumn {
 
 impl PercentageColumn {
     pub fn new() -> Self {
-        Self(Style::new().foreground(Color::Cyan))
+        Self(None)
+    }
+
+    /// Use `style` instead of the theme's `progress.percentage`.
+    ///
+    /// ```
+    /// use fast_rich::progress::PercentageColumn;
+    /// use fast_rich::style::Style;
+    /// let column = PercentageColumn::new().style(Style::parse("bold"));
+    /// assert!(column.0.unwrap().bold);
+    /// ```
+    pub fn style(mut self, style: Style) -> Self {
+        self.0 = Some(style);
+        self
     }
 }
 
 impl ProgressColumn for PercentageColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
+        self.render_themed(task, None, &default_theme())
+    }
+
+    fn render_themed(&self, task: &Task, _width: Option<usize>, theme: &Theme) -> Vec<Span> {
         let percentage = task.percentage() * 100.0;
-        vec![Span::styled(format!("{:>3.0}%", percentage), self.0)]
+        let style = pick(self.0, theme, "progress.percentage");
+        vec![Span::styled(format!("{:>3.0}%", percentage), style)]
     }
 }
 
@@ -379,6 +494,7 @@ impl ProgressColumn for PercentageColumn {
 #[derive(Debug)]
 pub struct SpinnerColumn {
     spinner: Spinner, // Use generic spinner for frames
+    style: Option<Style>,
 }
 
 impl Default for SpinnerColumn {
@@ -391,7 +507,21 @@ impl SpinnerColumn {
     pub fn new() -> Self {
         Self {
             spinner: Spinner::new("").style(SpinnerStyle::Dots),
+            style: None,
         }
+    }
+
+    /// Color the spinner with `style` instead of the theme's
+    /// `progress.spinner` (green, like Rich).
+    ///
+    /// ```
+    /// use fast_rich::progress::SpinnerColumn;
+    /// use fast_rich::style::Style;
+    /// let spinner = SpinnerColumn::new().spinner_style(Style::parse("cyan"));
+    /// ```
+    pub fn spinner_style(mut self, style: Style) -> Self {
+        self.style = Some(style);
+        self
     }
 
     /// Set the spinner style.
@@ -409,6 +539,10 @@ impl SpinnerColumn {
 
 impl ProgressColumn for SpinnerColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
+        self.render_themed(task, None, &default_theme())
+    }
+
+    fn render_themed(&self, task: &Task, _width: Option<usize>, theme: &Theme) -> Vec<Span> {
         // We use the task's elapsed time to calculate the frame
         // This keeps it stateless with respect to the column, but animated by the task's lifetime.
         // For a global spinner independent of task start, we might need a shared start time.
@@ -427,7 +561,7 @@ impl ProgressColumn for SpinnerColumn {
 
         vec![Span::styled(
             frames[idx].to_string(),
-            Style::new().foreground(Color::Green),
+            pick(self.style, theme, "progress.spinner"),
         )]
     }
 }
@@ -438,6 +572,10 @@ pub struct TransferSpeedColumn;
 
 impl ProgressColumn for TransferSpeedColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
+        self.render_themed(task, None, &default_theme())
+    }
+
+    fn render_themed(&self, task: &Task, _width: Option<usize>, theme: &Theme) -> Vec<Span> {
         let speed = task.speed();
         let speed_str = if speed >= 1_000_000.0 {
             format!("{:.1} MB/s", speed / 1_000_000.0)
@@ -446,7 +584,7 @@ impl ProgressColumn for TransferSpeedColumn {
         } else {
             format!("{:.0} B/s", speed)
         };
-        vec![Span::styled(speed_str, Style::new().foreground(Color::Red))]
+        vec![Span::styled(speed_str, theme.style("progress.data.speed"))]
     }
 }
 
@@ -456,11 +594,15 @@ pub struct TimeRemainingColumn;
 
 impl ProgressColumn for TimeRemainingColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
+        self.render_themed(task, None, &default_theme())
+    }
+
+    fn render_themed(&self, task: &Task, _width: Option<usize>, theme: &Theme) -> Vec<Span> {
         let eta = match task.eta() {
             Some(d) => format_duration(d),
             None => "-:--:--".to_string(),
         };
-        vec![Span::styled(eta, Style::new().foreground(Color::Cyan))]
+        vec![Span::styled(eta, theme.style("progress.remaining"))]
     }
 }
 
@@ -499,11 +641,16 @@ impl MofNColumn {
 
 impl ProgressColumn for MofNColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
+        self.render_themed(task, None, &default_theme())
+    }
+
+    // Rich's MofNCompleteColumn uses `progress.download`.
+    fn render_themed(&self, task: &Task, _width: Option<usize>, theme: &Theme) -> Vec<Span> {
         let completed = task.completed;
         let total = task.total.unwrap_or(0);
         vec![Span::styled(
             format!("{}{}{}", completed, self.separator, total),
-            Style::new().foreground(Color::Green),
+            theme.style("progress.download"),
         )]
     }
 }
@@ -513,10 +660,14 @@ pub struct ElapsedColumn;
 
 impl ProgressColumn for ElapsedColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
+        self.render_themed(task, None, &default_theme())
+    }
+
+    fn render_themed(&self, task: &Task, _width: Option<usize>, theme: &Theme) -> Vec<Span> {
         let elapsed = task.elapsed();
         vec![Span::styled(
             format_duration(elapsed),
-            Style::new().foreground(Color::Cyan),
+            theme.style("progress.elapsed"),
         )]
     }
 }
@@ -544,7 +695,7 @@ fn format_bytes(bytes: u64) -> String {
 /// Displays the current progress in human-readable bytes.
 #[derive(Debug)]
 pub struct FileSizeColumn {
-    style: Style,
+    style: Option<Style>,
 }
 
 impl Default for FileSizeColumn {
@@ -555,22 +706,28 @@ impl Default for FileSizeColumn {
 
 impl FileSizeColumn {
     pub fn new() -> Self {
-        Self {
-            style: Style::new().foreground(Color::Green),
-        }
+        Self { style: None }
     }
 
-    /// Set the style for the file size display.
+    /// Set the style for the file size display (default: the theme's
+    /// `progress.filesize`).
     pub fn style(mut self, style: Style) -> Self {
-        self.style = style;
+        self.style = Some(style);
         self
     }
 }
 
 impl ProgressColumn for FileSizeColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
+        self.render_themed(task, None, &default_theme())
+    }
+
+    fn render_themed(&self, task: &Task, _width: Option<usize>, theme: &Theme) -> Vec<Span> {
         let size_str = format_bytes(task.completed);
-        vec![Span::styled(size_str, self.style)]
+        vec![Span::styled(
+            size_str,
+            pick(self.style, theme, "progress.filesize"),
+        )]
     }
 }
 
@@ -580,8 +737,8 @@ impl ProgressColumn for FileSizeColumn {
 #[derive(Debug)]
 pub struct TotalFileSizeColumn {
     separator: String,
-    completed_style: Style,
-    total_style: Style,
+    completed_style: Option<Style>,
+    total_style: Option<Style>,
 }
 
 impl Default for TotalFileSizeColumn {
@@ -594,8 +751,8 @@ impl TotalFileSizeColumn {
     pub fn new() -> Self {
         Self {
             separator: " / ".to_string(),
-            completed_style: Style::new().foreground(Color::Green),
-            total_style: Style::new().foreground(Color::Blue),
+            completed_style: None,
+            total_style: None,
         }
     }
 
@@ -605,21 +762,27 @@ impl TotalFileSizeColumn {
         self
     }
 
-    /// Set the style for completed bytes.
+    /// Set the style for completed bytes (default: the theme's
+    /// `progress.filesize`).
     pub fn completed_style(mut self, style: Style) -> Self {
-        self.completed_style = style;
+        self.completed_style = Some(style);
         self
     }
 
-    /// Set the style for total bytes.
+    /// Set the style for total bytes (default: the theme's
+    /// `progress.filesize.total`).
     pub fn total_style(mut self, style: Style) -> Self {
-        self.total_style = style;
+        self.total_style = Some(style);
         self
     }
 }
 
 impl ProgressColumn for TotalFileSizeColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
+        self.render_themed(task, None, &default_theme())
+    }
+
+    fn render_themed(&self, task: &Task, _width: Option<usize>, theme: &Theme) -> Vec<Span> {
         let completed_str = format_bytes(task.completed);
         let total_str = match task.total {
             Some(t) => format_bytes(t),
@@ -627,9 +790,15 @@ impl ProgressColumn for TotalFileSizeColumn {
         };
 
         vec![
-            Span::styled(completed_str, self.completed_style),
+            Span::styled(
+                completed_str,
+                pick(self.completed_style, theme, "progress.filesize"),
+            ),
             Span::styled(self.separator.clone(), Style::new()),
-            Span::styled(total_str, self.total_style),
+            Span::styled(
+                total_str,
+                pick(self.total_style, theme, "progress.filesize.total"),
+            ),
         ]
     }
 }
@@ -639,8 +808,8 @@ impl ProgressColumn for TotalFileSizeColumn {
 /// Combines file size progress with transfer speed in one compact column.
 #[derive(Debug)]
 pub struct DownloadColumn {
-    size_style: Style,
-    speed_style: Style,
+    size_style: Option<Style>,
+    speed_style: Option<Style>,
 }
 
 impl Default for DownloadColumn {
@@ -652,26 +821,32 @@ impl Default for DownloadColumn {
 impl DownloadColumn {
     pub fn new() -> Self {
         Self {
-            size_style: Style::new().foreground(Color::Green),
-            speed_style: Style::new().foreground(Color::Red),
+            size_style: None,
+            speed_style: None,
         }
     }
 
-    /// Set the style for file size.
+    /// Set the style for file size (default: the theme's
+    /// `progress.download`).
     pub fn size_style(mut self, style: Style) -> Self {
-        self.size_style = style;
+        self.size_style = Some(style);
         self
     }
 
-    /// Set the style for transfer speed.
+    /// Set the style for transfer speed (default: the theme's
+    /// `progress.data.speed`).
     pub fn speed_style(mut self, style: Style) -> Self {
-        self.speed_style = style;
+        self.speed_style = Some(style);
         self
     }
 }
 
 impl ProgressColumn for DownloadColumn {
     fn render(&self, task: &Task) -> Vec<Span> {
+        self.render_themed(task, None, &default_theme())
+    }
+
+    fn render_themed(&self, task: &Task, _width: Option<usize>, theme: &Theme) -> Vec<Span> {
         let size_str = format_bytes(task.completed);
         let speed = task.speed();
         let speed_str = if speed >= 1_000_000.0 {
@@ -683,9 +858,12 @@ impl ProgressColumn for DownloadColumn {
         };
 
         vec![
-            Span::styled(size_str, self.size_style),
+            Span::styled(size_str, pick(self.size_style, theme, "progress.download")),
             Span::raw(" @ "),
-            Span::styled(speed_str, self.speed_style),
+            Span::styled(
+                speed_str,
+                pick(self.speed_style, theme, "progress.data.speed"),
+            ),
         ]
     }
 }

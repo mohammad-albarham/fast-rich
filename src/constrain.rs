@@ -31,10 +31,8 @@ impl Constrain {
 impl Renderable for Constrain {
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
         let width = self.width.map_or(context.width, |w| w.min(context.width));
-        self.child.render(&RenderContext {
-            width,
-            height: context.height,
-        })
+        self.child
+            .render(&context.child(width).with_height(context.height))
     }
 
     fn min_width(&self) -> usize {

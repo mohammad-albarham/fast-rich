@@ -13,7 +13,7 @@
 use crate::box_drawing::Line;
 use crate::console::RenderContext;
 use crate::panel::BorderStyle;
-use crate::renderable::{fit_line, render_lines, Renderable, Segment, SharedRenderable};
+use crate::renderable::{fit_line, render_lines_with, Renderable, Segment, SharedRenderable};
 use crate::style::Style;
 use crate::text::{Alignment, Overflow, Span, Text};
 use std::sync::Arc;
@@ -96,7 +96,8 @@ pub struct Column {
     pub align: Alignment,
     /// Column width
     pub width: ColumnWidth,
-    /// Header style
+    /// Header style, layered over the table's header style (Rich's
+    /// `table.header`, bold). Empty by default, like Rich.
     pub header_style: Style,
     /// Cell style
     pub style: Style,
@@ -117,7 +118,7 @@ impl Column {
             header: header.to_string(),
             align: Alignment::Left,
             width: ColumnWidth::Auto,
-            header_style: Style::new().bold(),
+            header_style: Style::new(),
             style: Style::new(),
             wrap: true,
             overflow: Overflow::Ellipsis,
@@ -291,8 +292,8 @@ pub struct Table {
     rows: Vec<Row>,
     /// Border style
     border_style: BorderStyle,
-    /// Border style (colors etc)
-    style: Style,
+    /// Border style (colors etc); `None` uses the theme's `table.border`
+    style: Option<Style>,
     /// Show header row
     show_header: bool,
     /// Show border
@@ -309,15 +310,15 @@ pub struct Table {
     collapse_padding: bool,
     /// Title
     title: Option<Text>,
-    /// Title style and alignment
-    title_style: Style,
+    /// Title style (`None`: theme's `table.title`) and alignment
+    title_style: Option<Style>,
     title_align: Alignment,
     /// Caption below the table
     caption: Option<Text>,
-    caption_style: Style,
+    caption_style: Option<Style>,
     caption_align: Alignment,
-    /// Base style for all header cells
-    header_style: Style,
+    /// Base style for all header cells (`None`: theme's `table.header`)
+    header_style: Option<Style>,
     /// Alternating row styles
     row_styles: Vec<Style>,
     /// Expand to full width
@@ -341,7 +342,7 @@ impl Table {
             columns: Vec::new(),
             rows: Vec::new(),
             border_style: BorderStyle::Rounded,
-            style: Style::new(),
+            style: None,
             show_header: true,
             show_border: true,
             show_edge: true,
@@ -350,12 +351,12 @@ impl Table {
             pad_edge: true,
             collapse_padding: false,
             title: None,
-            title_style: Style::new().italic(),
+            title_style: None,
             title_align: Alignment::Center,
             caption: None,
-            caption_style: Style::new().italic().dim(),
+            caption_style: None,
             caption_align: Alignment::Center,
-            header_style: Style::new(),
+            header_style: None,
             row_styles: Vec::new(),
             expand: false,
             width: None,
@@ -432,9 +433,10 @@ impl Table {
         self
     }
 
-    /// Set the table style (border colors).
+    /// Set the table style (border colors). Overrides the theme's
+    /// `table.border` (empty by default, like Rich's `border_style=None`).
     pub fn style(mut self, style: Style) -> Self {
-        self.style = style;
+        self.style = Some(style);
         self
     }
 
@@ -518,9 +520,10 @@ impl Table {
         self
     }
 
-    /// Set the title style (default italic, like Rich).
+    /// Set the title style. Defaults to the theme's `table.title`
+    /// (italic, like Rich).
     pub fn title_style(mut self, style: Style) -> Self {
-        self.title_style = style;
+        self.title_style = Some(style);
         self
     }
 
@@ -541,9 +544,10 @@ impl Table {
         self
     }
 
-    /// Set the caption style (default italic dim, like Rich).
+    /// Set the caption style. Defaults to the theme's `table.caption`
+    /// (dim italic, like Rich).
     pub fn caption_style(mut self, style: Style) -> Self {
-        self.caption_style = style;
+        self.caption_style = Some(style);
         self
     }
 
@@ -553,9 +557,11 @@ impl Table {
         self
     }
 
-    /// Base style applied under every column's header style.
+    /// Base style applied under every column's header style. Defaults to
+    /// the theme's `table.header` (bold, like Rich); setting it replaces
+    /// that default.
     pub fn header_style(mut self, style: Style) -> Self {
-        self.header_style = style;
+        self.header_style = Some(style);
         self
     }
 
@@ -766,7 +772,7 @@ impl Table {
             .collect()
     }
 
-    fn horizontal_line(&self, widths: &[usize], line: &Line) -> Segment {
+    fn horizontal_line(&self, widths: &[usize], line: &Line, border: Style) -> Segment {
         let mut text = String::new();
         if self.show_edge {
             text.push(line.left);
@@ -780,11 +786,18 @@ impl Table {
         if self.show_edge {
             text.push(line.right);
         }
-        Segment::line(vec![Span::styled(text, self.style)])
+        Segment::line(vec![Span::styled(text, border)])
     }
 
     /// Render one cell into exactly `width`-wide lines (padding included).
-    fn cell_lines(&self, cell: &Cell, index: usize, width: usize, base: Style) -> Vec<Vec<Span>> {
+    fn cell_lines(
+        &self,
+        context: &RenderContext,
+        cell: &Cell,
+        index: usize,
+        width: usize,
+        base: Style,
+    ) -> Vec<Vec<Span>> {
         let column = &self.columns[index];
         let (pad_left, pad_right) = self.cell_padding(index);
         let content_width = width.saturating_sub(pad_left + pad_right);
@@ -802,9 +815,11 @@ impl Table {
                     (false, Overflow::WrapCrop) => Overflow::Truncate,
                     (false, other) => other,
                 };
-                render_lines(&text, content_width, Style::new())
+                render_lines_with(&text, &context.child(content_width), Style::new())
             }
-            Cell::Renderable(r) => render_lines(&**r, content_width, Style::new()),
+            Cell::Renderable(r) => {
+                render_lines_with(&**r, &context.child(content_width), Style::new())
+            }
         };
         lines
             .into_iter()
@@ -828,23 +843,33 @@ impl Table {
             .collect()
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn render_row(
         &self,
+        context: &RenderContext,
         cells: &[Cell],
         widths: &[usize],
         line: &Line,
         header: bool,
         row_style: Style,
+        border: Style,
     ) -> Vec<Segment> {
         let empty = Cell::Text(Text::new());
+        // Rich: header = table header_style ("table.header") + column
+        // header_style; body cells get the column style. `table.cell` is
+        // a fast-rich base under the column style ("none" in Rich).
+        let table_header = self
+            .header_style
+            .unwrap_or_else(|| context.style("table.header"));
+        let table_cell = context.style("table.cell");
         let bases: Vec<Style> = self
             .columns
             .iter()
             .map(|column| {
                 let cell_style = if header {
-                    self.header_style.combine(&column.header_style)
+                    table_header.combine(&column.header_style)
                 } else {
-                    column.style
+                    table_cell.combine(&column.style)
                 };
                 row_style.combine(&cell_style)
             })
@@ -852,24 +877,24 @@ impl Table {
         let mut rendered: Vec<Vec<Vec<Span>>> = Vec::with_capacity(widths.len());
         for (i, &width) in widths.iter().enumerate() {
             let cell = cells.get(i).unwrap_or(&empty);
-            rendered.push(self.cell_lines(cell, i, width, bases[i]));
+            rendered.push(self.cell_lines(context, cell, i, width, bases[i]));
         }
         let height = rendered.iter().map(Vec::len).max().unwrap_or(1).max(1);
         let mut segments = Vec::with_capacity(height);
         for r in 0..height {
             let mut spans = Vec::new();
             if self.show_border && self.show_edge {
-                spans.push(Span::styled(line.left.to_string(), self.style));
+                spans.push(Span::styled(line.left.to_string(), border));
             }
             for (i, &width) in widths.iter().enumerate() {
                 let cell_line = rendered[i].get(r).cloned().unwrap_or_default();
                 spans.extend(fit_line(cell_line, width, bases[i]));
                 if self.show_border && i + 1 < widths.len() {
-                    spans.push(Span::styled(line.cross.to_string(), self.style));
+                    spans.push(Span::styled(line.cross.to_string(), border));
                 }
             }
             if self.show_border && self.show_edge {
-                spans.push(Span::styled(line.right.to_string(), self.style));
+                spans.push(Span::styled(line.right.to_string(), border));
             }
             segments.push(Segment::line(spans));
         }
@@ -878,6 +903,7 @@ impl Table {
 
     fn annotation(
         &self,
+        context: &RenderContext,
         text: &Text,
         style: Style,
         align: Alignment,
@@ -888,7 +914,7 @@ impl Table {
         for span in &mut text.spans {
             span.style = style.combine(&span.style);
         }
-        render_lines(&text, width, Style::new())
+        render_lines_with(&text, &context.child(width), Style::new())
             .into_iter()
             .map(Segment::line)
             .collect()
@@ -1030,31 +1056,33 @@ impl Renderable for Table {
         let widths = self.cell_widths(context.width);
         let table_width: usize = widths.iter().sum::<usize>() + self.extra_width();
         let mut segments = Vec::new();
+        // Rich: border = table style + border_style (None by default).
+        let border = self.style.unwrap_or_else(|| context.style("table.border"));
 
         if let Some(title) = &self.title {
-            segments.extend(self.annotation(
-                title,
-                self.title_style,
-                self.title_align,
-                table_width,
-            ));
+            let style = self
+                .title_style
+                .unwrap_or_else(|| context.style("table.title"));
+            segments.extend(self.annotation(context, title, style, self.title_align, table_width));
         }
 
         if self.show_border && self.show_edge {
-            segments.push(self.horizontal_line(&widths, &box_chars.top));
+            segments.push(self.horizontal_line(&widths, &box_chars.top, border));
         }
 
         if self.show_header {
             let header_cells: Vec<Cell> = self.columns.iter().map(Column::header_cell).collect();
             segments.extend(self.render_row(
+                context,
                 &header_cells,
                 &widths,
                 &box_chars.header,
                 true,
                 Style::new(),
+                border,
             ));
             if self.show_border {
-                segments.push(self.horizontal_line(&widths, &box_chars.head));
+                segments.push(self.horizontal_line(&widths, &box_chars.head, border));
             }
         }
 
@@ -1067,27 +1095,33 @@ impl Renderable for Table {
                 row_style = row_style.combine(&s);
             }
             segments.extend(self.render_row(
+                context,
                 &row.cells,
                 &widths,
                 &box_chars.cell,
                 false,
                 row_style,
+                border,
             ));
 
             let last = row_idx + 1 == self.rows.len();
             if self.show_border && !last && (self.show_row_lines || row.end_section) {
-                segments.push(self.horizontal_line(&widths, &box_chars.mid));
+                segments.push(self.horizontal_line(&widths, &box_chars.mid, border));
             }
         }
 
         if self.show_border && self.show_edge {
-            segments.push(self.horizontal_line(&widths, &box_chars.bottom));
+            segments.push(self.horizontal_line(&widths, &box_chars.bottom, border));
         }
 
         if let Some(caption) = &self.caption {
+            let style = self
+                .caption_style
+                .unwrap_or_else(|| context.style("table.caption"));
             segments.extend(self.annotation(
+                context,
                 caption,
-                self.caption_style,
+                style,
                 self.caption_align,
                 table_width,
             ));
@@ -1131,10 +1165,7 @@ mod tests {
         table.add_row_strs(&["Alice", "30"]);
         table.add_row_strs(&["Bob", "25"]);
 
-        let context = RenderContext {
-            width: 40,
-            height: None,
-        };
+        let context = RenderContext::new(40);
         let segments = table.render(&context);
 
         assert!(!segments.is_empty());
@@ -1181,10 +1212,7 @@ mod tests {
         table.add_column("B");
         table.add_row_strs(&["one\ntwo", "x"]);
 
-        let context = RenderContext {
-            width: 60,
-            height: None,
-        };
+        let context = RenderContext::new(60);
         let segments = table.render(&context);
         // border, header, head-sep, 2 data lines, bottom = 6
         assert!(segments.len() >= 6);
@@ -1207,10 +1235,7 @@ mod tests {
         cell.spans[0].style = Style::new().foreground(Color::Red);
         table.add_row(vec![cell]);
 
-        let context = RenderContext {
-            width: 40,
-            height: None,
-        };
+        let context = RenderContext::new(40);
         let segments = table.render(&context);
         let found = segments.iter().any(|seg| {
             seg.spans
@@ -1228,10 +1253,7 @@ mod tests {
         let row = Row::new(vec!["styled"]).style(Style::new().foreground(Color::Green));
         table.add_row_obj(row);
 
-        let context = RenderContext {
-            width: 40,
-            height: None,
-        };
+        let context = RenderContext::new(40);
         let segments = table.render(&context);
         let found = segments.iter().any(|seg| {
             seg.spans
@@ -1247,10 +1269,7 @@ mod tests {
         table.add_column(Column::new("A").width(ColumnWidth::Fixed(8)));
         table.add_row_strs(&["aaaa bbbb cccc"]);
 
-        let context = RenderContext {
-            width: 60,
-            height: None,
-        };
+        let context = RenderContext::new(60);
         let segments = table.render(&context);
         // header + sep + 2 wrapped lines + bottom
         let text: Vec<String> = segments.iter().map(|s| s.plain_text()).collect();

@@ -139,8 +139,8 @@ pub struct Tree {
     root: TreeNode,
     /// Guide style
     guide_style: GuideStyle,
-    /// Style for guide lines
-    style: Style,
+    /// Style for guide lines (`None`: theme's `tree.line`)
+    style: Option<Style>,
     /// Hide the root node
     hide_root: bool,
 }
@@ -151,7 +151,7 @@ impl Tree {
         Tree {
             root: root.into(),
             guide_style: GuideStyle::Unicode,
-            style: Style::new(),
+            style: None,
             hide_root: false,
         }
     }
@@ -162,9 +162,10 @@ impl Tree {
         self
     }
 
-    /// Set the style for guide lines.
+    /// Set the style for guide lines. Defaults to the theme's `tree.line`
+    /// (no style, like Rich).
     pub fn style(mut self, style: Style) -> Self {
-        self.style = style;
+        self.style = Some(style);
         self
     }
 
@@ -192,9 +193,11 @@ impl Tree {
         last: bool,
         conts: &mut Vec<usize>,
         inherited: Style,
-        width: usize,
+        context: &RenderContext,
         out: &mut Vec<Segment>,
     ) {
+        let width = context.width;
+        let guide_style = self.style.unwrap_or_else(|| context.style("tree.line"));
         let guides = self.guide_style.guides();
         let style = inherited.combine(&node.style);
 
@@ -209,16 +212,13 @@ impl Tree {
 
         if !(depth == 0 && self.hide_root) {
             let prefix_width = prefix.len() * 4;
-            let context = RenderContext {
-                width: width.saturating_sub(prefix_width).max(1),
-                height: None,
-            };
+            let context = context.child(width.saturating_sub(prefix_width).max(1));
             let lines = segments_to_lines(node.label.render(&context));
             for (i, line) in lines.into_iter().enumerate() {
                 let mut spans = Vec::with_capacity(line.len() + prefix.len());
                 if !prefix.is_empty() {
                     let guide: String = prefix.iter().map(|&g| guides[g]).collect();
-                    spans.push(Span::styled(guide, self.style));
+                    spans.push(Span::styled(guide, guide_style));
                 }
                 spans.extend(line.into_iter().map(|mut span| {
                     span.style = style.combine(&span.style);
@@ -239,7 +239,7 @@ impl Tree {
             }
             let count = node.children.len();
             for (i, child) in node.children.iter().enumerate() {
-                self.render_node(child, depth + 1, i + 1 == count, conts, style, width, out);
+                self.render_node(child, depth + 1, i + 1 == count, conts, style, context, out);
             }
             if depth > 0 {
                 conts.pop();
@@ -269,8 +269,9 @@ impl Renderable for Tree {
             0,
             true,
             &mut conts,
-            Style::new(),
-            context.width,
+            // Rich's Tree(style="tree"): the base under every label.
+            context.style("tree"),
+            context,
             &mut segments,
         );
         segments
@@ -387,10 +388,7 @@ mod tests {
     use super::*;
 
     fn label_plain(node: &TreeNode) -> String {
-        let context = RenderContext {
-            width: 200,
-            height: None,
-        };
+        let context = RenderContext::new(200);
         node.label
             .render(&context)
             .iter()
@@ -471,10 +469,7 @@ mod tests {
     fn test_tree_simple() {
         let tree = Tree::new("root").guide_style(GuideStyle::Unicode);
 
-        let context = RenderContext {
-            width: 40,
-            height: None,
-        };
+        let context = RenderContext::new(40);
         let segments = tree.render(&context);
 
         assert_eq!(segments.len(), 1);
@@ -487,10 +482,7 @@ mod tests {
         tree.add(TreeNode::new("child1"));
         tree.add(TreeNode::new("child2"));
 
-        let context = RenderContext {
-            width: 40,
-            height: None,
-        };
+        let context = RenderContext::new(40);
         let segments = tree.render(&context);
 
         assert_eq!(segments.len(), 3);
@@ -504,10 +496,7 @@ mod tests {
 
         let tree = Tree::new(TreeNode::new("root").with_child(child1));
 
-        let context = RenderContext {
-            width: 40,
-            height: None,
-        };
+        let context = RenderContext::new(40);
         let segments = tree.render(&context);
 
         assert_eq!(segments.len(), 4);
@@ -524,10 +513,7 @@ mod tests {
         tree.add("child1");
         tree.add("child2");
 
-        let context = RenderContext {
-            width: 40,
-            height: None,
-        };
+        let context = RenderContext::new(40);
         let segments = tree.render(&context);
 
         // Should not contain root
@@ -537,10 +523,7 @@ mod tests {
     }
 
     fn plain(tree: &Tree, width: usize) -> String {
-        let context = RenderContext {
-            width,
-            height: None,
-        };
+        let context = RenderContext::new(width);
         tree.render(&context)
             .iter()
             .map(|s| s.plain_text().trim_end().to_string())
@@ -594,10 +577,7 @@ mod tests {
         use crate::style::Color;
         let mut tree = Tree::new(TreeNode::new("root").style(Style::new().foreground(Color::Red)));
         tree.add("child");
-        let segs = tree.render(&RenderContext {
-            width: 30,
-            height: None,
-        });
+        let segs = tree.render(&RenderContext::new(30));
         let child = segs[1].spans.iter().find(|s| s.text == "child").unwrap();
         assert_eq!(child.style.foreground, Some(Color::Red));
     }

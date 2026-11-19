@@ -5,7 +5,7 @@
 
 use crate::console::RenderContext;
 use crate::padding::PaddingSpec;
-use crate::renderable::{render_lines, Renderable, Segment, SharedRenderable};
+use crate::renderable::{render_lines_with, Renderable, Segment, SharedRenderable};
 use crate::style::Style;
 use crate::text::{Alignment, Span, Text};
 use std::sync::Arc;
@@ -416,7 +416,11 @@ impl Renderable for Panel {
                 side(cell.right),
             ]));
         }
-        for line in render_lines(&*self.content, text_width, self.content_style) {
+        for line in render_lines_with(
+            &*self.content,
+            &context.child(text_width),
+            self.content_style,
+        ) {
             let mut spans = vec![side(cell.left)];
             if self.padding.left > 0 {
                 spans.push(Span::styled(
@@ -483,10 +487,7 @@ mod tests {
     #[test]
     fn test_panel_simple() {
         let panel = Panel::new("Hello");
-        let context = RenderContext {
-            width: 20,
-            height: None,
-        };
+        let context = RenderContext::new(20);
         let segments = panel.render(&context);
 
         // Should have top border, content, bottom border
@@ -501,10 +502,7 @@ mod tests {
     #[test]
     fn test_panel_with_title() {
         let panel = Panel::new("Content").title("Title");
-        let context = RenderContext {
-            width: 30,
-            height: None,
-        };
+        let context = RenderContext::new(30);
         let segments = panel.render(&context);
 
         let top = segments[0].plain_text();
@@ -514,10 +512,7 @@ mod tests {
     #[test]
     fn test_panel_border_styles() {
         let panel = Panel::new("Test").border_style(BorderStyle::Double);
-        let context = RenderContext {
-            width: 20,
-            height: None,
-        };
+        let context = RenderContext::new(20);
         let segments = panel.render(&context);
 
         let top = segments[0].plain_text();
@@ -575,10 +570,7 @@ mod tests {
         let title = crate::markup::parse("[bold]Hi[/]");
         let custom = BorderStyle::Custom(box_drawing::ASCII);
         let panel = Panel::new("x").title_text(title).border_style(custom);
-        let segs = panel.render(&RenderContext {
-            width: 20,
-            height: None,
-        });
+        let segs = panel.render(&RenderContext::new(20));
         let hi = segs[0]
             .spans
             .iter()

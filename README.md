@@ -176,6 +176,7 @@ cargo run --example logging --features logging
 | Auto-highlighting of printed values | ✅ | ✅ |
 | Text editing API (stylize, divide, truncate, join, …) | ✅ | ✅ |
 | Pretty printing (`Pretty`, `pretty_repr`, `pprint`) | ✅ | ✅ (from `Debug`, or exact via `serde` / `valuable` features) |
+| Theme style names (`Theme({"table.header": ...})`, 154 default styles, 256 named colors) | ✅ | ✅ (two-state attributes: `not bold` = off) |
 
 ## Contributing
 

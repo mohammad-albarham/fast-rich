@@ -1,7 +1,7 @@
 //! Alignment wrapper for renderables.
 
 use crate::console::RenderContext;
-use crate::renderable::{render_lines, BoxedRenderable, Renderable, Segment};
+use crate::renderable::{render_lines_with, BoxedRenderable, Renderable, Segment};
 use crate::style::Style;
 use crate::text::{Alignment, Span};
 
@@ -98,7 +98,7 @@ impl Renderable for Align {
     fn render(&self, context: &RenderContext) -> Vec<Segment> {
         let width = context.width;
         let block_width = self.child.max_width().min(width);
-        let mut lines = render_lines(&*self.child, block_width, Style::new());
+        let mut lines = render_lines_with(&*self.child, &context.child(block_width), Style::new());
         if let Some(target) = self.height {
             let blank = || vec![Span::raw(" ".repeat(block_width))];
             let diff = target.saturating_sub(lines.len());
@@ -151,13 +151,10 @@ mod tests {
     use crate::text::Text;
 
     fn render_aligned(a: &Align, width: usize) -> Vec<String> {
-        a.render(&RenderContext {
-            width,
-            height: None,
-        })
-        .iter()
-        .map(|s| s.plain_text())
-        .collect()
+        a.render(&RenderContext::new(width))
+            .iter()
+            .map(|s| s.plain_text())
+            .collect()
     }
 
     #[test]

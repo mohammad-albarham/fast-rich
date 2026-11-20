@@ -456,7 +456,7 @@ impl Color {
         }
     }
     /// Helper to convert standard ANSI code (0-15) to Color.
-    fn from_ansi_standard_code(code: u8) -> Self {
+    pub(crate) fn from_ansi_standard_code(code: u8) -> Self {
         match code {
             0 => Color::Black,
             1 => Color::Red,

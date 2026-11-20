@@ -97,6 +97,7 @@ use std::cell::RefCell;
 
 // Core modules
 pub mod align;
+pub mod ansi;
 pub mod bar;
 pub mod box_drawing;
 mod color_names;

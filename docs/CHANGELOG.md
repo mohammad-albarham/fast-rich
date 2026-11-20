@@ -108,6 +108,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   SIMPLE_HEAD, SIMPLE_HEAVY, MARKDOWN}` and `BorderStyle::{Ascii2, Simple,
   SimpleHead, SimpleHeavy, Markdown}`, so all 19 of `rich.box` exist.
   Markdown tables use `SIMPLE` instead of a hand-built box.
+- **ANSI decoder (Rich's `rich.ansi`)**: `Text::from_ansi` and
+  `ansi::AnsiDecoder` (`decode` into lines, `decode_line`) turn text with
+  escape codes, such as the colored output of `ls`, `cargo` or `git
+  diff`, back into styled `Text`, so it can go in a `Panel` or `Table`
+  without breaking widths. Decodes all 13 SGR attributes and their "off"
+  codes, 16 / 256 / truecolor foreground and background, `39` / `49`,
+  resets, and OSC 8 hyperlinks (into `Span::link`); other escapes are
+  removed and `\r` keeps the text after it, as in Rich. Matches Rich 15
+  on 210 golden cases (`tests/ansi_parity.rs`, regenerate with
+  `scripts/gen_ansi_golden.py`), and fast-rich's own console output
+  decodes back to the spans it was rendered from. Unlike Rich, OSC 8
+  links ended by BEL (what fast-rich writes) are recognized too.
   `tests/box_rich_parity.rs` checks every box's lines and a Table (plain,
   row lines, no edge, no header) and Panel with each against Rich 15
   (regenerate with `scripts/gen_box_golden.py`).

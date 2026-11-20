@@ -294,6 +294,33 @@ characters, so CJK text does not line up there); `right_crop(0)` and
 `remove_suffix("")` do nothing (Rich empties the text); `highlight_regex`
 does not turn named groups into theme styles.
 
+### Text from ANSI escape codes
+
+`Text::from_ansi` (Rich's `Text.from_ansi`) decodes a string that
+already contains escape codes, such as the captured output of `cargo`,
+`ls --color` or `git diff --color`, into styled `Text`. The escapes become
+styles and links, so the text measures and wraps by its visible
+characters and fits inside a `Panel` or `Table`:
+
+```rust
+use fast_rich::prelude::*;
+
+let output = "\x1b[1m\x1b[92m    Finished\x1b[0m `dev` profile in 0.42s";
+let text = Text::from_ansi(output);
+assert_eq!(text.plain_text(), "    Finished `dev` profile in 0.42s");
+console.print_renderable(&Panel::new(text).title("cargo"));
+```
+
+It decodes SGR attributes (and their "off" codes), 16 / 256 / truecolor
+colors, `39` / `49` (default color), resets and OSC 8 hyperlinks
+(`Span::link`). Cursor movement and other escapes are dropped, and each
+line keeps only the text after its last `\r`, as a terminal would show
+it. To decode line by line and keep the style across calls, use
+`fast_rich::ansi::AnsiDecoder`. See `examples/ansi_demo.rs`.
+
+Difference from Rich: OSC 8 links ended by BEL (`\x07`) are decoded;
+Rich only accepts `ESC \` there and leaves the rest as text.
+
 ---
 
 ## Theme Style Names

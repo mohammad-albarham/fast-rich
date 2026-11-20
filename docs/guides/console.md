@@ -290,6 +290,55 @@ Emoji: 🐍🦀
 
 ---
 
+## Working with Rendered Lines (Segments)
+
+Rich's `Segment` helpers are associated functions on
+`fast_rich::renderable::Segment`. They work on spans (`Span` is what Rich
+calls a segment) and on lines (`Vec<Span>`), for example the lines from
+`renderable::render_lines`:
+
+```rust
+use fast_rich::prelude::*;
+use fast_rich::renderable::Segment;
+use fast_rich::text::Span;
+
+let spans = vec![Span::styled("Hello\nWorld, this is long", Style::new().bold())];
+// Split at newlines, crop or pad every line to 8 cells.
+let lines = Segment::split_and_crop_lines(&spans, 8, Style::new(), true, false);
+// Make it a 8x4 block with blank lines centered around the text.
+let block = Segment::align_middle(&lines, 8, 4, Style::new(), false);
+assert_eq!(Segment::get_shape(&block), (8, 4));
+// Cut a line into columns at cell positions.
+let columns = Segment::divide(&lines[1], [3, 8]);
+assert_eq!(Segment::plain(&columns[0]), "Wor");
+```
+
+Also available: `split_lines`, `adjust_line_length`, `get_line_length`,
+`set_shape`, `align_top` / `align_bottom`, `simplify`, `strip_links`,
+`strip_styles`, `remove_color`, `apply_style`, `filter_control`, and on
+`Span`: `cell_length`, `split_cells` and `is_control`. See
+`examples/segment_demo.rs`.
+
+## Control Codes
+
+`fast_rich::control::Control` writes terminal control codes, with the
+same escape strings as Rich's `Control`:
+
+```rust
+use fast_rich::control::Control;
+
+console.print_renderable(&Control::title("Building..."));
+console.print_renderable(&Control::show_cursor(false));
+console.print_renderable(&Control::move_to(0, 0));
+console.print_renderable(&Control::show_cursor(true));
+```
+
+Constructors: `bell`, `home`, `clear`, `move_cursor(x, y)` (Rich's
+`move`), `move_to_column`, `move_to`, `show_cursor`, `alt_screen`,
+`title`, or `Control::new` with any `ControlCode`s. A `Control` renders as
+one span that the segment helpers treat as a control span: it takes no
+cells and is never cropped.
+
 ## Best Practices
 
 !!! tip "Use Prelude Import"

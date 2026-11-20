@@ -226,10 +226,7 @@ impl AnsiDecoder {
         for token in tokenize(line) {
             match token {
                 Token::Plain(plain) => {
-                    let plain: String = plain
-                        .chars()
-                        .filter(|c| !matches!(c, '\x07' | '\x08' | '\x0b' | '\x0c' | '\r'))
-                        .collect();
+                    let plain = crate::control::strip_control_codes(plain);
                     if plain.is_empty() {
                         continue;
                     }

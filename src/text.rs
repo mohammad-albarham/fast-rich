@@ -10,6 +10,8 @@
 
 mod ops;
 
+pub(crate) use ops::{char_cells, crop_cells, str_cells};
+
 use crate::style::Style;
 use std::borrow::Cow;
 use unicode_segmentation::UnicodeSegmentation;

@@ -120,6 +120,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `scripts/gen_ansi_golden.py`), and fast-rich's own console output
   decodes back to the spans it was rendered from. Unlike Rich, OSC 8
   links ended by BEL (what fast-rich writes) are recognized too.
+- **Segment toolkit (Rich's `rich.segment`)**: associated functions on
+  `Segment` that work on spans and lines of spans (Rich's `Segment` is
+  fast-rich's `Span`): `split_lines`, `split_lines_terminator`,
+  `split_and_crop_lines`, `adjust_line_length`, `get_line_length`,
+  `get_shape`, `set_shape`, `align_top` / `align_middle` /
+  `align_bottom`, `simplify`, `strip_links`, `strip_styles`,
+  `remove_color`, `divide`, `apply_style`, `filter_control` and `plain`;
+  on `Span`: `line()`, `cell_length`, `split_cells` (a cut double-width
+  character becomes two spaces) and `is_control` (text starting with ESC,
+  BEL or `\r`, i.e. what `Control` renders, since `Span` has no control
+  flag).
+- **`control` module (Rich's `rich.control`)**: `Control` renderable with
+  `bell`, `home`, `clear`, `move_cursor` (Rich's `move`), `move_to_column`,
+  `move_to`, `show_cursor`, `alt_screen`, `title` and `Control::new` from
+  `ControlCode`s; `ControlType` (Rich's numbering);
+  `strip_control_codes` and `escape_control_codes`. Printing a `Control`
+  writes its escape and nothing else. Every helper and every escape string
+  matches Rich 15 on 1,696 golden cases (`tests/segment_parity.rs`,
+  regenerate with `scripts/gen_segment_golden.py`).
   `tests/box_rich_parity.rs` checks every box's lines and a Table (plain,
   row lines, no edge, no header) and Panel with each against Rich 15
   (regenerate with `scripts/gen_box_golden.py`).

@@ -37,7 +37,7 @@ fn is_py_space(c: char) -> bool {
     c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)
 }
 
-fn char_cells(c: char) -> usize {
+pub(crate) fn char_cells(c: char) -> usize {
     UnicodeWidthChar::width(c).unwrap_or(0)
 }
 
@@ -45,7 +45,7 @@ fn char_cells(c: char) -> usize {
 /// (`\n`, `\t`, ...) and other zero-width characters take no cells
 /// (`UnicodeWidthStr` would count control characters as 1), and a
 /// character after a zero-width joiner is part of the joined grapheme.
-fn str_cells(s: &str) -> usize {
+pub(crate) fn str_cells(s: &str) -> usize {
     let mut width = 0;
     let mut chars = s.chars();
     while let Some(c) = chars.next() {
@@ -61,7 +61,7 @@ fn str_cells(s: &str) -> usize {
 /// wider than `total`). As in Rich, zero-width characters stay with the
 /// character before them, and a double-width character that straddles the
 /// edge is replaced by a space so the result is exactly `total` cells.
-fn crop_cells(text: &str, total: usize) -> String {
+pub(crate) fn crop_cells(text: &str, total: usize) -> String {
     let mut out = String::new();
     if total == 0 {
         return out;

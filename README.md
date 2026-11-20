@@ -180,6 +180,7 @@ cargo run --example logging --features logging
 | All 13 style attributes (incl. `blink2`, `underline2`, `frame`, `encircle`, `overline`) | ✅ | ✅ |
 | All 19 box styles (`rich.box`, incl. `SIMPLE`, `MARKDOWN`, `ASCII2`) | ✅ | ✅ (no legacy-Windows / ASCII-only substitution) |
 | ANSI decoding (`Text.from_ansi`, `AnsiDecoder`) | ✅ | ✅ (also accepts BEL-terminated OSC 8 links) |
+| Segment toolkit (`split_and_crop_lines`, `set_shape`, `divide`, …) and `Control` codes | ✅ | ✅ (on `Span` lines; control spans recognized by their escape text) |
 
 ## Contributing
 

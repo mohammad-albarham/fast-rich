@@ -74,11 +74,24 @@ Apply formatting effects to text:
 | Dim | `[dim]` | Dimmed/faded text |
 | Reverse | `[reverse]` | Swap foreground/background |
 | Blink | `[blink]` | Blinking text (limited support) |
+| Rapid blink | `[blink2]` | Fast blinking text (SGR 6, rarely supported) |
+| Conceal | `[conceal]` or `[hidden]` | Hidden text |
+| Double underline | `[underline2]` or `[uu]` | Double underline (SGR 21) |
+| Overline | `[overline]` or `[o]` | Line above the text (SGR 53) |
+| Frame | `[frame]` | Framed text (SGR 51, rarely supported) |
+| Encircle | `[encircle]` | Encircled text (SGR 52, rarely supported) |
 
 ```rust
 console.print("[bold]Bold[/] [italic]Italic[/] [underline]Underline[/]");
 console.print("[strike]Strike[/] [dim]Dim[/] [reverse]Reverse[/]");
+console.print("[uu]Double underline[/] [o]Overline[/] [frame]Frame[/]");
 ```
+
+These are Rich's 13 attributes, written with Rich's SGR codes. Prefix
+`not` to turn one off (`[bold not underline]`). Rich's abbreviations work
+too: `b`, `d`, `i`, `u`, `uu`, `o`, `r`, `s`, `c`. In HTML export,
+underline, strike and overline share one `text-decoration`; blink, frame
+and encircle have no CSS form and are dropped, as in Rich.
 
 ### Combining Styles
 
@@ -157,9 +170,14 @@ console.print_renderable(&text);
 | `.bold()` | Make text bold |
 | `.italic()` | Make text italic |
 | `.underline()` | Add underline |
-| `.strike()` | Add strikethrough |
+| `.strikethrough()` | Add strikethrough |
 | `.dim()` | Make text dim |
 | `.reverse()` | Swap fg/bg colors |
+| `.blink()` / `.blink2()` | Slow / rapid blink |
+| `.hidden()` | Conceal the text |
+| `.underline2()` | Double underline |
+| `.overline()` | Line above the text |
+| `.frame()` / `.encircle()` | Framed / encircled text |
 
 ### Color Enum
 
@@ -323,9 +341,7 @@ on the component itself (`Table::header_style`, `Rule::style`,
 Rich's 256 named colors (`grey23`, `dark_orange3`, ...).
 
 Differences from Rich: fast-rich styles have two states per attribute, so
-Rich's `not bold` means "bold off" rather than "explicitly unset"; and
-`blink2`, `underline2`, `frame`, `encircle` and `overline` are not
-supported yet.
+Rich's `not bold` means "bold off" rather than "explicitly unset".
 
 ---
 

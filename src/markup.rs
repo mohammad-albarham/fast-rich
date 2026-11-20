@@ -45,6 +45,13 @@ fn style_is_unknown_word(word: &str) -> bool {
             | "strike"
             | "strikethrough"
             | "s"
+            | "blink2"
+            | "underline2"
+            | "uu"
+            | "frame"
+            | "encircle"
+            | "overline"
+            | "o"
             | "on"
             | "not"
     ) && Color::parse(word).is_none()

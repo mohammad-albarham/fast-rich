@@ -31,6 +31,36 @@ fn main() {
     console.print_renderable(&text);
 
     console.println("");
+    console.println("[bold cyan]═══ Attributes ═══[/]");
+    console.println("");
+
+    // All 13 of Rich's attributes. Terminal support for blink2, frame and
+    // encircle is rare; underline2 and overline work in most modern ones.
+    for name in [
+        "bold",
+        "dim",
+        "italic",
+        "underline",
+        "blink",
+        "blink2",
+        "reverse",
+        "conceal",
+        "strike",
+        "underline2",
+        "frame",
+        "encircle",
+        "overline",
+    ] {
+        console.print(&format!("[{name}]{name}[/] "));
+    }
+    console.println("");
+    // The same with the builder.
+    let fancy = Style::new().underline2().overline().foreground(Color::Cyan);
+    let mut text = fast_rich::text::Text::new();
+    text.push_styled("double underline + overline", fancy);
+    console.print_renderable(&text);
+
+    console.println("");
     console.println("[bold cyan]═══ Color Palette ═══[/]");
     console.println("");
 

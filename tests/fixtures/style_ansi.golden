@@ -1,0 +1,22 @@
+# rich 15.0.0: <style> <sgr> <console output hex>
+bold 1 1b5b316d781b5b306d0a
+dim 2 1b5b326d781b5b306d0a
+italic 3 1b5b336d781b5b306d0a
+underline 4 1b5b346d781b5b306d0a
+blink 5 1b5b356d781b5b306d0a
+blink2 6 1b5b366d781b5b306d0a
+reverse 7 1b5b376d781b5b306d0a
+conceal 8 1b5b386d781b5b306d0a
+strike 9 1b5b396d781b5b306d0a
+underline2 21 1b5b32316d781b5b306d0a
+frame 51 1b5b35316d781b5b306d0a
+encircle 52 1b5b35326d781b5b306d0a
+overline 53 1b5b35336d781b5b306d0a
+uu 21 1b5b32316d781b5b306d0a
+o 53 1b5b35336d781b5b306d0a
+bold+overline 1;53 1b5b313b35336d781b5b306d0a
+underline2+frame+encircle 21;51;52 1b5b32313b35313b35326d781b5b306d0a
+blink+blink2 5;6 1b5b353b366d781b5b306d0a
+#ff8000+on+#0000ff+overline 53;38;2;255;128;0;48;2;0;0;255 1b5b35333b33383b323b3235353b3132383b303b34383b323b303b303b3235356d781b5b306d0a
+underline+underline2 4;21 1b5b343b32316d781b5b306d0a
+bold+dim+italic+underline+blink+blink2+reverse+conceal+strike+underline2+frame+encircle+overline 1;2;3;4;5;6;7;8;9;21;51;52;53 1b5b313b323b333b343b353b363b373b383b393b32313b35313b35323b35336d781b5b306d0a

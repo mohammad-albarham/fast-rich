@@ -812,6 +812,9 @@ impl Console {
         if span.style.blink {
             let _ = queue!(writer, SetAttribute(Attribute::SlowBlink));
         }
+        if span.style.blink2 {
+            let _ = writer.write_all(b"\x1b[6m");
+        }
         if span.style.reverse {
             let _ = queue!(writer, SetAttribute(Attribute::Reverse));
         }
@@ -820,6 +823,19 @@ impl Console {
         }
         if span.style.strikethrough {
             let _ = queue!(writer, SetAttribute(Attribute::CrossedOut));
+        }
+        // Rich's SGR codes; crossterm writes double underline as `4:2`.
+        if span.style.underline2 {
+            let _ = writer.write_all(b"\x1b[21m");
+        }
+        if span.style.frame {
+            let _ = writer.write_all(b"\x1b[51m");
+        }
+        if span.style.encircle {
+            let _ = writer.write_all(b"\x1b[52m");
+        }
+        if span.style.overline {
+            let _ = writer.write_all(b"\x1b[53m");
         }
 
         // Write the text

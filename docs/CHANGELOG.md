@@ -95,8 +95,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `scripts/gen_color_names.py`). They were silently dropped before.
 - **`Style::parse`** accepts Rich's attribute abbreviations `d` and `r`,
   and `conceal` / `c` (fast-rich's `hidden`).
+- **Rich's extra style attributes**: `Style` gains `blink2` (rapid blink,
+  SGR 6), `underline2` (double underline, SGR 21), `frame` (51),
+  `encircle` (52) and `overline` (53), with builder methods, `Style::parse`
+  / markup names (`blink2`, `underline2` / `uu`, `frame`, `encircle`,
+  `overline` / `o`, `not X`), `combine`, `is_empty`, `Display`,
+  `to_crossterm_attributes` and console output with Rich's SGR codes
+  (`tests/style_ansi_parity.rs`, regenerate with
+  `scripts/gen_style_ansi_golden.py`). `tests/theme_parity.rs` now
+  compares all 13 of Rich's attributes; none are skipped.
 
 ### Changed
+- **`Style` has five new public fields (breaking for struct literals)**:
+  `blink2`, `underline2`, `frame`, `encircle`, `overline`. Code that
+  builds `Style { .. }` with every field listed must add them; migration:
+  end the literal with `..Style::new()` (or use the builder methods).
+- **`Style`'s `Display`** lists every enabled attribute in Rich's order
+  with Rich's names (`conceal`, `strike`); it used to list only bold, dim,
+  italic, underline and `strikethrough`.
+- **`Style::to_css`** writes one `text-decoration` with all lines
+  (`underline line-through overline`, `underline double` for
+  `underline2`); before, strikethrough replaced underline.
 - **`RenderContext` (breaking)**: gains `pub theme: Arc<Theme>` and is now
   `#[non_exhaustive]`, so it can no longer be built with a struct literal.
   Migration: `RenderContext { width: w, height: None }` becomes

@@ -12,14 +12,12 @@ styles such as `table.header` or `bar.complete`):
 
 Golden format (one record per line, space-separated):
 
-    <name> <color> <bgcolor> <bold> <dim> <italic> <underline> <blink> <reverse> <conceal> <strike> <unsupported>
+    <name> <color> <bgcolor> <bold> <dim> <italic> <underline> <blink> <blink2> <reverse> <conceal> <strike> <underline2> <frame> <encircle> <overline>
 
 - color / bgcolor: `-` (unset), `default`, `n<index>` (standard or 256
   palette) or `#rrggbb` (truecolor).
-- flags: `1` (on), `0` (explicitly off, Rich's `not bold`), `-` (unset).
-- unsupported: comma-separated attributes the style sets (on or off) that
-  fast-rich's `Style` has no field for (`blink2`, `underline2`, `frame`,
-  `encircle`, `overline`), or `-`.
+- flags: `1` (on), `0` (explicitly off, Rich's `not bold`), `-` (unset),
+  for all 13 of Rich's attributes in Rich's bit order.
 
 Usage (needs `rich` importable, e.g. `pip install rich==15.0.0`, or
 `PYTHONPATH` pointed at an unzipped rich wheel):
@@ -36,18 +34,16 @@ from rich.default_styles import DEFAULT_STYLES
 ROOT = Path(__file__).resolve().parent.parent
 
 # Rich's attribute bits (rich.style.Style._attributes), in golden order.
-SUPPORTED = [
+ATTRIBUTES = [
     ("bold", 1),
     ("dim", 2),
     ("italic", 4),
     ("underline", 8),
     ("blink", 16),
+    ("blink2", 32),
     ("reverse", 64),
     ("conceal", 128),
     ("strike", 256),
-]
-UNSUPPORTED = [
-    ("blink2", 32),
     ("underline2", 512),
     ("frame", 1024),
     ("encircle", 2048),
@@ -86,20 +82,16 @@ def main() -> None:
     ]
     golden = [
         f"# rich {rich_version}: rich.default_styles.DEFAULT_STYLES",
-        "# <name> <color> <bgcolor> <bold> <dim> <italic> <underline> <blink>"
-        " <reverse> <conceal> <strike> <unsupported>",
+        "# <name> <color> <bgcolor> "
+        + " ".join(f"<{attr}>" for attr, _ in ATTRIBUTES),
     ]
     for name, style in DEFAULT_STYLES.items():
         rust.append(f'    ("{name}", "{style}"),')
-        flags = [flag_field(style, bit) for _, bit in SUPPORTED]
-        unsupported = [
-            attr for attr, bit in UNSUPPORTED if style._set_attributes & bit
-        ]
+        flags = [flag_field(style, bit) for _, bit in ATTRIBUTES]
         golden.append(
             " ".join(
                 [name, color_field(style.color), color_field(style.bgcolor)]
                 + flags
-                + [",".join(unsupported) or "-"]
             )
         )
     rust += ["];", ""]

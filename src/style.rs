@@ -544,6 +544,16 @@ pub struct Style {
     pub hidden: bool,
     /// Strikethrough text
     pub strikethrough: bool,
+    /// Rapid blink (Rich's `blink2`, SGR 6)
+    pub blink2: bool,
+    /// Double underline (Rich's `underline2`, SGR 21)
+    pub underline2: bool,
+    /// Framed text (Rich's `frame`, SGR 51)
+    pub frame: bool,
+    /// Encircled text (Rich's `encircle`, SGR 52)
+    pub encircle: bool,
+    /// Overlined text (Rich's `overline`, SGR 53)
+    pub overline: bool,
 }
 
 impl Style {
@@ -560,6 +570,11 @@ impl Style {
             reverse: false,
             hidden: false,
             strikethrough: false,
+            blink2: false,
+            underline2: false,
+            frame: false,
+            encircle: false,
+            overline: false,
         }
     }
 
@@ -633,6 +648,61 @@ impl Style {
         self
     }
 
+    /// Enable rapid blink (Rich's `blink2`, SGR 6).
+    ///
+    /// ```
+    /// use fast_rich::style::Style;
+    /// assert!(Style::new().blink2().blink2);
+    /// ```
+    pub fn blink2(mut self) -> Self {
+        self.blink2 = true;
+        self
+    }
+
+    /// Enable double underline (Rich's `underline2`, SGR 21).
+    ///
+    /// ```
+    /// use fast_rich::style::Style;
+    /// assert_eq!(Style::new().underline2(), Style::parse("uu"));
+    /// ```
+    pub fn underline2(mut self) -> Self {
+        self.underline2 = true;
+        self
+    }
+
+    /// Enable framed text (Rich's `frame`, SGR 51).
+    ///
+    /// ```
+    /// use fast_rich::style::Style;
+    /// assert_eq!(Style::new().frame(), Style::parse("frame"));
+    /// ```
+    pub fn frame(mut self) -> Self {
+        self.frame = true;
+        self
+    }
+
+    /// Enable encircled text (Rich's `encircle`, SGR 52).
+    ///
+    /// ```
+    /// use fast_rich::style::Style;
+    /// assert_eq!(Style::new().encircle(), Style::parse("encircle"));
+    /// ```
+    pub fn encircle(mut self) -> Self {
+        self.encircle = true;
+        self
+    }
+
+    /// Enable overlined text (Rich's `overline`, SGR 53).
+    ///
+    /// ```
+    /// use fast_rich::style::Style;
+    /// assert_eq!(Style::new().overline(), Style::parse("o"));
+    /// ```
+    pub fn overline(mut self) -> Self {
+        self.overline = true;
+        self
+    }
+
     /// Combine this style with another, with `other` taking precedence.
     pub fn combine(&self, other: &Style) -> Style {
         Style {
@@ -646,6 +716,11 @@ impl Style {
             reverse: self.reverse || other.reverse,
             hidden: self.hidden || other.hidden,
             strikethrough: self.strikethrough || other.strikethrough,
+            blink2: self.blink2 || other.blink2,
+            underline2: self.underline2 || other.underline2,
+            frame: self.frame || other.frame,
+            encircle: self.encircle || other.encircle,
+            overline: self.overline || other.overline,
         }
     }
 
@@ -661,6 +736,11 @@ impl Style {
             && !self.reverse
             && !self.hidden
             && !self.strikethrough
+            && !self.blink2
+            && !self.underline2
+            && !self.frame
+            && !self.encircle
+            && !self.overline
     }
 
     /// Parse a style from a string.
@@ -669,8 +749,10 @@ impl Style {
     /// modifier removes the following attribute ("not bold"), and unknown
     /// words are ignored (matching Rich's lenient markup). Rich's
     /// attribute names and abbreviations are accepted (`b`, `d`, `i`, `u`,
-    /// `r`, `s`, `conceal`/`c` for [`hidden`](Self::hidden)), as are Rich's
-    /// named colors such as `grey23`.
+    /// `r`, `s`, `conceal`/`c` for [`hidden`](Self::hidden), `uu` for
+    /// [`underline2`](Self::underline2), `o` for
+    /// [`overline`](Self::overline); also `blink2`, `frame`, `encircle`),
+    /// as are Rich's named colors such as `grey23`.
     ///
     /// ```
     /// use fast_rich::style::{Color, Style};
@@ -678,6 +760,9 @@ impl Style {
     /// assert!(s.bold);
     /// assert_eq!(s.foreground, Some(Color::Ansi256(237)));
     /// assert_eq!(s.background, Some(Color::Ansi256(18)));
+    ///
+    /// let s = Style::parse("uu o frame not encircle");
+    /// assert!(s.underline2 && s.overline && s.frame && !s.encircle);
     /// ```
     pub fn parse(s: &str) -> Self {
         let mut style = Style::new();
@@ -708,6 +793,11 @@ impl Style {
                 "reverse" | "r" => style.reverse = !negate_next,
                 "hidden" | "conceal" | "c" => style.hidden = !negate_next,
                 "strike" | "strikethrough" | "s" => style.strikethrough = !negate_next,
+                "blink2" => style.blink2 = !negate_next,
+                "underline2" | "uu" => style.underline2 = !negate_next,
+                "frame" => style.frame = !negate_next,
+                "encircle" => style.encircle = !negate_next,
+                "overline" | "o" => style.overline = !negate_next,
                 _ => {
                     matched = false;
                     // Try to parse as color
@@ -731,6 +821,17 @@ impl Style {
     }
 
     /// Apply this style to crossterm for rendering.
+    ///
+    /// `underline2` maps to crossterm's `DoubleUnderlined`, which crossterm
+    /// writes as `4:2`; fast-rich's own console output writes Rich's
+    /// `21` instead.
+    ///
+    /// ```
+    /// use crossterm::style::Attribute;
+    /// use fast_rich::style::Style;
+    /// let attrs = Style::parse("bold overline").to_crossterm_attributes();
+    /// assert!(attrs.has(Attribute::Bold) && attrs.has(Attribute::OverLined));
+    /// ```
     pub fn to_crossterm_attributes(&self) -> crossterm::style::Attributes {
         use crossterm::style::Attribute;
         let mut attrs = crossterm::style::Attributes::default();
@@ -759,6 +860,21 @@ impl Style {
         if self.strikethrough {
             attrs.set(Attribute::CrossedOut);
         }
+        if self.blink2 {
+            attrs.set(Attribute::RapidBlink);
+        }
+        if self.underline2 {
+            attrs.set(Attribute::DoubleUnderlined);
+        }
+        if self.frame {
+            attrs.set(Attribute::Framed);
+        }
+        if self.encircle {
+            attrs.set(Attribute::Encircled);
+        }
+        if self.overline {
+            attrs.set(Attribute::OverLined);
+        }
 
         attrs
     }
@@ -766,6 +882,18 @@ impl Style {
     /// Convert this style to CSS inline style string.
     ///
     /// Returns a string suitable for use in HTML style attributes.
+    /// Underline, strike and overline share one `text-decoration`;
+    /// `underline2` is a double underline. Blink, frame and encircle have
+    /// no CSS equivalent and are left out, as in Rich's HTML export.
+    ///
+    /// ```
+    /// use fast_rich::style::Style;
+    /// assert_eq!(
+    ///     Style::parse("underline strike overline").to_css(),
+    ///     "text-decoration: underline line-through overline"
+    /// );
+    /// assert_eq!(Style::parse("uu").to_css(), "text-decoration: underline double");
+    /// ```
     pub fn to_css(&self) -> String {
         let mut parts = Vec::new();
 
@@ -781,11 +909,23 @@ impl Style {
         if self.italic {
             parts.push("font-style: italic".to_string());
         }
-        if self.underline {
-            parts.push("text-decoration: underline".to_string());
+        let mut lines = Vec::new();
+        if self.underline || self.underline2 {
+            lines.push("underline");
         }
         if self.strikethrough {
-            parts.push("text-decoration: line-through".to_string());
+            lines.push("line-through");
+        }
+        if self.overline {
+            lines.push("overline");
+        }
+        if !lines.is_empty() {
+            let double = if self.underline2 && !self.underline {
+                " double"
+            } else {
+                ""
+            };
+            parts.push(format!("text-decoration: {}{double}", lines.join(" ")));
         }
         if self.dim {
             parts.push("opacity: 0.5".to_string());
@@ -796,25 +936,29 @@ impl Style {
 }
 
 impl fmt::Display for Style {
+    /// Lists the enabled attributes in Rich's order and with Rich's names
+    /// (`conceal` for `hidden`, `strike` for `strikethrough`).
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut parts = Vec::new();
-
-        if self.bold {
-            parts.push("bold");
-        }
-        if self.dim {
-            parts.push("dim");
-        }
-        if self.italic {
-            parts.push("italic");
-        }
-        if self.underline {
-            parts.push("underline");
-        }
-        if self.strikethrough {
-            parts.push("strikethrough");
-        }
-
+        let flags = [
+            (self.bold, "bold"),
+            (self.dim, "dim"),
+            (self.italic, "italic"),
+            (self.underline, "underline"),
+            (self.blink, "blink"),
+            (self.blink2, "blink2"),
+            (self.reverse, "reverse"),
+            (self.hidden, "conceal"),
+            (self.strikethrough, "strike"),
+            (self.underline2, "underline2"),
+            (self.frame, "frame"),
+            (self.encircle, "encircle"),
+            (self.overline, "overline"),
+        ];
+        let parts: Vec<&str> = flags
+            .iter()
+            .filter(|(on, _)| *on)
+            .map(|(_, name)| *name)
+            .collect();
         write!(f, "{}", parts.join(" "))
     }
 }

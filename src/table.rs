@@ -1052,7 +1052,13 @@ impl Renderable for Table {
             return vec![];
         }
 
-        let box_chars = self.border_style.to_box();
+        // Rich: `box.get_plain_headed_box()` when there is no header row.
+        let box_chars = if self.show_header {
+            self.border_style
+        } else {
+            self.border_style.plain_headed()
+        }
+        .to_box();
         let widths = self.cell_widths(context.width);
         let table_width: usize = widths.iter().sum::<usize>() + self.extra_width();
         let mut segments = Vec::new();

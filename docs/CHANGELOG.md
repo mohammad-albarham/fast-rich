@@ -104,6 +104,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`tests/style_ansi_parity.rs`, regenerate with
   `scripts/gen_style_ansi_golden.py`). `tests/theme_parity.rs` now
   compares all 13 of Rich's attributes; none are skipped.
+- **Rich's missing box styles**: `box_drawing::{ASCII2, SIMPLE,
+  SIMPLE_HEAD, SIMPLE_HEAVY, MARKDOWN}` and `BorderStyle::{Ascii2, Simple,
+  SimpleHead, SimpleHeavy, Markdown}`, so all 19 of `rich.box` exist.
+  Markdown tables use `SIMPLE` instead of a hand-built box.
+  `tests/box_rich_parity.rs` checks every box's lines and a Table (plain,
+  row lines, no edge, no header) and Panel with each against Rich 15
+  (regenerate with `scripts/gen_box_golden.py`).
+- **`BorderStyle::plain_headed`** (Rich's `Box.get_plain_headed_box`):
+  tables with `show_header(false)` now draw `HeavyHead` /
+  `SquareDoubleHead` as `Square`, `Minimal*Head` as `Minimal` and
+  `AsciiDoubleHead` as `Ascii2`, like Rich.
 
 ### Changed
 - **`Style` has five new public fields (breaking for struct literals)**:
@@ -116,6 +127,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`Style::to_css`** writes one `text-decoration` with all lines
   (`underline line-through overline`, `underline double` for
   `underline2`); before, strikethrough replaced underline.
+- **`BorderStyle` has five new variants** (`Ascii2`, `Simple`,
+  `SimpleHead`, `SimpleHeavy`, `Markdown`); exhaustive `match`es on it
+  need a new arm or a `_ =>` arm.
 - **`RenderContext` (breaking)**: gains `pub theme: Arc<Theme>` and is now
   `#[non_exhaustive]`, so it can no longer be built with a struct literal.
   Migration: `RenderContext { width: w, height: None }` becomes
@@ -168,6 +182,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Benches**: use `std::hint::black_box` (criterion's is deprecated).
 
 ### Fixed
+- **Box characters now match `rich.box`**: `ASCII` (top/bottom are
+  `+---+` without inner `+`, header/row lines `|-+|`), `MINIMAL`,
+  `MINIMAL_HEAVY_HEAD`, `MINIMAL_DOUBLE_HEAD` (inner verticals with
+  `╷`/`╵` ends and `╶─┼╴` separators; they had no verticals),
+  `HEAVY_EDGE` and `DOUBLE_EDGE` (light inner lines; they were heavy /
+  double), `HEAVY_HEAD` (row separators `├─┼┤`; they were `│─┼│`).
 - **Prompt**: choices (`[y/n]`) were parsed as a markup tag and never
   shown; they now print like Rich's.
 

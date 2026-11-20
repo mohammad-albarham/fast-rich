@@ -26,6 +26,13 @@ pub enum BorderStyle {
     Double,
     /// ASCII-only borders
     Ascii,
+    /// ASCII with `|` header corners (Rich's `ASCII2`)
+    ///
+    /// ```
+    /// use fast_rich::{box_drawing, panel::BorderStyle};
+    /// assert_eq!(BorderStyle::Ascii2.to_box(), box_drawing::ASCII2);
+    /// ```
+    Ascii2,
     /// ASCII double-head
     AsciiDoubleHead,
     /// Minimal borders (dashes)
@@ -34,6 +41,27 @@ pub enum BorderStyle {
     MinimalHeavyHead,
     /// Minimal double head
     MinimalDoubleHead,
+    /// A line under the header only (Rich's `SIMPLE`)
+    ///
+    /// ```
+    /// use fast_rich::{box_drawing, panel::BorderStyle};
+    /// assert_eq!(BorderStyle::Simple.to_box(), box_drawing::SIMPLE);
+    /// ```
+    Simple,
+    /// Like `Simple` without the footer line (Rich's `SIMPLE_HEAD`)
+    ///
+    /// ```
+    /// use fast_rich::{box_drawing, panel::BorderStyle};
+    /// assert_eq!(BorderStyle::SimpleHead.to_box(), box_drawing::SIMPLE_HEAD);
+    /// ```
+    SimpleHead,
+    /// Heavy `SIMPLE` (Rich's `SIMPLE_HEAVY`)
+    ///
+    /// ```
+    /// use fast_rich::{box_drawing, panel::BorderStyle};
+    /// assert_eq!(BorderStyle::SimpleHeavy.to_box(), box_drawing::SIMPLE_HEAVY);
+    /// ```
+    SimpleHeavy,
     /// Horizontals only
     Horizontals,
     /// Square double head
@@ -44,6 +72,13 @@ pub enum BorderStyle {
     HeavyHead,
     /// Double edge
     DoubleEdge,
+    /// Markdown table syntax (Rich's `MARKDOWN`)
+    ///
+    /// ```
+    /// use fast_rich::{box_drawing, panel::BorderStyle};
+    /// assert_eq!(BorderStyle::Markdown.to_box(), box_drawing::MARKDOWN);
+    /// ```
+    Markdown,
     /// No visible border (but space is reserved)
     Hidden,
     /// Custom box characters (e.g. built from a Rich box definition)
@@ -51,6 +86,26 @@ pub enum BorderStyle {
 }
 
 impl BorderStyle {
+    /// The box to use when a table has no header row (Rich's
+    /// `Box.get_plain_headed_box`): boxes with a special header line become
+    /// their plain equivalent, so the top edge matches the body. Other
+    /// styles are returned unchanged.
+    ///
+    /// ```
+    /// use fast_rich::panel::BorderStyle;
+    /// assert_eq!(BorderStyle::HeavyHead.plain_headed(), BorderStyle::Square);
+    /// assert_eq!(BorderStyle::AsciiDoubleHead.plain_headed(), BorderStyle::Ascii2);
+    /// assert_eq!(BorderStyle::Rounded.plain_headed(), BorderStyle::Rounded);
+    /// ```
+    pub fn plain_headed(self) -> BorderStyle {
+        match self {
+            BorderStyle::HeavyHead | BorderStyle::SquareDoubleHead => BorderStyle::Square,
+            BorderStyle::MinimalDoubleHead | BorderStyle::MinimalHeavyHead => BorderStyle::Minimal,
+            BorderStyle::AsciiDoubleHead => BorderStyle::Ascii2,
+            other => other,
+        }
+    }
+
     /// Get the box characters for this style.
     pub fn to_box(&self) -> BoxStyle {
         match self {
@@ -68,6 +123,11 @@ impl BorderStyle {
             BorderStyle::HeavyEdge => box_drawing::HEAVY_EDGE,
             BorderStyle::HeavyHead => box_drawing::HEAVY_HEAD,
             BorderStyle::DoubleEdge => box_drawing::DOUBLE_EDGE,
+            BorderStyle::Ascii2 => box_drawing::ASCII2,
+            BorderStyle::Simple => box_drawing::SIMPLE,
+            BorderStyle::SimpleHead => box_drawing::SIMPLE_HEAD,
+            BorderStyle::SimpleHeavy => box_drawing::SIMPLE_HEAVY,
+            BorderStyle::Markdown => box_drawing::MARKDOWN,
             BorderStyle::Custom(b) => *b,
             BorderStyle::Hidden => BoxStyle {
                 top: box_drawing::Line::new(' ', ' ', ' ', ' '),

@@ -45,6 +45,21 @@ impl Line {
 
 /// Standard ASCII box style.
 pub const ASCII: BoxStyle = BoxStyle {
+    top: Line::new('+', '-', '+', '-'),
+    head: Line::new('|', '-', '|', '+'),
+    mid: Line::new('|', '-', '|', '+'),
+    bottom: Line::new('+', '-', '+', '-'),
+    header: Line::new('|', ' ', '|', '|'),
+    cell: Line::new('|', ' ', '|', '|'),
+};
+
+/// ASCII box with `|` inside the corners of the header (Rich's `ASCII2`).
+///
+/// ```
+/// use fast_rich::box_drawing::ASCII2;
+/// assert_eq!(ASCII2.head.mid, '-');
+/// ```
+pub const ASCII2: BoxStyle = BoxStyle {
     top: Line::new('+', '-', '+', '+'),
     head: Line::new('+', '-', '+', '+'),
     mid: Line::new('+', '-', '+', '+'),
@@ -85,30 +100,76 @@ pub const SQUARE_DOUBLE_HEAD: BoxStyle = BoxStyle {
 
 /// Minimal box (open sides).
 pub const MINIMAL: BoxStyle = BoxStyle {
-    top: Line::new(' ', '─', ' ', '─'),
-    head: Line::new(' ', '─', ' ', '─'),
-    mid: Line::new(' ', '─', ' ', '─'),
-    bottom: Line::new(' ', '─', ' ', '─'),
-    header: Line::new(' ', ' ', ' ', ' '),
-    cell: Line::new(' ', ' ', ' ', ' '),
+    top: Line::new(' ', ' ', ' ', '╷'),
+    head: Line::new('╶', '─', '╴', '┼'),
+    mid: Line::new('╶', '─', '╴', '┼'),
+    bottom: Line::new(' ', ' ', ' ', '╵'),
+    header: Line::new(' ', ' ', ' ', '│'),
+    cell: Line::new(' ', ' ', ' ', '│'),
 };
 
 /// Minimal box with heavy header separator.
 pub const MINIMAL_HEAVY_HEAD: BoxStyle = BoxStyle {
-    top: Line::new(' ', '─', ' ', '─'),
-    head: Line::new(' ', '━', ' ', '━'),
-    mid: Line::new(' ', '─', ' ', '─'),
-    bottom: Line::new(' ', '─', ' ', '─'),
-    header: Line::new(' ', ' ', ' ', ' '),
-    cell: Line::new(' ', ' ', ' ', ' '),
+    top: Line::new(' ', ' ', ' ', '╷'),
+    head: Line::new('╺', '━', '╸', '┿'),
+    mid: Line::new('╶', '─', '╴', '┼'),
+    bottom: Line::new(' ', ' ', ' ', '╵'),
+    header: Line::new(' ', ' ', ' ', '│'),
+    cell: Line::new(' ', ' ', ' ', '│'),
 };
 
 /// Minimal box with double-line header separator.
 pub const MINIMAL_DOUBLE_HEAD: BoxStyle = BoxStyle {
-    top: Line::new(' ', '─', ' ', '─'),
-    head: Line::new(' ', '═', ' ', '═'),
-    mid: Line::new(' ', '─', ' ', '─'),
-    bottom: Line::new(' ', '─', ' ', '─'),
+    top: Line::new(' ', ' ', ' ', '╷'),
+    head: Line::new(' ', '═', ' ', '╪'),
+    mid: Line::new(' ', '─', ' ', '┼'),
+    bottom: Line::new(' ', ' ', ' ', '╵'),
+    header: Line::new(' ', ' ', ' ', '│'),
+    cell: Line::new(' ', ' ', ' ', '│'),
+};
+
+/// Only a line under the header (and above the footer) (Rich's `SIMPLE`).
+///
+/// ```
+/// use fast_rich::box_drawing::SIMPLE;
+/// assert_eq!((SIMPLE.top.left, SIMPLE.head.mid), (' ', '─'));
+/// ```
+pub const SIMPLE: BoxStyle = BoxStyle {
+    top: Line::new(' ', ' ', ' ', ' '),
+    head: Line::new(' ', '─', ' ', '─'),
+    mid: Line::new(' ', ' ', ' ', ' '),
+    bottom: Line::new(' ', ' ', ' ', ' '),
+    header: Line::new(' ', ' ', ' ', ' '),
+    cell: Line::new(' ', ' ', ' ', ' '),
+};
+
+/// Only a line under the header, none above the footer (Rich's
+/// `SIMPLE_HEAD`). Without footers it draws the same as [`SIMPLE`].
+///
+/// ```
+/// use fast_rich::box_drawing::SIMPLE_HEAD;
+/// assert_eq!(SIMPLE_HEAD, fast_rich::box_drawing::SIMPLE);
+/// ```
+pub const SIMPLE_HEAD: BoxStyle = BoxStyle {
+    top: Line::new(' ', ' ', ' ', ' '),
+    head: Line::new(' ', '─', ' ', '─'),
+    mid: Line::new(' ', ' ', ' ', ' '),
+    bottom: Line::new(' ', ' ', ' ', ' '),
+    header: Line::new(' ', ' ', ' ', ' '),
+    cell: Line::new(' ', ' ', ' ', ' '),
+};
+
+/// Like [`SIMPLE`] with heavy lines (Rich's `SIMPLE_HEAVY`).
+///
+/// ```
+/// use fast_rich::box_drawing::SIMPLE_HEAVY;
+/// assert_eq!(SIMPLE_HEAVY.head.mid, '━');
+/// ```
+pub const SIMPLE_HEAVY: BoxStyle = BoxStyle {
+    top: Line::new(' ', ' ', ' ', ' '),
+    head: Line::new(' ', '━', ' ', '━'),
+    mid: Line::new(' ', ' ', ' ', ' '),
+    bottom: Line::new(' ', ' ', ' ', ' '),
     header: Line::new(' ', ' ', ' ', ' '),
     cell: Line::new(' ', ' ', ' ', ' '),
 };
@@ -145,19 +206,19 @@ pub const HEAVY: BoxStyle = BoxStyle {
 
 /// Heavy edges but light inner lines.
 pub const HEAVY_EDGE: BoxStyle = BoxStyle {
-    top: Line::new('┏', '━', '┓', '┳'),
-    head: Line::new('┣', '━', '┫', '╇'),
-    mid: Line::new('┣', '━', '┫', '╇'),
-    bottom: Line::new('┗', '━', '┛', '┻'),
-    header: Line::new('┃', ' ', '┃', '┃'),
-    cell: Line::new('┃', ' ', '┃', '┃'),
+    top: Line::new('┏', '━', '┓', '┯'),
+    head: Line::new('┠', '─', '┨', '┼'),
+    mid: Line::new('┠', '─', '┨', '┼'),
+    bottom: Line::new('┗', '━', '┛', '┷'),
+    header: Line::new('┃', ' ', '┃', '│'),
+    cell: Line::new('┃', ' ', '┃', '│'),
 };
 
 /// Heavy header separator.
 pub const HEAVY_HEAD: BoxStyle = BoxStyle {
     top: Line::new('┏', '━', '┓', '┳'),
     head: Line::new('┡', '━', '┩', '╇'),
-    mid: Line::new('│', '─', '│', '┼'),
+    mid: Line::new('├', '─', '┤', '┼'),
     bottom: Line::new('└', '─', '┘', '┴'),
     header: Line::new('┃', ' ', '┃', '┃'),
     cell: Line::new('│', ' ', '│', '│'),
@@ -176,11 +237,26 @@ pub const DOUBLE: BoxStyle = BoxStyle {
 /// Double edges but single inner lines.
 pub const DOUBLE_EDGE: BoxStyle = BoxStyle {
     top: Line::new('╔', '═', '╗', '╤'),
-    head: Line::new('╠', '═', '╣', '╪'),
+    head: Line::new('╟', '─', '╢', '┼'),
     mid: Line::new('╟', '─', '╢', '┼'),
     bottom: Line::new('╚', '═', '╝', '╧'),
-    header: Line::new('║', ' ', '║', '║'),
-    cell: Line::new('║', ' ', '║', '║'),
+    header: Line::new('║', ' ', '║', '│'),
+    cell: Line::new('║', ' ', '║', '│'),
+};
+
+/// Markdown (GitHub) table syntax (Rich's `MARKDOWN`).
+///
+/// ```
+/// use fast_rich::box_drawing::MARKDOWN;
+/// assert_eq!((MARKDOWN.head.left, MARKDOWN.head.mid), ('|', '-'));
+/// ```
+pub const MARKDOWN: BoxStyle = BoxStyle {
+    top: Line::new(' ', ' ', ' ', ' '),
+    head: Line::new('|', '-', '|', '|'),
+    mid: Line::new('|', '-', '|', '|'),
+    bottom: Line::new(' ', ' ', ' ', ' '),
+    header: Line::new('|', ' ', '|', '|'),
+    cell: Line::new('|', ' ', '|', '|'),
 };
 
 /// Old name for [`BoxStyle`] (shadows `std::Box` under glob imports).
@@ -208,6 +284,11 @@ mod tests {
             HEAVY_HEAD,
             DOUBLE,
             DOUBLE_EDGE,
+            ASCII2,
+            SIMPLE,
+            SIMPLE_HEAD,
+            SIMPLE_HEAVY,
+            MARKDOWN,
         ];
         for style in styles {
             // Every line must define all six segments (even if blank).

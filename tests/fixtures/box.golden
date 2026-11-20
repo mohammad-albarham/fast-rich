@@ -1,0 +1,837 @@
+# rich 15.0.0: rich.box
+@ ASCII lines
+>+--+
+>| ||
+>|-+|
+>| ||
+>|-+|
+>|-+|
+>| ||
+>+--+
+@ ASCII table
+>+-------------+
+>| Name  | Qty |
+>|-------+-----|
+>| apple |   3 |
+>| kiwi  |  12 |
+>| fig   |   7 |
+>+-------------+
+@ ASCII table_lines
+>+-------------+
+>| Name  | Qty |
+>|-------+-----|
+>| apple |   3 |
+>|-------+-----|
+>| kiwi  |  12 |
+>|-------+-----|
+>| fig   |   7 |
+>+-------------+
+@ ASCII table_noedge
+> Name  | Qty
+>-------+-----
+> apple |   3
+> kiwi  |  12
+> fig   |   7
+@ ASCII table_noheader
+>+------------+
+>| apple |  3 |
+>| kiwi  | 12 |
+>| fig   |  7 |
+>+------------+
+@ ASCII panel
+>+----- Title ------+
+>| Hello            |
+>| World            |
+>+------------------+
+@ ASCII2 lines
+>+-++
+>| ||
+>+-++
+>| ||
+>+-++
+>+-++
+>| ||
+>+-++
+@ ASCII2 table
+>+-------+-----+
+>| Name  | Qty |
+>+-------+-----+
+>| apple |   3 |
+>| kiwi  |  12 |
+>| fig   |   7 |
+>+-------+-----+
+@ ASCII2 table_lines
+>+-------+-----+
+>| Name  | Qty |
+>+-------+-----+
+>| apple |   3 |
+>+-------+-----+
+>| kiwi  |  12 |
+>+-------+-----+
+>| fig   |   7 |
+>+-------+-----+
+@ ASCII2 table_noedge
+> Name  | Qty
+>-------+-----
+> apple |   3
+> kiwi  |  12
+> fig   |   7
+@ ASCII2 table_noheader
+>+-------+----+
+>| apple |  3 |
+>| kiwi  | 12 |
+>| fig   |  7 |
+>+-------+----+
+@ ASCII2 panel
+>+----- Title ------+
+>| Hello            |
+>| World            |
+>+------------------+
+@ ASCII_DOUBLE_HEAD lines
+>+-++
+>| ||
+>+=++
+>| ||
+>+-++
+>+-++
+>| ||
+>+-++
+@ ASCII_DOUBLE_HEAD table
+>+-------+-----+
+>| Name  | Qty |
+>+=======+=====+
+>| apple |   3 |
+>| kiwi  |  12 |
+>| fig   |   7 |
+>+-------+-----+
+@ ASCII_DOUBLE_HEAD table_lines
+>+-------+-----+
+>| Name  | Qty |
+>+=======+=====+
+>| apple |   3 |
+>+-------+-----+
+>| kiwi  |  12 |
+>+-------+-----+
+>| fig   |   7 |
+>+-------+-----+
+@ ASCII_DOUBLE_HEAD table_noedge
+> Name  | Qty
+>=======+=====
+> apple |   3
+> kiwi  |  12
+> fig   |   7
+@ ASCII_DOUBLE_HEAD table_noheader
+>+-------+----+
+>| apple |  3 |
+>| kiwi  | 12 |
+>| fig   |  7 |
+>+-------+----+
+@ ASCII_DOUBLE_HEAD panel
+>+----- Title ------+
+>| Hello            |
+>| World            |
+>+------------------+
+@ SQUARE lines
+>┌─┬┐
+>│ ││
+>├─┼┤
+>│ ││
+>├─┼┤
+>├─┼┤
+>│ ││
+>└─┴┘
+@ SQUARE table
+>┌───────┬─────┐
+>│ Name  │ Qty │
+>├───────┼─────┤
+>│ apple │   3 │
+>│ kiwi  │  12 │
+>│ fig   │   7 │
+>└───────┴─────┘
+@ SQUARE table_lines
+>┌───────┬─────┐
+>│ Name  │ Qty │
+>├───────┼─────┤
+>│ apple │   3 │
+>├───────┼─────┤
+>│ kiwi  │  12 │
+>├───────┼─────┤
+>│ fig   │   7 │
+>└───────┴─────┘
+@ SQUARE table_noedge
+> Name  │ Qty
+>───────┼─────
+> apple │   3
+> kiwi  │  12
+> fig   │   7
+@ SQUARE table_noheader
+>┌───────┬────┐
+>│ apple │  3 │
+>│ kiwi  │ 12 │
+>│ fig   │  7 │
+>└───────┴────┘
+@ SQUARE panel
+>┌───── Title ──────┐
+>│ Hello            │
+>│ World            │
+>└──────────────────┘
+@ SQUARE_DOUBLE_HEAD lines
+>┌─┬┐
+>│ ││
+>╞═╪╡
+>│ ││
+>├─┼┤
+>├─┼┤
+>│ ││
+>└─┴┘
+@ SQUARE_DOUBLE_HEAD table
+>┌───────┬─────┐
+>│ Name  │ Qty │
+>╞═══════╪═════╡
+>│ apple │   3 │
+>│ kiwi  │  12 │
+>│ fig   │   7 │
+>└───────┴─────┘
+@ SQUARE_DOUBLE_HEAD table_lines
+>┌───────┬─────┐
+>│ Name  │ Qty │
+>╞═══════╪═════╡
+>│ apple │   3 │
+>├───────┼─────┤
+>│ kiwi  │  12 │
+>├───────┼─────┤
+>│ fig   │   7 │
+>└───────┴─────┘
+@ SQUARE_DOUBLE_HEAD table_noedge
+> Name  │ Qty
+>═══════╪═════
+> apple │   3
+> kiwi  │  12
+> fig   │   7
+@ SQUARE_DOUBLE_HEAD table_noheader
+>┌───────┬────┐
+>│ apple │  3 │
+>│ kiwi  │ 12 │
+>│ fig   │  7 │
+>└───────┴────┘
+@ SQUARE_DOUBLE_HEAD panel
+>┌───── Title ──────┐
+>│ Hello            │
+>│ World            │
+>└──────────────────┘
+@ MINIMAL lines
+>  ╷ 
+>  │ 
+>╶─┼╴
+>  │ 
+>╶─┼╴
+>╶─┼╴
+>  │ 
+>  ╵ 
+@ MINIMAL table
+>        ╷
+>  Name  │ Qty
+>╶───────┼─────╴
+>  apple │   3
+>  kiwi  │  12
+>  fig   │   7
+>        ╵
+@ MINIMAL table_lines
+>        ╷
+>  Name  │ Qty
+>╶───────┼─────╴
+>  apple │   3
+>╶───────┼─────╴
+>  kiwi  │  12
+>╶───────┼─────╴
+>  fig   │   7
+>        ╵
+@ MINIMAL table_noedge
+> Name  │ Qty
+>───────┼─────
+> apple │   3
+> kiwi  │  12
+> fig   │   7
+@ MINIMAL table_noheader
+>        ╷
+>  apple │  3
+>  kiwi  │ 12
+>  fig   │  7
+>        ╵
+@ MINIMAL panel
+>       Title
+>  Hello
+>  World
+>
+@ MINIMAL_HEAVY_HEAD lines
+>  ╷ 
+>  │ 
+>╺━┿╸
+>  │ 
+>╶─┼╴
+>╶─┼╴
+>  │ 
+>  ╵ 
+@ MINIMAL_HEAVY_HEAD table
+>        ╷
+>  Name  │ Qty
+>╺━━━━━━━┿━━━━━╸
+>  apple │   3
+>  kiwi  │  12
+>  fig   │   7
+>        ╵
+@ MINIMAL_HEAVY_HEAD table_lines
+>        ╷
+>  Name  │ Qty
+>╺━━━━━━━┿━━━━━╸
+>  apple │   3
+>╶───────┼─────╴
+>  kiwi  │  12
+>╶───────┼─────╴
+>  fig   │   7
+>        ╵
+@ MINIMAL_HEAVY_HEAD table_noedge
+> Name  │ Qty
+>━━━━━━━┿━━━━━
+> apple │   3
+> kiwi  │  12
+> fig   │   7
+@ MINIMAL_HEAVY_HEAD table_noheader
+>        ╷
+>  apple │  3
+>  kiwi  │ 12
+>  fig   │  7
+>        ╵
+@ MINIMAL_HEAVY_HEAD panel
+>       Title
+>  Hello
+>  World
+>
+@ MINIMAL_DOUBLE_HEAD lines
+>  ╷ 
+>  │ 
+> ═╪ 
+>  │ 
+> ─┼ 
+> ─┼ 
+>  │ 
+>  ╵ 
+@ MINIMAL_DOUBLE_HEAD table
+>        ╷
+>  Name  │ Qty
+> ═══════╪═════
+>  apple │   3
+>  kiwi  │  12
+>  fig   │   7
+>        ╵
+@ MINIMAL_DOUBLE_HEAD table_lines
+>        ╷
+>  Name  │ Qty
+> ═══════╪═════
+>  apple │   3
+> ───────┼─────
+>  kiwi  │  12
+> ───────┼─────
+>  fig   │   7
+>        ╵
+@ MINIMAL_DOUBLE_HEAD table_noedge
+> Name  │ Qty
+>═══════╪═════
+> apple │   3
+> kiwi  │  12
+> fig   │   7
+@ MINIMAL_DOUBLE_HEAD table_noheader
+>        ╷
+>  apple │  3
+>  kiwi  │ 12
+>  fig   │  7
+>        ╵
+@ MINIMAL_DOUBLE_HEAD panel
+>       Title
+>  Hello
+>  World
+>
+@ SIMPLE lines
+>    
+>    
+> ── 
+>    
+>    
+> ── 
+>    
+>    
+@ SIMPLE table
+>
+>  Name    Qty
+> ─────────────
+>  apple     3
+>  kiwi     12
+>  fig       7
+>
+@ SIMPLE table_lines
+>
+>  Name    Qty
+> ─────────────
+>  apple     3
+>
+>  kiwi     12
+>
+>  fig       7
+>
+@ SIMPLE table_noedge
+> Name    Qty
+>─────────────
+> apple     3
+> kiwi     12
+> fig       7
+@ SIMPLE table_noheader
+>
+>  apple    3
+>  kiwi    12
+>  fig      7
+>
+@ SIMPLE panel
+>       Title
+>  Hello
+>  World
+>
+@ SIMPLE_HEAD lines
+>    
+>    
+> ── 
+>    
+>    
+>    
+>    
+>    
+@ SIMPLE_HEAD table
+>
+>  Name    Qty
+> ─────────────
+>  apple     3
+>  kiwi     12
+>  fig       7
+>
+@ SIMPLE_HEAD table_lines
+>
+>  Name    Qty
+> ─────────────
+>  apple     3
+>
+>  kiwi     12
+>
+>  fig       7
+>
+@ SIMPLE_HEAD table_noedge
+> Name    Qty
+>─────────────
+> apple     3
+> kiwi     12
+> fig       7
+@ SIMPLE_HEAD table_noheader
+>
+>  apple    3
+>  kiwi    12
+>  fig      7
+>
+@ SIMPLE_HEAD panel
+>       Title
+>  Hello
+>  World
+>
+@ SIMPLE_HEAVY lines
+>    
+>    
+> ━━ 
+>    
+>    
+> ━━ 
+>    
+>    
+@ SIMPLE_HEAVY table
+>
+>  Name    Qty
+> ━━━━━━━━━━━━━
+>  apple     3
+>  kiwi     12
+>  fig       7
+>
+@ SIMPLE_HEAVY table_lines
+>
+>  Name    Qty
+> ━━━━━━━━━━━━━
+>  apple     3
+>
+>  kiwi     12
+>
+>  fig       7
+>
+@ SIMPLE_HEAVY table_noedge
+> Name    Qty
+>━━━━━━━━━━━━━
+> apple     3
+> kiwi     12
+> fig       7
+@ SIMPLE_HEAVY table_noheader
+>
+>  apple    3
+>  kiwi    12
+>  fig      7
+>
+@ SIMPLE_HEAVY panel
+>       Title
+>  Hello
+>  World
+>
+@ HORIZONTALS lines
+> ── 
+>    
+> ── 
+>    
+> ── 
+> ── 
+>    
+> ── 
+@ HORIZONTALS table
+> ─────────────
+>  Name    Qty
+> ─────────────
+>  apple     3
+>  kiwi     12
+>  fig       7
+> ─────────────
+@ HORIZONTALS table_lines
+> ─────────────
+>  Name    Qty
+> ─────────────
+>  apple     3
+> ─────────────
+>  kiwi     12
+> ─────────────
+>  fig       7
+> ─────────────
+@ HORIZONTALS table_noedge
+> Name    Qty
+>─────────────
+> apple     3
+> kiwi     12
+> fig       7
+@ HORIZONTALS table_noheader
+> ────────────
+>  apple    3
+>  kiwi    12
+>  fig      7
+> ────────────
+@ HORIZONTALS panel
+> ───── Title ──────
+>  Hello
+>  World
+> ──────────────────
+@ ROUNDED lines
+>╭─┬╮
+>│ ││
+>├─┼┤
+>│ ││
+>├─┼┤
+>├─┼┤
+>│ ││
+>╰─┴╯
+@ ROUNDED table
+>╭───────┬─────╮
+>│ Name  │ Qty │
+>├───────┼─────┤
+>│ apple │   3 │
+>│ kiwi  │  12 │
+>│ fig   │   7 │
+>╰───────┴─────╯
+@ ROUNDED table_lines
+>╭───────┬─────╮
+>│ Name  │ Qty │
+>├───────┼─────┤
+>│ apple │   3 │
+>├───────┼─────┤
+>│ kiwi  │  12 │
+>├───────┼─────┤
+>│ fig   │   7 │
+>╰───────┴─────╯
+@ ROUNDED table_noedge
+> Name  │ Qty
+>───────┼─────
+> apple │   3
+> kiwi  │  12
+> fig   │   7
+@ ROUNDED table_noheader
+>╭───────┬────╮
+>│ apple │  3 │
+>│ kiwi  │ 12 │
+>│ fig   │  7 │
+>╰───────┴────╯
+@ ROUNDED panel
+>╭───── Title ──────╮
+>│ Hello            │
+>│ World            │
+>╰──────────────────╯
+@ HEAVY lines
+>┏━┳┓
+>┃ ┃┃
+>┣━╋┫
+>┃ ┃┃
+>┣━╋┫
+>┣━╋┫
+>┃ ┃┃
+>┗━┻┛
+@ HEAVY table
+>┏━━━━━━━┳━━━━━┓
+>┃ Name  ┃ Qty ┃
+>┣━━━━━━━╋━━━━━┫
+>┃ apple ┃   3 ┃
+>┃ kiwi  ┃  12 ┃
+>┃ fig   ┃   7 ┃
+>┗━━━━━━━┻━━━━━┛
+@ HEAVY table_lines
+>┏━━━━━━━┳━━━━━┓
+>┃ Name  ┃ Qty ┃
+>┣━━━━━━━╋━━━━━┫
+>┃ apple ┃   3 ┃
+>┣━━━━━━━╋━━━━━┫
+>┃ kiwi  ┃  12 ┃
+>┣━━━━━━━╋━━━━━┫
+>┃ fig   ┃   7 ┃
+>┗━━━━━━━┻━━━━━┛
+@ HEAVY table_noedge
+> Name  ┃ Qty
+>━━━━━━━╋━━━━━
+> apple ┃   3
+> kiwi  ┃  12
+> fig   ┃   7
+@ HEAVY table_noheader
+>┏━━━━━━━┳━━━━┓
+>┃ apple ┃  3 ┃
+>┃ kiwi  ┃ 12 ┃
+>┃ fig   ┃  7 ┃
+>┗━━━━━━━┻━━━━┛
+@ HEAVY panel
+>┏━━━━━ Title ━━━━━━┓
+>┃ Hello            ┃
+>┃ World            ┃
+>┗━━━━━━━━━━━━━━━━━━┛
+@ HEAVY_EDGE lines
+>┏━┯┓
+>┃ │┃
+>┠─┼┨
+>┃ │┃
+>┠─┼┨
+>┠─┼┨
+>┃ │┃
+>┗━┷┛
+@ HEAVY_EDGE table
+>┏━━━━━━━┯━━━━━┓
+>┃ Name  │ Qty ┃
+>┠───────┼─────┨
+>┃ apple │   3 ┃
+>┃ kiwi  │  12 ┃
+>┃ fig   │   7 ┃
+>┗━━━━━━━┷━━━━━┛
+@ HEAVY_EDGE table_lines
+>┏━━━━━━━┯━━━━━┓
+>┃ Name  │ Qty ┃
+>┠───────┼─────┨
+>┃ apple │   3 ┃
+>┠───────┼─────┨
+>┃ kiwi  │  12 ┃
+>┠───────┼─────┨
+>┃ fig   │   7 ┃
+>┗━━━━━━━┷━━━━━┛
+@ HEAVY_EDGE table_noedge
+> Name  │ Qty
+>───────┼─────
+> apple │   3
+> kiwi  │  12
+> fig   │   7
+@ HEAVY_EDGE table_noheader
+>┏━━━━━━━┯━━━━┓
+>┃ apple │  3 ┃
+>┃ kiwi  │ 12 ┃
+>┃ fig   │  7 ┃
+>┗━━━━━━━┷━━━━┛
+@ HEAVY_EDGE panel
+>┏━━━━━ Title ━━━━━━┓
+>┃ Hello            ┃
+>┃ World            ┃
+>┗━━━━━━━━━━━━━━━━━━┛
+@ HEAVY_HEAD lines
+>┏━┳┓
+>┃ ┃┃
+>┡━╇┩
+>│ ││
+>├─┼┤
+>├─┼┤
+>│ ││
+>└─┴┘
+@ HEAVY_HEAD table
+>┏━━━━━━━┳━━━━━┓
+>┃ Name  ┃ Qty ┃
+>┡━━━━━━━╇━━━━━┩
+>│ apple │   3 │
+>│ kiwi  │  12 │
+>│ fig   │   7 │
+>└───────┴─────┘
+@ HEAVY_HEAD table_lines
+>┏━━━━━━━┳━━━━━┓
+>┃ Name  ┃ Qty ┃
+>┡━━━━━━━╇━━━━━┩
+>│ apple │   3 │
+>├───────┼─────┤
+>│ kiwi  │  12 │
+>├───────┼─────┤
+>│ fig   │   7 │
+>└───────┴─────┘
+@ HEAVY_HEAD table_noedge
+> Name  ┃ Qty
+>━━━━━━━╇━━━━━
+> apple │   3
+> kiwi  │  12
+> fig   │   7
+@ HEAVY_HEAD table_noheader
+>┌───────┬────┐
+>│ apple │  3 │
+>│ kiwi  │ 12 │
+>│ fig   │  7 │
+>└───────┴────┘
+@ HEAVY_HEAD panel
+>┏━━━━━ Title ━━━━━━┓
+>│ Hello            │
+>│ World            │
+>└──────────────────┘
+@ DOUBLE lines
+>╔═╦╗
+>║ ║║
+>╠═╬╣
+>║ ║║
+>╠═╬╣
+>╠═╬╣
+>║ ║║
+>╚═╩╝
+@ DOUBLE table
+>╔═══════╦═════╗
+>║ Name  ║ Qty ║
+>╠═══════╬═════╣
+>║ apple ║   3 ║
+>║ kiwi  ║  12 ║
+>║ fig   ║   7 ║
+>╚═══════╩═════╝
+@ DOUBLE table_lines
+>╔═══════╦═════╗
+>║ Name  ║ Qty ║
+>╠═══════╬═════╣
+>║ apple ║   3 ║
+>╠═══════╬═════╣
+>║ kiwi  ║  12 ║
+>╠═══════╬═════╣
+>║ fig   ║   7 ║
+>╚═══════╩═════╝
+@ DOUBLE table_noedge
+> Name  ║ Qty
+>═══════╬═════
+> apple ║   3
+> kiwi  ║  12
+> fig   ║   7
+@ DOUBLE table_noheader
+>╔═══════╦════╗
+>║ apple ║  3 ║
+>║ kiwi  ║ 12 ║
+>║ fig   ║  7 ║
+>╚═══════╩════╝
+@ DOUBLE panel
+>╔═════ Title ══════╗
+>║ Hello            ║
+>║ World            ║
+>╚══════════════════╝
+@ DOUBLE_EDGE lines
+>╔═╤╗
+>║ │║
+>╟─┼╢
+>║ │║
+>╟─┼╢
+>╟─┼╢
+>║ │║
+>╚═╧╝
+@ DOUBLE_EDGE table
+>╔═══════╤═════╗
+>║ Name  │ Qty ║
+>╟───────┼─────╢
+>║ apple │   3 ║
+>║ kiwi  │  12 ║
+>║ fig   │   7 ║
+>╚═══════╧═════╝
+@ DOUBLE_EDGE table_lines
+>╔═══════╤═════╗
+>║ Name  │ Qty ║
+>╟───────┼─────╢
+>║ apple │   3 ║
+>╟───────┼─────╢
+>║ kiwi  │  12 ║
+>╟───────┼─────╢
+>║ fig   │   7 ║
+>╚═══════╧═════╝
+@ DOUBLE_EDGE table_noedge
+> Name  │ Qty
+>───────┼─────
+> apple │   3
+> kiwi  │  12
+> fig   │   7
+@ DOUBLE_EDGE table_noheader
+>╔═══════╤════╗
+>║ apple │  3 ║
+>║ kiwi  │ 12 ║
+>║ fig   │  7 ║
+>╚═══════╧════╝
+@ DOUBLE_EDGE panel
+>╔═════ Title ══════╗
+>║ Hello            ║
+>║ World            ║
+>╚══════════════════╝
+@ MARKDOWN lines
+>    
+>| ||
+>|-||
+>| ||
+>|-||
+>|-||
+>| ||
+>    
+@ MARKDOWN table
+>
+>| Name  | Qty |
+>|-------|-----|
+>| apple |   3 |
+>| kiwi  |  12 |
+>| fig   |   7 |
+>
+@ MARKDOWN table_lines
+>
+>| Name  | Qty |
+>|-------|-----|
+>| apple |   3 |
+>|-------|-----|
+>| kiwi  |  12 |
+>|-------|-----|
+>| fig   |   7 |
+>
+@ MARKDOWN table_noedge
+> Name  | Qty
+>-------|-----
+> apple |   3
+> kiwi  |  12
+> fig   |   7
+@ MARKDOWN table_noheader
+>
+>| apple |  3 |
+>| kiwi  | 12 |
+>| fig   |  7 |
+>
+@ MARKDOWN panel
+>       Title
+>| Hello            |
+>| World            |
+>

@@ -105,6 +105,12 @@ Panels support the same border styles as tables:
     ╚════════════╝
     ```
 
+All 19 of Rich's boxes work on panels too (`Ascii2`, `Simple`,
+`SimpleHead`, `SimpleHeavy`, `Markdown`, `Minimal`, `Horizontals`, ...;
+see the [table guide](tables.md#border-styles) for the full list). Boxes
+whose edges are spaces, such as `Simple` or `Markdown`, draw the title on
+an otherwise blank top line, as in Rich.
+
 ---
 
 ## Rules

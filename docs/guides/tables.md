@@ -172,11 +172,12 @@ Tables support multiple border styles:
     table.border_style(BorderStyle::Ascii);
     ```
     ```
-    +--------+---------+
-    | Name   | Value   |
-    +--------+---------+
-    | Item   | Data    |
-    +--------+---------+
+    +-------------+
+    | Name  | Qty |
+    |-------+-----|
+    | apple |   3 |
+    | kiwi  |  12 |
+    +-------------+
     ```
 
 === "Minimal"
@@ -185,12 +186,64 @@ Tables support multiple border styles:
     table.border_style(BorderStyle::Minimal);
     ```
     ```
-     ────────────────── 
-      Name     Value   
-     ────────────────── 
-      Item     Data    
-     ────────────────── 
+            ╷
+      Name  │ Qty
+    ╶───────┼─────╴
+      apple │   3
+      kiwi  │  12
+            ╵
     ```
+
+=== "Simple"
+
+    ```rust
+    table.border_style(BorderStyle::Simple);
+    ```
+    ```
+
+      Name    Qty
+     ─────────────
+      apple     3
+      kiwi     12
+
+    ```
+
+=== "Markdown"
+
+    ```rust
+    table.border_style(BorderStyle::Markdown);
+    ```
+    ```
+
+    | Name  | Qty |
+    |-------|-----|
+    | apple |   3 |
+    | kiwi  |  12 |
+
+    ```
+
+All 19 of Rich's boxes are available, with the same characters as
+`rich.box` (checked against Rich 15 by `tests/box_rich_parity.rs`):
+
+| `BorderStyle` | `box_drawing` constant | Rich |
+|:--|:--|:--|
+| `Ascii`, `Ascii2`, `AsciiDoubleHead` | `ASCII`, `ASCII2`, `ASCII_DOUBLE_HEAD` | `box.ASCII`, ... |
+| `Square`, `SquareDoubleHead` | `SQUARE`, `SQUARE_DOUBLE_HEAD` | |
+| `Minimal`, `MinimalHeavyHead`, `MinimalDoubleHead` | `MINIMAL`, ... | |
+| `Simple`, `SimpleHead`, `SimpleHeavy` | `SIMPLE`, `SIMPLE_HEAD`, `SIMPLE_HEAVY` | |
+| `Horizontals`, `Rounded` (default) | `HORIZONTALS`, `ROUNDED` | |
+| `Heavy`, `HeavyEdge`, `HeavyHead` | `HEAVY`, `HEAVY_EDGE`, `HEAVY_HEAD` | |
+| `Double`, `DoubleEdge` | `DOUBLE`, `DOUBLE_EDGE` | |
+| `Markdown` | `MARKDOWN` | |
+
+Plus `Hidden` (spaces) and `Custom(BoxStyle)`. As in Rich, a table with
+`show_header(false)` draws a headed box without its header line
+(`HeavyHead` and `SquareDoubleHead` become `Square`, the `Minimal*Head`
+boxes `Minimal`, `AsciiDoubleHead` becomes `Ascii2`; see
+`BorderStyle::plain_headed`). `SimpleHead` differs from `Simple` only in
+the line above a footer, which fast-rich tables don't have yet. Rich's
+substitution of boxes on legacy Windows consoles and ASCII-only
+terminals (`Box.substitute`) is not ported.
 
 ---
 

@@ -8,7 +8,6 @@
 //!
 //! It's feature-gated behind the `markdown` feature.
 
-use crate::box_drawing::{BoxStyle, Line};
 use crate::console::RenderContext;
 use crate::panel::{BorderStyle, Panel};
 use crate::renderable::{render_lines_with, Renderable, Segment};
@@ -675,16 +674,8 @@ impl Markdown {
             } => {
                 // Rich: Table(box=SIMPLE, pad_edge=False, show_edge=True,
                 // collapse_padding=True, style="markdown.table.border").
-                let simple = BoxStyle {
-                    top: Line::new(' ', ' ', ' ', ' '),
-                    header: Line::new(' ', ' ', ' ', ' '),
-                    head: Line::new(' ', '─', ' ', '─'),
-                    cell: Line::new(' ', ' ', ' ', ' '),
-                    mid: Line::new(' ', ' ', ' ', ' '),
-                    bottom: Line::new(' ', ' ', ' ', ' '),
-                };
                 let mut table = Table::new()
-                    .border_style(BorderStyle::Custom(simple))
+                    .border_style(BorderStyle::Simple)
                     .style(cfg.table_border_style)
                     // Rich's markdown.table.header is "not bold cyan": it
                     // cancels table.header's bold.
